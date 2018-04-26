@@ -61,7 +61,7 @@ public class Window {
      * Initialize the contents of the frame.
      */
     private void initialize() {
-        frmEditor = new JFrame("Editor");
+        frmEditor = new JFrame("Anchor Editor");
         frmEditor.setSize(1934, 1056);
         frmEditor.setLocation(-7, 0);
         frmEditor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

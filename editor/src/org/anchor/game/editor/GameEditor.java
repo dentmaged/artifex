@@ -116,6 +116,7 @@ public class GameEditor extends Game {
         physics = new PhysicsEngine();
 
         // reference shaders to load them in - only required in the editor
+        shadows = new Shadows(null);
         NormalShader.getInstance();
         WaterShader.getInstance();
 

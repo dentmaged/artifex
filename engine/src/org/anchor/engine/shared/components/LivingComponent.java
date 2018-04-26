@@ -65,8 +65,7 @@ public class LivingComponent implements IComponent {
                 Entity other = result.getOther(entity);
                 PhysicsComponent secondary = other.getComponent(PhysicsComponent.class);
 
-                float normal = Mathf.abs(result.getNormal().y);
-                if (normal > 0.8) {
+                if (result.getNormal().y < -0.8) {
                     standingOn = other;
 
                     if (!voluntaryJump) {
