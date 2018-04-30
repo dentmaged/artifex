@@ -27,12 +27,12 @@ public class AABB {
         this.z2 = Math.max(z1, z2);
 
         centerX = (x1 + x2) / 2;
-        centerX = (y1 + y2) / 2;
-        centerX = (z1 + z2) / 2;
+        centerY = (y1 + y2) / 2;
+        centerZ = (z1 + z2) / 2;
 
-        width = x2 - centerX;
-        height = y2 - centerY;
-        length = z2 - centerZ;
+        width = 2 * (x2 - centerX);
+        height = 2 * (y2 - centerY);
+        length = 2 * (z2 - centerZ);
 
         furthest = Mathf.sqrt(width * width + height * height + length * length);
     }

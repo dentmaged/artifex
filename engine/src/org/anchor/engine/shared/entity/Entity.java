@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
@@ -23,6 +24,8 @@ public class Entity {
 
     protected Map<String, String> data = new HashMap<String, String>();
     protected List<IComponent> components = new ArrayList<IComponent>(), spawnComponents = new ArrayList<IComponent>();
+
+    protected Matrix4f transformationMatrix = new Matrix4f();
 
     public Entity() {
         addComponent(new TransformComponent());
@@ -62,12 +65,7 @@ public class Entity {
     }
 
     public Matrix4f getTransformationMatrix() {
-        Matrix4f current = getComponent(TransformComponent.class).getTransformationMatrix();
-
-        if (parent != null)
-            Matrix4f.mul(parent.getTransformationMatrix(), current, current);
-
-        return current;
+        return transformationMatrix;
     }
 
     public Vector3f getVelocity() {
@@ -182,6 +180,11 @@ public class Entity {
     }
 
     public void update() {
+        VectorUtils.set(transformationMatrix, getComponent(TransformComponent.class).getTransformationMatrix());
+
+        if (parent != null)
+            Matrix4f.mul(parent.getTransformationMatrix(), transformationMatrix, transformationMatrix);
+
         for (IComponent spawn : spawnComponents)
             spawn.spawn(this);
 

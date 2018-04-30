@@ -1,8 +1,7 @@
 #version 330
 
 in vec4 viewPosition;
-in vec3 s_normal;
-in vec3 s_tangent;
+in mat3 tbn;
 in vec2 tc;
 
 FS_OUT(diffuse)
@@ -26,11 +25,9 @@ void main(void) {
 	out_diffuse.xyz = mix(pow(out_diffuse.xyz, vec3(GAMMA)), colour.xyz, colour.a);
 	out_position = vec4(viewPosition);
 
-	vec3 bitang = cross(s_normal, s_tangent);
-	mat3 tangentSpace = inverse(transpose(mat3(s_tangent, bitang, s_normal)));
-	vec3 mappedNormal = 2 * texture2D(normalMap, tc).xyz - 1;
+	vec3 mappedNormal = texture2D(normalMap, tc).xyz * 2 - 1;
+	out_normal = vec4(normalize(tbn * mappedNormal), reflectivity);
 
-	out_normal = vec4(normalize(tangentSpace * mappedNormal), reflectivity);
 	out_bloom = vec4(0, 0, 0, 1);
 	out_godrays = vec4(0, 0, 0, 1);
 

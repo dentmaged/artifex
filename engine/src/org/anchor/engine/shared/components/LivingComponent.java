@@ -40,13 +40,13 @@ public class LivingComponent implements IComponent {
     }
 
     public void move(Scene scene, Terrain terrain) {
-        float friction = 0.65f;
-        if (isInAir)
-            friction = 1;
-
         Vector3f velocity = entity.getVelocity();
         Vector3f rotation = entity.getRotation();
         Vector3f position = entity.getPosition();
+
+        float friction = 0.65f;
+        if (isInAir)
+            friction = 1;
 
         velocity.x *= friction;
         velocity.z *= friction;
@@ -76,12 +76,20 @@ public class LivingComponent implements IComponent {
                             position.y = point.y - 0.01f;
                     }
                 } else {
-                    Vector3f.sub(position, velocity, position);
-
                     Vector3f relative = Vector3f.sub(velocity, secondary.velocity, null);
                     float dot = Vector3f.dot(relative, result.getNormal());
-                    Vector3f i = VectorUtils.mul(result.getNormal(), dot);
-                    Vector3f.sub(velocity, i, velocity);
+                    if (dot > 0) {
+                        Vector3f translation = VectorUtils.mul(result.getNormal(), -result.getOverlap());
+                        Vector3f thisToOther = Vector3f.sub(position, other.getPosition(), null);
+                        if (Vector3f.dot(result.getNormal(), thisToOther) < 0)
+                            translation.set(VectorUtils.mul(result.getNormal(), result.getOverlap()));
+
+                        Vector3f.sub(position, VectorUtils.mul(translation, 0.25f), position);
+
+                        Vector3f norm = new Vector3f(result.getNormal());
+                        norm.scale(Vector3f.dot(velocity, result.getNormal()));
+                        Vector3f.sub(velocity, norm, velocity);
+                    }
                 }
             }
 

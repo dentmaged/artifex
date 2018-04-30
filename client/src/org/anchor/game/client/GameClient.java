@@ -14,7 +14,6 @@ import org.anchor.client.engine.renderer.types.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.components.LivingComponent;
-import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -70,13 +69,12 @@ public class GameClient extends Game {
 
         loadMap(FileHelper.newGameFile("maps", "test.asg"));
 
-        Entity water = new Entity(MeshComponent.class, PhysicsComponent.class, WaterComponent.class);
+        Entity water = new Entity(MeshComponent.class, WaterComponent.class);
         water.setValue("model", "editor/cube");
         water.setValue("collisionMesh", "aabb");
-        water.getPosition().set(55, 0, 55);
-        water.getScale().set(75, 1, 75);
+        water.getPosition().set(55, -5, 55);
+        water.getScale().set(75, 10, 75);
         water.spawn();
-        water.getComponent(PhysicsComponent.class).gravity = false;
         scene.getEntities().add(water);
     }
 
@@ -100,6 +98,8 @@ public class GameClient extends Game {
             scene.updateFixed();
             FrustumCull.update();
         }
+
+        player.update();
         scene.update();
 
         if (KeyboardUtils.isKeyPressed(Keyboard.KEY_ESCAPE)) {
@@ -150,12 +150,14 @@ public class GameClient extends Game {
     @Override
     public void shutdown() {
         shadows.shutdown();
+        fxaa.shutdown();
         deferred.shutdown();
         bloom.shutdown();
         godrays.shutdown();
         vignette.shutdown();
 
         Requester.shutdown();
+        Audio.shutdown();
         Loader.getInstance().shutdown();
     }
 

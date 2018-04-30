@@ -12,6 +12,7 @@ import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Light;
@@ -30,6 +31,7 @@ import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyShader;
+import org.anchor.game.client.shaders.StaticShader;
 import org.anchor.game.client.shaders.WaterShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
@@ -57,6 +59,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class GameEditor extends Game {
 
+    protected FXAA fxaa;
     protected Bloom bloom;
     protected Godrays godrays;
     protected Vignette vignette;
@@ -102,6 +105,7 @@ public class GameEditor extends Game {
     public void init() {
         System.out.println("APP INIT");
 
+        fxaa = new FXAA();
         deferred = new DeferredShading();
         bloom = new Bloom();
         godrays = new Godrays();
@@ -116,8 +120,9 @@ public class GameEditor extends Game {
         physics = new PhysicsEngine();
 
         // reference shaders to load them in - only required in the editor
-        shadows = new Shadows(null);
+        shadows = new Shadows(null); // WaterShader requires shadows to be initialised
         NormalShader.getInstance();
+        StaticShader.getInstance();
         WaterShader.getInstance();
 
         if (level == null)
@@ -175,6 +180,7 @@ public class GameEditor extends Game {
                     player.getPosition().set(spawn.get(0).getPosition());
                 else
                     player.getPosition().set(0, 0, 0);
+                player.getVelocity().set(0, 0, 0);
 
                 livingComponent.pitch = originalPlayerPitch;
                 player.getRotation().y = originalPlayerYaw;
@@ -220,12 +226,15 @@ public class GameEditor extends Game {
 
             FrustumCull.update();
         }
+
+        player.update();
         scene.update();
 
         if (!game) {
             ray = picker.getRay(Mouse.getX(), Mouse.getY());
             TerrainRaycast terrainRaycast = picker.getTerrain(ray);
             EntityRaycast entityRaycast = picker.getEntity(scene, ray);
+
             boolean ignore = false;
             if (editor.getSelectedEntity() != null)
                 ignore = gizmo.update(editor.getSelectedEntity(), ray);
@@ -305,7 +314,8 @@ public class GameEditor extends Game {
             gizmo.render();
 
         deferred.output();
-        bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
+        fxaa.perform(deferred.getOutputFBO().getColourTexture());
+        bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
         godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), livingComponent.getViewMatrix(), lightComponent);
         vignette.perform(godrays.getOutputFBO().getColourTexture());
     }
@@ -347,7 +357,6 @@ public class GameEditor extends Game {
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
         lightComponent.attenuation.set(1, 0, 0);
-        lightComponent.colour.set(0.5f, 0.5f, 0.5f);
         light.spawn();
         shadows = new Shadows(lightComponent);
 
@@ -411,9 +420,10 @@ public class GameEditor extends Game {
     }
 
     public void addEntity(Entity entity) {
-        editor.setSelectedEntity(entity);
         scene.getEntities().add(entity);
         editor.updateList();
+
+        editor.setSelectedEntity(entity);
     }
 
     public void removeEntity(Entity entity) {

@@ -146,10 +146,10 @@ void main(void) {
 
 	vec2 distortedTexCoords = texture2D(dudvMap, vec2(tc.x + moveFactor, tc.y)).xy * 0.1;
 	distortedTexCoords = tc + vec2(distortedTexCoords.x, distortedTexCoords.y + moveFactor);
-	vec2 totalDistortion = (texture2D(dudvMap, distortedTexCoords).xy * 2 - 1) * waveStrength * clamp(waterDepth / 20, 0, 1);
+	vec2 totalDistortion = (texture2D(dudvMap, distortedTexCoords).xy * 2 - 1) * waveStrength * depthReduction;
 
 	vec4 normalMapColour = texture2D(normalMap, distortedTexCoords);
-	vec3 localNormal = vec3(normalMapColour.r * 2 - 1, normalMapColour.b * 2 - 1, normalMapColour.g * 2 - 1);
+	vec3 localNormal = vec3(normalMapColour.r * 2 - 1, normalMapColour.b * 3, normalMapColour.g * 2 - 1);
 	vec3 unitNormal = normalize(mat3(normalMatrix) * localNormal);
 
 	vec3 unitVectorToCamera = normalize(-viewPosition.xyz);
@@ -169,7 +169,7 @@ void main(void) {
 
 	vec3 calculatedReflectColour = mix(baseColour, topColour, max(dot(reflected, vec3(0, 1, 0)), 0));
 	calculatedReflectColour.xyz = pow(calculatedReflectColour.xyz, vec3(GAMMA));
-	vec4 reflectColour = vec4(mix(calculatedReflectColour, texture2D(scene, coords.xy).xyz, factor), 1);
+	vec3 reflectColour = mix(calculatedReflectColour, texture2D(scene, coords.xy).xyz, factor);
 
 	vec3 totalDiffuse = vec3(0);
 	vec3 totalSpecular = vec3(0);
@@ -196,11 +196,18 @@ void main(void) {
 		totalSpecular += dampedFactor * reflectivity * lightColour[i] / attFactor;
 	}
 	totalDiffuse = max(totalDiffuse, minDiffuse);
+	totalSpecular *= depthReduction;
 
-	out_diffuse = vec4(totalDiffuse, 1) * reflectColour * vec4(fresnel, 1) + vec4(totalSpecular, 0);
-	out_diffuse = mix(vec4(baseColour, 1), out_diffuse, visibility);
-	out_diffuse.a = depthReduction;
+	out_bloom = vec4(0, 0, 0, 0);
+	out_godrays = vec4(0, 0, 0, 0);
 
-	out_bloom = vec4(0, 0, 0, 1);
-	out_godrays = vec4(0, 0, 0, 1);
+	if (!gl_FrontFacing) {
+		out_diffuse = vec4(texture2D(scene, clamp(ndc + totalDistortion, 0.001, 0.999)).xyz * fresnel * totalDiffuse, 1);
+		out_bloom.a = dot(unitVectorToCamera, unitNormal) * 2;
+		out_godrays.a = out_bloom.a;
+	} else {
+		out_diffuse = vec4(totalDiffuse * reflectColour * fresnel, 1) + vec4(totalSpecular, 0);
+		out_diffuse = mix(vec4(baseColour, 1), out_diffuse, visibility);
+		out_diffuse.a = depthReduction;
+	}
 }

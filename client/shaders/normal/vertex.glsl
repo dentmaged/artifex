@@ -6,8 +6,7 @@ in vec3 normal;
 in vec3 tangent;
 
 out vec4 viewPosition;
-out vec3 s_normal;
-out vec3 s_tangent;
+out mat3 tbn;
 out vec2 tc;
 
 uniform mat4 projectionMatrix;
@@ -23,8 +22,10 @@ void main(void) {
 	viewPosition = viewMatrix * worldPosition;
 	gl_Position = projectionMatrix * viewPosition;
 
-	s_normal = normalize((normalMatrix * vec4(normal, 0)).xyz);
-	s_tangent = normalize((normalMatrix * vec4(tangent, 0)).xyz);
-	s_tangent = normalize(s_tangent - dot(s_tangent, s_normal) * s_normal);
+	vec3 normal = normalize(mat3(normalMatrix) * normal);
+	vec3 tangent = normalize(mat3(normalMatrix) * tangent);
+	vec3 bitangent = normalize(mat3(normalMatrix) * cross(normal, tangent));
+	tbn = mat3(tangent, bitangent, normal);
+
 	tc = (textureCoordinates / numberOfRows) + offset;
 }

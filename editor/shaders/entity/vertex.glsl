@@ -21,6 +21,6 @@ void main(void) {
 	viewPosition = viewMatrix * worldPosition;
 	gl_Position = projectionMatrix * viewPosition;
 
-	s_normal = normalize((normalMatrix * vec4(normal, 0)).xyz);
+	s_normal = normalize(mat3(normalMatrix) * normal);
 	tc = (textureCoordinates / numberOfRows) + offset;
 }

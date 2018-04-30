@@ -60,10 +60,11 @@ public class SSAO {
             Vector3f sample = new Vector3f(random.nextFloat() * 2 - 1, random.nextFloat() * 2 - 1, random.nextFloat());
             sample.normalise();
             sample.scale(random.nextFloat());
-            float scale = (float) (i) / 64f;
 
+            float scale = (float) i / 64f;
             scale = Mathf.lerp(0.1f, 1.0f, scale * scale);
             sample.scale(scale);
+
             samples.add(sample);
         }
 

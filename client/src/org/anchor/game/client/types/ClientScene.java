@@ -118,6 +118,7 @@ public class ClientScene extends Scene {
 
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
         for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
             Renderer.bind(entry.getKey());
 
@@ -126,6 +127,7 @@ public class ClientScene extends Scene {
                 shader.start();
                 shader.loadEntitySpecificInformation(entity);
 
+                GL11.glDisable(GL11.GL_CULL_FACE);
                 Renderer.render(entry.getKey());
 
                 shader.stop();
@@ -133,6 +135,7 @@ public class ClientScene extends Scene {
 
             Renderer.unbind(entry.getKey());
         }
+
         GL11.glDisable(GL11.GL_BLEND);
     }
 

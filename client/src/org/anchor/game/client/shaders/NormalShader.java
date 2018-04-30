@@ -14,6 +14,7 @@ public class NormalShader extends ModelShader {
     @Override
     public void loadEntitySpecificInformation(Entity entity) {
         super.loadEntitySpecificInformation(entity);
+
         loadFloat("reflectivity", entity.getComponent(MeshComponent.class).model.getTexture().getReflectivity());
         loadFloat("shineDamper", entity.getComponent(MeshComponent.class).model.getTexture().getShineDamper());
 

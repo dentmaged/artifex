@@ -4,12 +4,15 @@ import org.anchor.engine.shared.entity.Entity;
 
 public class BroadphaseCollisionResult {
 
-    private Entity one;
-    private Entity two;
+    private Entity one, two;
+    private int meshOne, meshTwo;
 
-    public BroadphaseCollisionResult(Entity one, Entity two) {
+    public BroadphaseCollisionResult(Entity one, Entity two, int meshOne, int meshTwo) {
         this.one = one;
         this.two = two;
+
+        this.meshOne = meshOne;
+        this.meshTwo = meshTwo;
     }
 
     public Entity getOne() {
@@ -18,6 +21,14 @@ public class BroadphaseCollisionResult {
 
     public Entity getTwo() {
         return two;
+    }
+
+    public int getMeshOne() {
+        return meshOne;
+    }
+
+    public int getMeshTwo() {
+        return meshTwo;
     }
 
 }

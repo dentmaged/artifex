@@ -130,7 +130,7 @@ public class MeshComponent implements IComponent {
         if (model == null || !model.isLoaded())
             return;
 
-        if (model.getTexture().getNormalMap() != 0)
+        if (model.getTexture().getNormalMap() != -1)
             shader = NormalShader.getInstance();
         else
             shader = StaticShader.getInstance();
@@ -141,8 +141,7 @@ public class MeshComponent implements IComponent {
 
     @Property("Set collision mesh (AABB)")
     public void setCollisionMeshAABB() {
-        AABB aabb = model.getMesh().getAABB();
-        if (entity == null || aabb == null)
+        if (entity == null)
             return;
 
         PhysicsComponent component = entity.getComponent(PhysicsComponent.class);
@@ -150,7 +149,20 @@ public class MeshComponent implements IComponent {
             entity.addComponent(component = new PhysicsComponent());
 
         entity.setValue("collisionMesh", "aabb");
-        component.mesh = CollisionMeshLoader.loadCollisionMesh("aabb");
+        component.meshes = CollisionMeshLoader.loadCollisionMesh("aabb");
+    }
+
+    @Property("Set collision mesh (model)")
+    public void setCollisionMeshModel() {
+        if (entity == null)
+            return;
+
+        PhysicsComponent component = entity.getComponent(PhysicsComponent.class);
+        if (component == null)
+            entity.addComponent(component = new PhysicsComponent());
+
+        entity.setValue("collisionMesh", entity.getValue("model"));
+        component.meshes = CollisionMeshLoader.loadCollisionMesh(entity.getValue("collisionMesh"));
     }
 
 }

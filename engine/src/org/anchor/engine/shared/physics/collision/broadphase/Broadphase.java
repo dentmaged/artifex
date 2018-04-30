@@ -3,6 +3,7 @@ package org.anchor.engine.shared.physics.collision.broadphase;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
@@ -42,9 +43,26 @@ public class Broadphase {
                 }
 
                 checks.add(thisCheck);
+                if (primary.getWholeAABB().collides(secondary.getWholeAABB())) {
+                    int x = -1;
+                    int y = -1;
 
-                if (primary.getAABB().collides(secondary.getAABB()))
-                    results.add(new BroadphaseCollisionResult(one, two));
+                    meshCheckOuter: for (int i = 0; i < primary.getMeshCount(); i++) {
+                        AABB a = primary.getAABB(i);
+
+                        for (int j = 0; j < secondary.getMeshCount(); j++) {
+                            if (a.collides(secondary.getAABB(j))) {
+                                x = i;
+                                y = j;
+
+                                break meshCheckOuter;
+                            }
+                        }
+                    }
+
+                    if (x >= 0 && y >= 0)
+                        results.add(new BroadphaseCollisionResult(one, two, x, y));
+                }
             }
         }
 
@@ -75,8 +93,26 @@ public class Broadphase {
             if (!primary.canCollideWith(two) || !secondary.canCollideWith(one))
                 continue;
 
-            if (primary.getAABB().collides(secondary.getAABB()))
-                results.add(new BroadphaseCollisionResult(one, two));
+            if (primary.getWholeAABB().collides(secondary.getWholeAABB())) {
+                int x = -1;
+                int y = -1;
+
+                meshCheckOuter: for (int i = 0; i < primary.getMeshCount(); i++) {
+                    AABB a = primary.getAABB(i);
+
+                    for (int j = 0; j < secondary.getMeshCount(); j++) {
+                        if (a.collides(secondary.getAABB(j))) {
+                            x = i;
+                            y = j;
+
+                            break meshCheckOuter;
+                        }
+                    }
+                }
+
+                if (x >= 0 && y >= 0)
+                    results.add(new BroadphaseCollisionResult(one, two, x, y));
+            }
         }
 
         return results;

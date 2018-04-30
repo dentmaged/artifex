@@ -15,17 +15,20 @@ public class CollisionMesh {
     protected int[] indices;
     protected AABB aabb;
 
-    public CollisionMesh(float[] vertices, float[] normals, int[] indices) {
+    public CollisionMesh(List<Vector3f> vertices, List<Vector3f> normals, List<Integer> indices) {
         this.vertices = new ArrayList<Vector4f>();
         this.normals = new ArrayList<Vector4f>();
-        this.indices = indices;
         this.aabb = AABB.generateAABB(vertices);
 
-        for (int i = 0; i < vertices.length; i += 3)
-            this.vertices.add(new Vector4f(vertices[i], vertices[i + 1], vertices[i + 2], 1));
+        for (Vector3f vertex : vertices)
+            this.vertices.add(new Vector4f(vertex.x, vertex.y, vertex.z, 1));
 
-        for (int i = 0; i < normals.length; i += 3)
-            this.normals.add(new Vector4f(normals[i], normals[i + 1], normals[i + 2], 0));
+        for (Vector3f normal : normals)
+            this.normals.add(new Vector4f(normal.x, normal.y, normal.z, 0));
+
+        this.indices = new int[indices.size()];
+        for (int i = 0; i < this.indices.length; i++)
+            this.indices[i] = indices.get(i);
     }
 
     public List<Vector3f> getVertices(Matrix4f transformationMatrix) {
@@ -39,9 +42,10 @@ public class CollisionMesh {
 
     public List<Vector3f> getNormals(Matrix4f transformationMatrix) {
         List<Vector3f> transformedNormals = new ArrayList<Vector3f>();
+        Matrix4f normalMatrix = Matrix4f.transpose(Matrix4f.invert(transformationMatrix, null), null);
 
         for (Vector4f normal : normals)
-            transformedNormals.add(new Vector3f(Matrix4f.transform(transformationMatrix, normal, null)));
+            transformedNormals.add(new Vector3f(Matrix4f.transform(normalMatrix, normal, null)));
 
         return transformedNormals;
     }

@@ -13,24 +13,30 @@ public class Narrowphase {
         PhysicsComponent primary = result.getOne().getComponent(PhysicsComponent.class);
         PhysicsComponent secondary = result.getTwo().getComponent(PhysicsComponent.class);
 
-        Vector3f[] shapePrimary = convert(primary.getVertices());
-        Vector3f[] shapeSecondary = convert(secondary.getVertices());
-        Vector3f[] normals = cull(combine(convert(primary.getNormals()), convert(secondary.getNormals())));
+        Vector3f[] shapePrimary = convert(primary.getVertices(result.getMeshOne()));
+        Vector3f[] shapeSecondary = convert(secondary.getVertices(result.getMeshTwo()));
+        Vector3f[] normals = cull(combine(convert(primary.getNormals(result.getMeshOne())), convert(secondary.getNormals(result.getMeshTwo()))));
 
         float overlap = Float.MAX_VALUE;
         Vector3f mtv = new Vector3f();
 
         for (int i = 0; i < normals.length; i++) {
-            if (!projectionOverlap(normals[i], shapePrimary, shapeSecondary)) {
-                return new NarrowphaseCollisionResult(false, result.getOne(), result.getTwo(), null, 0);
-            } else {
-                Vector3f normal = normals[i];
+            float[] line1 = projectOnPlane(normals[i], shapePrimary);
+            float[] line2 = projectOnPlane(normals[i], shapeSecondary);
 
-                float o = overlap(projectOnPlane(normal, shapePrimary), projectOnPlane(normal, shapeSecondary));
+            if (!(line1[0] > line2[1] || line1[1] < line2[0])) {
+                float o = Float.MAX_VALUE;
+                if (line1[1] > line2[0])
+                    o = line1[1] - line2[0];
+                else if (line1[0] > line2[1])
+                    o = line1[0] - line2[1];
+
                 if (o < overlap) {
                     overlap = o;
-                    mtv.set(normal);
+                    mtv.set(normals[i]);
                 }
+            } else {
+                return new NarrowphaseCollisionResult(false, result.getOne(), result.getTwo(), null, 0);
             }
         }
 
@@ -53,23 +59,6 @@ public class Narrowphase {
         return new float[] {
                 min, max
         };
-    }
-
-    private static boolean lineOverlap(float[] line1, float[] line2) {
-        return !(line1[0] > line2[1] || line1[1] < line2[0]);
-    }
-
-    private static boolean projectionOverlap(Vector3f normal, Vector3f[] primary, Vector3f[] secondary) {
-        return lineOverlap(projectOnPlane(normal, primary), projectOnPlane(normal, secondary));
-    }
-
-    private static float overlap(float[] line1, float[] line2) {
-        if (line1[1] > line2[0])
-            return line1[1] - line2[0];
-        else if (line1[0] > line2[1])
-            return line1[0] - line2[1];
-
-        return 0;
     }
 
     public static Vector3f[] convert(List<Vector3f> list) {

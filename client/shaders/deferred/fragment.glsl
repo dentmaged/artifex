@@ -59,7 +59,7 @@ void main(void) {
 	shadowCoords.w = clamp(1 - shadowCoordinatesDistance, 0, 1);
 
 	float total = 0;
-	float bias = 0.00;
+	float bias = 0.005;
 	for (int x = -pcfCount; x <= pcfCount; x++) {
 		for (int y = -pcfCount; y <= pcfCount; y++) {
 			if (shadowCoords.z > texture2D(shadowMap, shadowCoords.xy + vec2(x, y) * texelSize).r + bias) {
