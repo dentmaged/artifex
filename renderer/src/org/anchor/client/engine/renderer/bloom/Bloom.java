@@ -1,56 +1,62 @@
 package org.anchor.client.engine.renderer.bloom;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
+import org.anchor.client.engine.renderer.autoexposure.AutoExposure;
 import org.anchor.client.engine.renderer.blur.Blur;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 
 public class Bloom {
 
     private Framebuffer outputFBO;
     protected BloomShader bloomShader;
     protected CombineShader combineShader;
-    protected Blur blur;
 
-    public static float exposure = 1;
+    protected AutoExposure autoExposure;
+    protected Blur blurOne, blurTwo, blurThree;
 
     public Bloom() {
-        outputFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.DEPTH_TEXTURE);
+        outputFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
         bloomShader = BloomShader.getInstance();
         combineShader = CombineShader.getInstance();
-        blur = new Blur();
+
+        autoExposure = new AutoExposure();
+        blurOne = new Blur(Display.getWidth() / 2, Display.getHeight() / 2);
+        blurTwo = new Blur(Display.getWidth() / 4, Display.getHeight() / 4);
+        blurThree = new Blur(Display.getWidth() / 8, Display.getHeight() / 8);
     }
 
     public void perform(int scene, int bloomTexture) {
         bloomShader.start();
         QuadRenderer.bind();
+        Engine.bind2DTexture(bloomTexture, 0);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, bloomTexture);
-
-        outputFBO.bindFrameBuffer();
+        outputFBO.bindFramebuffer();
         QuadRenderer.render();
-        outputFBO.unbindFrameBuffer();
+        outputFBO.unbindFramebuffer();
 
         QuadRenderer.unbind();
         bloomShader.stop();
 
-        blur.perform(outputFBO.getColourTexture());
+        blurOne.perform(outputFBO.getColourTexture());
+        blurTwo.perform(outputFBO.getColourTexture());
+        blurThree.perform(outputFBO.getColourTexture());
+
+        autoExposure.perform(scene);
 
         combineShader.start();
         QuadRenderer.bind();
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, scene);
-        GL13.glActiveTexture(GL13.GL_TEXTURE1);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, blur.getOutputFBO().getColourTexture());
+        Engine.bind2DTexture(scene, 0);
+        Engine.bindColourTexture(blurOne.getOutputFBO(), 1);
+        Engine.bindColourTexture(blurTwo.getOutputFBO(), 2);
+        Engine.bindColourTexture(blurThree.getOutputFBO(), 3);
+        Engine.bind2DTexture(autoExposure.getExposureTexture(), 4);
 
-        outputFBO.bindFrameBuffer();
-        combineShader.loadInformation(exposure);
+        outputFBO.bindFramebuffer();
         QuadRenderer.render();
-        outputFBO.unbindFrameBuffer();
+        outputFBO.unbindFramebuffer();
 
         QuadRenderer.unbind();
         combineShader.stop();
@@ -58,13 +64,19 @@ public class Bloom {
 
     public void shutdown() {
         outputFBO.shutdown();
-        blur.shutdown();
+        blurOne.shutdown();
+        blurTwo.shutdown();
+        blurThree.shutdown();
         bloomShader.shutdown();
         combineShader.shutdown();
     }
 
     public Framebuffer getOutputFBO() {
         return outputFBO;
+    }
+
+    public int getExposureTexture() {
+        return autoExposure.getExposureTexture();
     }
 
 }

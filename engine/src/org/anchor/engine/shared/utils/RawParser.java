@@ -1,5 +1,9 @@
 package org.anchor.engine.shared.utils;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+
+import org.anchor.engine.shared.physics.Material;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -8,15 +12,20 @@ public class RawParser {
     private static RawParser instance;
 
     public Object decode(String value, Class<?> type) {
+        if (value.length() == 0)
+            return null;
+
         String[] parts = value.split("@");
-        if (type == float.class)
-            return Float.parseFloat(value);
-        if (type == int.class)
-            return Integer.parseInt(value);
         if (type == Vector3f.class)
             return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
         if (type == Vector4f.class)
             return new Vector4f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]), Float.parseFloat(parts[3]));
+        if (type == Material.class)
+            return new Material(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
+        if (type == float.class)
+            return Float.parseFloat(value);
+        if (type == int.class)
+            return Integer.parseInt(value);
         if (type == boolean.class)
             return Boolean.parseBoolean(value);
         if (type == String.class)
@@ -38,6 +47,12 @@ public class RawParser {
             return v.x + "@" + v.y + "@" + v.z + "@" + v.w;
         }
 
+        if (value instanceof Material) {
+            Material material = (Material) value;
+
+            return material.getRestition() + "@" + material.getDensity() + "@" + material.getFriction();
+        }
+
         if (value instanceof Float || value instanceof Integer || value instanceof Boolean)
             return value + "";
 
@@ -45,6 +60,72 @@ public class RawParser {
             return (String) value;
 
         return "";
+    }
+
+    public void write(DataOutputStream stream, Object value) {
+        try {
+            if (value instanceof Vector3f) {
+                Vector3f v = (Vector3f) value;
+
+                stream.writeFloat(v.x);
+                stream.writeFloat(v.y);
+                stream.writeFloat(v.z);
+            }
+
+            if (value instanceof Vector4f) {
+                Vector4f v = (Vector4f) value;
+
+                stream.writeFloat(v.x);
+                stream.writeFloat(v.y);
+                stream.writeFloat(v.z);
+                stream.writeFloat(v.w);
+            }
+
+            if (value instanceof Material) {
+                Material material = (Material) value;
+
+                stream.writeFloat(material.getRestition());
+                stream.writeFloat(material.getDensity());
+                stream.writeFloat(material.getFriction());
+            }
+
+            if (value instanceof Float)
+                stream.writeFloat((float) value);
+
+            if (value instanceof Integer)
+                stream.writeInt((int) value);
+
+            if (value instanceof Boolean)
+                stream.writeBoolean((boolean) value);
+
+            if (value instanceof String)
+                stream.writeUTF((String) value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Object read(DataInputStream stream, Class<?> type) {
+        try {
+            if (type == Vector3f.class)
+                return new Vector3f(stream.readFloat(), stream.readFloat(), stream.readFloat());
+            if (type == Vector4f.class)
+                return new Vector4f(stream.readFloat(), stream.readFloat(), stream.readFloat(), stream.readFloat());
+            if (type == Material.class)
+                return new Material(stream.readFloat(), stream.readFloat(), stream.readFloat());
+            if (type == float.class)
+                return stream.readFloat();
+            if (type == int.class)
+                return stream.readInt();
+            if (type == boolean.class)
+                stream.readBoolean();
+            if (type == String.class)
+                return stream.readUTF();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public static RawParser getInstance() {

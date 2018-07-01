@@ -4,22 +4,17 @@ in vec3 position;
 in vec2 textureCoordinates;
 in vec3 normal;
 
-out vec4 viewPosition;
 out vec3 s_normal;
 out vec2 tc;
 
-uniform mat4 projectionMatrix;
-uniform mat4 viewMatrix;
-uniform mat4 transformationMatrix;
+uniform mat4 projectionViewTransformationMatrix;
 uniform mat4 normalMatrix;
 
 uniform float numberOfRows;
 uniform vec2 offset;
 
 void main(void) {
-	vec4 worldPosition = transformationMatrix * vec4(position, 1);
-	viewPosition = viewMatrix * worldPosition;
-	gl_Position = projectionMatrix * viewPosition;
+	gl_Position = projectionViewTransformationMatrix * vec4(position, 1);
 
 	s_normal = normalize(mat3(normalMatrix) * normal);
 	tc = (textureCoordinates / numberOfRows) + offset;

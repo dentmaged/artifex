@@ -4,6 +4,7 @@ in vec3 position;
 in vec2 textureCoordinates;
 
 out mat4 viewModelMatrix;
+out vec4 worldPosition;
 out vec4 viewPosition;
 out vec4 clipSpace;
 out vec4 shadowCoords;
@@ -23,7 +24,7 @@ uniform float shadowDistance;
 const float transitionDistance = 3;
 
 void main(void) {
-	vec4 worldPosition = transformationMatrix * vec4(position, 1);
+	worldPosition = transformationMatrix * vec4(position, 1);
 	shadowCoords = toShadowMapSpace * worldPosition;
 	viewPosition = viewMatrix * worldPosition;
 	clipSpace = projectionMatrix * viewPosition;

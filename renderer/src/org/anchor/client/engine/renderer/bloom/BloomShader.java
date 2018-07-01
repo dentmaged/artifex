@@ -11,16 +11,16 @@ public class BloomShader extends Shader {
     }
 
     @Override
+    protected void bindAttributes() {
+        super.bindFragOutput(0, "out_colour");
+        super.bindAttribute(0, "position");
+    }
+
+    @Override
     public void start() {
         super.start();
 
         loadInt("scene", 0);
-    }
-
-    @Override
-    protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
-        super.bindAttribute(0, "position");
     }
 
     public static BloomShader getInstance() {

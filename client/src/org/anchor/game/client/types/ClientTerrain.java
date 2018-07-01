@@ -1,12 +1,13 @@
 package org.anchor.game.client.types;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.engine.shared.terrain.Terrain;
-import org.anchor.game.client.GameClient;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Vector3f;
@@ -19,34 +20,66 @@ public class ClientTerrain extends Terrain {
     protected Vector4f colour = new Vector4f();
 
     protected List<Integer> offsets = new ArrayList<Integer>();
-    protected float[] vertices, normals, textureCoords;
-    protected int[] indices;
 
     public ClientTerrain(int gridX, int gridZ, String heightmap, TerrainTexture textures) {
+        this(Terrain.DEFAULT_SIZE, gridX, gridZ, heightmap, textures);
+    }
+
+    public ClientTerrain(float size, int gridX, int gridZ, String heightmap, TerrainTexture textures) {
         super(gridX, gridZ, heightmap);
 
         this.textures = textures;
     }
 
-    @Override
-    public void update() {
-        float distance = Vector3f.sub(GameClient.getPlayer().getPosition(), center, null).lengthSquared();
-        if (distance < LODs[0])
-            LOD = 0;
-        else if (distance < LODs[1])
-            LOD = 1;
-        else if (distance < LODs[2])
-            LOD = 2;
-        else
-            LOD = 3;
+    public float getHeightAtPoint(Vector3f point) {
+        return getHeightAtPoint(point.x, point.z);
     }
 
-    public int getOffset() {
-        return offsets.get(LOD);
+    public float getHeightAtPoint(float x, float z) {
+        float localX = x - this.x;
+        float localZ = z - this.z;
+
+        int arrayX = (int) (localX * getIncrement());
+        int arrayZ = (int) (localZ * getIncrement());
+
+        if (arrayX < 0 || arrayX >= heights.length || arrayZ < 0 || arrayZ >= heights.length)
+            return 0;
+
+        return heights[arrayX][arrayZ];
     }
 
-    public int getEnd() {
-        return offsets.get(LOD + 1) - getOffset();
+    public void setHeightAtPoint(Vector3f point, float height) {
+        setHeightAtPoint(point.x, point.z, height);
+    }
+
+    public void setHeightAtPoint(float x, float z, float height) {
+        float localX = x - this.x;
+        float localZ = z - this.z;
+
+        int arrayX = (int) (localX * getIncrement());
+        int arrayZ = (int) (localZ * getIncrement());
+
+        if (arrayX < 0 || arrayX >= heights.length || arrayZ < 0 || arrayZ >= heights.length)
+            return;
+
+        heights[arrayX][arrayZ] = height;
+    }
+
+    public void increaseHeightAtPoint(Vector3f point, float amount) {
+        increaseHeightAtPoint(point.x, point.z, amount);
+    }
+
+    public void increaseHeightAtPoint(float x, float z, float amount) {
+        float localX = x - this.x;
+        float localZ = z - this.z;
+
+        int arrayX = (int) (localX * getIncrement());
+        int arrayZ = (int) (localZ * getIncrement());
+
+        if (arrayX < 0 || arrayX >= heights.length || arrayZ < 0 || arrayZ >= heights.length)
+            return;
+
+        heights[arrayX][arrayZ] += amount;
     }
 
     public Mesh getMesh() {
@@ -64,6 +97,43 @@ public class ClientTerrain extends Terrain {
         return colour;
     }
 
+    public void reloadHeights() {
+        if (mesh == null) {
+            loadHeights();
+
+            return;
+        }
+
+        int vertexPointer = 0;
+        int v = heights.length;
+        int count = v * v;
+
+        float[] vertices = new float[count * 3];
+        float[] normals = new float[count * 3];
+
+        float vf = heights.length;
+        for (int i = 0; i < v; i++) {
+            for (int j = 0; j < v; j++) {
+                vertices[vertexPointer * 3] = (float) j / (vf - 1);
+                vertices[vertexPointer * 3 + 1] = heights[j][i];
+                vertices[vertexPointer * 3 + 2] = (float) i / (vf - 1);
+
+                Vector3f normal = calculateNormal(j, i);
+                normals[vertexPointer * 3] = normal.x;
+                normals[vertexPointer * 3 + 1] = normal.y;
+                normals[vertexPointer * 3 + 2] = normal.z;
+
+                vertexPointer++;
+            }
+        }
+
+        FloatBuffer buffer = BufferUtils.createFloatBuffer(vertices.length);
+        Loader.getInstance().updateVBO(mesh.getFirstVBO(), vertices, buffer);
+
+        buffer = BufferUtils.createFloatBuffer(normals.length);
+        Loader.getInstance().updateVBO(mesh.getFirstVBO() + 2, normals, buffer);
+    }
+
     public void loadHeights() {
         refresh = false;
         if (mesh != null) {
@@ -79,16 +149,16 @@ public class ClientTerrain extends Terrain {
         int v = heights.length;
         int count = v * v;
 
-        vertices = new float[count * 3];
-        normals = new float[count * 3];
-        textureCoords = new float[count * 2];
+        float[] vertices = new float[count * 3];
+        float[] normals = new float[count * 3];
+        float[] textureCoords = new float[count * 2];
 
         float vf = heights.length;
         for (int i = 0; i < v; i++) {
             for (int j = 0; j < v; j++) {
-                vertices[vertexPointer * 3] = (float) j / (vf - 1) * SIZE;
+                vertices[vertexPointer * 3] = (float) j / (vf - 1);
                 vertices[vertexPointer * 3 + 1] = heights[j][i];
-                vertices[vertexPointer * 3 + 2] = (float) i / (vf - 1) * SIZE;
+                vertices[vertexPointer * 3 + 2] = (float) i / (vf - 1);
 
                 Vector3f normal = calculateNormal(j, i);
                 normals[vertexPointer * 3] = normal.x;
@@ -108,23 +178,23 @@ public class ClientTerrain extends Terrain {
         generatedIndices.addAll(generateIndices(v, 1));
         offsets.add(generatedIndices.size());
 
-        System.out.println(generatedIndices.size() + " " + count);
-
-        generatedIndices.addAll(generateIndices(v, 2));
-        offsets.add(generatedIndices.size());
-
-        System.out.println(generatedIndices.size());
-
-        generatedIndices.addAll(generateIndices(v, 4));
-        offsets.add(generatedIndices.size());
-
-        System.out.println(generatedIndices.size());
-
-        indices = new int[generatedIndices.size()];
+        int[] indices = new int[generatedIndices.size()];
         for (int i = 0; i < indices.length; i++)
             indices[i] = generatedIndices.get(i);
 
         mesh = Loader.getInstance().loadToVAO(vertices, textureCoords, normals, indices);
+    }
+
+    @Override
+    public void unload() {
+        super.unload();
+
+        GL30.glDeleteVertexArrays(mesh.getVAO());
+        GL15.glDeleteBuffers(mesh.getFirstVBO());
+        GL15.glDeleteBuffers(mesh.getFirstVBO() + 1);
+        GL15.glDeleteBuffers(mesh.getFirstVBO() + 2);
+
+        mesh = null;
     }
 
     private Vector3f calculateNormal(int x, int z) {

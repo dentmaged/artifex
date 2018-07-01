@@ -25,14 +25,21 @@ SOFTWARE.
 */
 package org.anchor.game.client.components;
 
+import org.anchor.client.engine.renderer.Settings;
+import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
+import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
+import org.anchor.engine.common.utils.CoreMaths;
+import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.GameClient;
-import org.anchor.game.client.app.AppManager;
+import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.shaders.SkyShader;
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 public class SkyComponent implements IComponent {
 
@@ -44,10 +51,13 @@ public class SkyComponent implements IComponent {
 
     public float interp, interp_night, altitude, azimuth;
     public Vector3f direction, sunColour, originalLightColour, baseColour, topColour;
+    public CubemapRequest skybox;
+    public BakedCubemap irradiance, prefilter;
 
-    public static float TIME_SCALE = 0.001f;
+    private float calculatedAltitude = Mathf.asin(Mathf.cos(Mathf.toRadians(40)));
+    private boolean loaded;
+
     public static float ALTITUDE_MARGIN = -0.12f;
-    public static float TIME = 12;
 
     private static Vector3f DAWN_BASE = new Vector3f(0.5f, 0.15f, 0.4f), DAWN_TOP = new Vector3f(0.1f, 0.1f, 0.65f);
     private static Vector3f NOON_BASE = new Vector3f(0.34f, 0.54f, 0.88f), NOON_TOP = new Vector3f(0.1f, 0.4f, 1);
@@ -63,45 +73,47 @@ public class SkyComponent implements IComponent {
     public void spawn(Entity entity) {
         this.entity = entity;
 
+        float scale = Settings.farPlane / 1.5f;
+        entity.getScale().set(scale, scale, scale);
         entity.getComponent(MeshComponent.class).shader = SkyShader.getInstance();
         entity.getComponent(MeshComponent.class).castsShadows = false;
         entity.getComponent(MeshComponent.class).disableFrustumCulling = true;
+        entity.setValue("backface", "false");
+        entity.setHidden(false);
+        irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
+        prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 9);
+
+        skybox = Requester.requestCubemap(new String[] {
+                Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz"
+        });
     }
 
     @Override
     public void update() {
         entity.getPosition().set(GameClient.getPlayer().getPosition());
-        TIME += AppManager.getFrameTimeSeconds() * TIME_SCALE;
 
-        while (TIME >= 24)
-            TIME -= 24;
+        if (Settings.proceduralSky)
+            updateSky();
 
-        while (TIME < 0)
-            TIME += 24;
-
-        updateSky();
+        if (!loaded && skybox.isLoaded() && entity.getComponent(MeshComponent.class).model.isLoaded()) {
+            loaded = true;
+            irradiance.perform(entity.getComponent(MeshComponent.class).model, skybox.getTexture());
+            prefilter.perform(entity.getComponent(MeshComponent.class).model, skybox.getTexture());
+        }
     }
 
     protected void updateSky() {
-        float latitude = 40f * (float) Math.PI / 180f;
-        float solar_hour_angle = (TIME - 12f) * 15 * (float) Math.PI / 180f;
+        direction = new Vector3f(Matrix4f.transform(CoreMaths.createTransformationMatrix(new Vector3f(), light.getRotation(), new Vector3f(1, 1, 1)), new Vector4f(0, 0, -1, 0), null));
 
-        int sha_sign = 1;
-        if (solar_hour_angle < 0)
-            sha_sign = -1;
-
-        altitude = (float) Math.asin(Math.cos(latitude) * Math.cos(solar_hour_angle));
-        azimuth = sha_sign * (float) Math.acos((float) Math.sin(altitude) * (float) Math.sin(latitude) / ((float) Math.cos(altitude) * (float) Math.cos(latitude)));
-
-        direction = new Vector3f((float) Math.sin(azimuth), (float) Math.sin(altitude), (float) -Math.cos(azimuth));
+        azimuth = Mathf.asin(direction.x);
+        altitude = Mathf.asin(direction.y);
         direction.normalise();
 
-        float calculatedAltitude = (float) Math.asin(Math.cos(latitude));
         float max_altitude = calculatedAltitude - ALTITUDE_MARGIN;
         float min_altitude = calculatedAltitude + ALTITUDE_MARGIN;
 
         interp = (max_altitude - altitude + ALTITUDE_MARGIN) / max_altitude;
-        interp_night = (float) Math.pow((min_altitude + altitude - ALTITUDE_MARGIN) / min_altitude, 4);
+        interp_night = Mathf.pow((min_altitude + altitude - ALTITUDE_MARGIN) / min_altitude, 4);
 
         if (altitude >= ALTITUDE_MARGIN && azimuth <= 0)
             sunColour = Vector3f.add(VectorUtils.mul(DAWN_SUN, interp), VectorUtils.mul(NOON_SUN, (1 - interp)), null);
@@ -128,12 +140,33 @@ public class SkyComponent implements IComponent {
 
         if (light != null) {
             light.getPosition().set(direction);
-            light.getPosition().scale(20000);
+
             if (sunColour.equals(NIGHT_SUN))
                 lightComponent.colour.set(0, 0, 0);
             else
                 lightComponent.colour.set(originalLightColour);
         }
+    }
+
+    public int getSkybox() {
+        if (skybox.isLoaded())
+            return skybox.getTexture();
+
+        return 0;
+    }
+
+    public int getIrradiance() {
+        if (loaded)
+            return irradiance.getCubemap();
+
+        return 0;
+    }
+
+    public int getPrefilter() {
+        if (loaded)
+            return prefilter.getCubemap();
+
+        return 0;
     }
 
     @Override
@@ -145,6 +178,7 @@ public class SkyComponent implements IComponent {
         light = entity;
         lightComponent = entity.getComponent(LightComponent.class);
         originalLightColour = new Vector3f(lightComponent.colour);
+        lightComponent.directional = true;
 
         updateSky();
     }
@@ -153,6 +187,10 @@ public class SkyComponent implements IComponent {
     public IComponent copy() {
         SkyComponent copy = new SkyComponent();
         copy.setLight(light);
+        copy.skybox = skybox;
+        copy.irradiance = irradiance;
+        copy.prefilter = prefilter;
+        copy.loaded = loaded;
 
         return copy;
     }

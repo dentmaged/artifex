@@ -7,13 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.blur.Blur;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -34,11 +35,10 @@ public class SSAO {
         for (int i = 0; i < 16; i++) {
             float r = random.nextFloat() * 2 - 1;
             float g = random.nextFloat() * 2 - 1;
-            float b = 0;
 
             data[i * 3] = r;
             data[i * 3 + 1] = g;
-            data[i * 3 + 2] = b;
+            data[i * 3 + 2] = 0;
         }
 
         noise = GL11.glGenTextures();
@@ -62,7 +62,7 @@ public class SSAO {
             sample.scale(random.nextFloat());
 
             float scale = (float) i / 64f;
-            scale = Mathf.lerp(0.1f, 1.0f, scale * scale);
+            scale = Mathf.lerp(0.1f, 1, scale * scale);
             sample.scale(scale);
 
             samples.add(sample);
@@ -78,27 +78,28 @@ public class SSAO {
         shader.stop();
     }
 
-    public void perform(Matrix4f inverseViewMatrix, int position, int normal) {
-        outputFBO.bindFrameBuffer();
+    public void perform(Matrix4f inverseViewMatrix, int depthMap, int normal) {
+        outputFBO.bindFramebuffer();
 
-        shader.start();
-        shader.loadInverseViewMatrix(inverseViewMatrix);
-        QuadRenderer.bind();
+        if (Settings.performSSAO) {
+            shader.start();
+            shader.loadInverseViewMatrix(inverseViewMatrix);
+            QuadRenderer.bind();
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, position);
+            Engine.bind2DTexture(depthMap, 0);
+            Engine.bind2DTexture(normal, 1);
+            Engine.bind2DTexture(noise, 2);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE1);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, normal);
+            QuadRenderer.render();
+            QuadRenderer.unbind();
+            shader.stop();
+        } else {
+            GL11.glClearColor(1, 1, 1, 1);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+            GL11.glClearColor(0, 0, 0, 1);
+        }
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE2);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, noise);
-
-        QuadRenderer.render();
-        QuadRenderer.unbind();
-        shader.stop();
-
-        outputFBO.unbindFrameBuffer();
+        outputFBO.unbindFramebuffer();
         blur.perform(outputFBO.getColourTexture());
     }
 

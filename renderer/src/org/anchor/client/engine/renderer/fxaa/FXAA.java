@@ -1,10 +1,9 @@
 package org.anchor.client.engine.renderer.fxaa;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.util.vector.Vector2f;
 
 public class FXAA {
@@ -22,19 +21,17 @@ public class FXAA {
     }
 
     public void perform(int scene) {
-        outputFBO.bindFrameBuffer();
+        outputFBO.bindFramebuffer();
 
         shader.start();
         QuadRenderer.bind();
-
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, scene);
+        Engine.bind2DTexture(scene, 0);
 
         QuadRenderer.render();
         QuadRenderer.unbind();
         shader.stop();
 
-        outputFBO.unbindFrameBuffer();
+        outputFBO.unbindFramebuffer();
     }
 
     public Framebuffer getOutputFBO() {

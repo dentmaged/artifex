@@ -4,6 +4,7 @@ import org.anchor.engine.common.utils.Raycast;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.editor.gizmo.Gizmo;
+import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -48,17 +49,17 @@ public class RotateGizmo extends Gizmo {
     }
 
     @Override
-    public Vector3f getXRotation() {
+    public Vector3f getXRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f(0, 0, 90);
     }
 
     @Override
-    public Vector3f getYRotation() {
+    public Vector3f getYRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f(0, 90, 0);
     }
 
     @Override
-    public Vector3f getZRotation() {
+    public Vector3f getZRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f(90, 0, 0);
     }
 

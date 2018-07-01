@@ -1,7 +1,7 @@
 model:exterior/foliage/scotch_pine/oneorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@0.0@0.0Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Model:Texture Index:0
 parent:0backface:falsemodel:exterior/foliage/scotch_pine/one_leavesparent:0org.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@0.0@0.0Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Model:Texture Index:0
-hidden:truemodel:core/skysphereorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:17.21689@33.01962@-9.646071Rotation:0.0@0.0@0.0Scale:6667.0@6667.0@6667.0Model:Texture Index:0
-org.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:30.024874@12162.401@-15876.871Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:0.8@0.8@0.8Attenuation:1.0@0.0@0.0
+hidden:truemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:17.21689@33.01962@-9.646071Rotation:0.0@0.0@0.0Scale:6667.0@6667.0@6667.0Model:Texture Index:0
+org.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:30.024874@12162.401@-15876.871Rotation:109.0@23.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:0.8@0.8@0.8Attenuation:1.0@0.0@0.0
 
 00heightmapblendmapgrassmudgrass_flowerspath
 

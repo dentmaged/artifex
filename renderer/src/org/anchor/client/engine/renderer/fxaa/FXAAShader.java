@@ -12,6 +12,12 @@ public class FXAAShader extends Shader {
     }
 
     @Override
+    protected void bindAttributes() {
+        super.bindFragOutput(0, "out_colour");
+        super.bindAttribute(0, "position");
+    }
+
+    @Override
     public void start() {
         super.start();
 
@@ -20,13 +26,6 @@ public class FXAAShader extends Shader {
 
     public void loadInformation(Vector2f step) {
         loadVector("step", step);
-    }
-
-    @Override
-    protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
-
-        super.bindAttribute(0, "position");
     }
 
     public static FXAAShader getInstance() {

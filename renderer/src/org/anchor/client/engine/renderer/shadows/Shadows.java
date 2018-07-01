@@ -1,5 +1,6 @@
 package org.anchor.client.engine.renderer.shadows;
 
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.Light;
 import org.lwjgl.opengl.GL11;
@@ -9,83 +10,106 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class Shadows {
 
-    public static final int SHADOW_MAP_SIZE = 2048;
-    private static Framebuffer shadowFBO;
-    private ShadowFrustum frustum;
+    private static Framebuffer[] shadowFBOs;
+    private ShadowFrustum[] frustums;
+
+    private Matrix4f lightViewMatrices[];
+    private Matrix4f projectionViewMatrices[];
+    private Matrix4f toShadowMapSpaceMatrices[];
 
     private Matrix4f projectionMatrix = new Matrix4f();
-    private Matrix4f lightViewMatrix = new Matrix4f();
-    private Matrix4f projectionViewMatrix = new Matrix4f();
     private Matrix4f offset = createOffset();
 
     private Light sun;
 
     public Shadows(Light sun) {
-        if (shadowFBO == null)
-            shadowFBO = new Framebuffer(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, Framebuffer.DEPTH_TEXTURE);
-        frustum = new ShadowFrustum(sun, lightViewMatrix);
+        if (shadowFBOs == null) {
+            shadowFBOs = new Framebuffer[Settings.shadowSplits];
+            for (int i = 0; i < shadowFBOs.length; i++)
+                shadowFBOs[i] = new Framebuffer(Settings.shadowResolution, Settings.shadowResolution, Framebuffer.DEPTH_TEXTURE);
+        }
+
+        lightViewMatrices = new Matrix4f[Settings.shadowSplits];
+        for (int i = 0; i < lightViewMatrices.length; i++)
+            lightViewMatrices[i] = new Matrix4f();
+
+        projectionViewMatrices = new Matrix4f[Settings.shadowSplits];
+        for (int i = 0; i < projectionViewMatrices.length; i++)
+            projectionViewMatrices[i] = new Matrix4f();
+
+        toShadowMapSpaceMatrices = new Matrix4f[Settings.shadowSplits];
+        for (int i = 0; i < toShadowMapSpaceMatrices.length; i++)
+            toShadowMapSpaceMatrices[i] = new Matrix4f();
+
+        frustums = new ShadowFrustum[Settings.shadowSplits];
+        for (int i = 0; i < frustums.length; i++)
+            frustums[i] = new ShadowFrustum(lightViewMatrices[0], Settings.shadowExtents[i]);
 
         this.sun = sun;
     }
 
-    public boolean start(Vector3f position, float pitch, float yaw) {
+    public boolean start(Matrix4f inverseViewMatrix, Vector3f position, float pitch, float yaw) {
         if (sun == null)
             return false;
 
-        frustum.update(position, pitch, yaw);
+        for (ShadowFrustum frustum : frustums)
+            frustum.update(position, pitch, yaw);
 
         Vector3f direction = new Vector3f(sun.getPosition());
         direction.negate();
-        if (sun.getPosition().lengthSquared() > 0)
-            direction.normalise();
 
-        prepare(direction, frustum);
+        for (int i = 0; i < Settings.shadowSplits; i++)
+            prepare(inverseViewMatrix, direction, position, i);
 
         return true;
     }
 
-    public void stop() {
-        shadowFBO.unbindFrameBuffer();
-    }
-
-    public Matrix4f getToShadowMapSpaceMatrix() {
-        return Matrix4f.mul(offset, projectionViewMatrix, null);
-    }
-
-    public Matrix4f getProjectionViewMatrix() {
-        return projectionViewMatrix;
-    }
-
-    public ShadowFrustum getShadowBox() {
-        return frustum;
-    }
-
-    public void shutdown() {
-        shadowFBO.shutdown();
-    }
-
-    public int getPCFShadowMap() {
-        return shadowFBO.getDepthTexture();
-    }
-
-    public void setSun(Light sun) {
-        this.sun = sun;
-
-        frustum.setSun(sun);
-    }
-
-    private void prepare(Vector3f lightDirection, ShadowFrustum box) {
-        updateOrthoProjectionMatrix(box.getWidth(), box.getHeight(), box.getLength());
-        updateLightViewMatrix(lightDirection, box.getCenter());
-
-        Matrix4f.mul(projectionMatrix, lightViewMatrix, projectionViewMatrix);
-        shadowFBO.bindFrameBuffer();
+    public void bind(int shadow) {
+        shadowFBOs[shadow].bindFramebuffer();
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
 
-    private void updateLightViewMatrix(Vector3f direction, Vector3f center) {
+    public void stop() {
+        shadowFBOs[0].unbindFramebuffer();
+    }
+
+    public Matrix4f getToShadowMapSpaceMatrix(int shadow) {
+        return toShadowMapSpaceMatrices[shadow];
+    }
+
+    public Matrix4f getProjectionViewMatrix(int shadow) {
+        return projectionViewMatrices[shadow];
+    }
+
+    public void shutdown() {
+        for (Framebuffer shadowFBO : shadowFBOs)
+            shadowFBO.shutdown();
+    }
+
+    public int getPCFShadowMap(int map) {
+        return shadowFBOs[map].getDepthTexture();
+    }
+
+    public float getFarPlane(int shadow) {
+        return frustums[shadow].getFarPlane();
+    }
+
+    public void setSun(Light sun) {
+        this.sun = sun;
+    }
+
+    private void prepare(Matrix4f inverseViewMatrix, Vector3f lightDirection, Vector3f position, int shadow) {
+        ShadowFrustum box = frustums[shadow];
+        updateOrthoProjectionMatrix(box.getWidth(), box.getHeight(), box.getLength());
+        updateLightViewMatrix(lightViewMatrices[shadow], lightDirection, box.getCenter());
+
+        Matrix4f.mul(projectionMatrix, lightViewMatrices[shadow], projectionViewMatrices[shadow]);
+        Matrix4f.mul(offset, projectionViewMatrices[shadow], toShadowMapSpaceMatrices[shadow]);
+    }
+
+    private void updateLightViewMatrix(Matrix4f lightViewMatrix, Vector3f direction, Vector3f center) {
         center.negate();
         lightViewMatrix.setIdentity();
 

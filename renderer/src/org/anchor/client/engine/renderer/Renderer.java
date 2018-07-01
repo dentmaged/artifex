@@ -3,18 +3,13 @@ package org.anchor.client.engine.renderer;
 import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.client.engine.renderer.types.ModelTexture;
-import org.lwjgl.opengl.Display;
+import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
 
 public class Renderer {
-
-    public static final float FOV = 70;
-    public static final float NEAR_PLANE = 0.1f;
-    public static final float FAR_PLANE = 10000;
 
     private static Matrix4f projectionMatrix, inverseProjectionMatrix;
 
@@ -30,18 +25,12 @@ public class Renderer {
         for (int i = 0; i < mesh.getDimensions(); i++)
             GL20.glEnableVertexAttribArray(i);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getId());
-
-        if (texture.getNormalMap() != 0) {
-            GL13.glActiveTexture(GL13.GL_TEXTURE1);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getNormalMap());
-        }
-
-        if (texture.getSpecularMap() != 0) {
-            GL13.glActiveTexture(GL13.GL_TEXTURE2);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getSpecularMap());
-        }
+        Engine.bind2DTexture(texture.getId(), 0);
+        Engine.bind2DTexture(texture.getNormalMap(), 1);
+        Engine.bind2DTexture(texture.getSpecularMap(), 2);
+        Engine.bind2DTexture(texture.getMetallicMap(), 3);
+        Engine.bind2DTexture(texture.getRoughnessMap(), 4);
+        Engine.bind2DTexture(texture.getAmbientOcclusionMap(), 5);
 
         if (texture.isCullingEnabled()) {
             GL11.glEnable(GL11.GL_CULL_FACE);
@@ -58,24 +47,38 @@ public class Renderer {
     public static void unbind(Model model) {
         for (int i = 0; i < model.getMesh().getDimensions(); i++)
             GL20.glDisableVertexAttribArray(i);
+
         GL30.glBindVertexArray(0);
     }
 
     private static void createProjectionMatrix() {
         projectionMatrix = new Matrix4f();
-        float aspectRatio = (float) Display.getWidth() / (float) Display.getHeight();
-        float y_scale = (float) ((1f / Math.tan(Math.toRadians(FOV / 2f))));
-        float x_scale = y_scale / aspectRatio;
-        float frustum_length = FAR_PLANE - NEAR_PLANE;
+        float aspectRatio = (float) Settings.width / (float) Settings.height;
+        float yScale = 1f / Mathf.tan(Mathf.toRadians(Settings.fov * 0.5f));
+        float xScale = yScale / aspectRatio;
+        float frustumLength = Settings.farPlane - Settings.nearPlane;
 
-        projectionMatrix.m00 = x_scale;
-        projectionMatrix.m11 = y_scale;
-        projectionMatrix.m22 = -((FAR_PLANE + NEAR_PLANE) / frustum_length);
+        projectionMatrix.m00 = xScale;
+        projectionMatrix.m11 = yScale;
+
+        projectionMatrix.m22 = -((Settings.farPlane + Settings.nearPlane) / frustumLength);
         projectionMatrix.m23 = -1;
-        projectionMatrix.m32 = -((2 * NEAR_PLANE * FAR_PLANE) / frustum_length);
+
+        projectionMatrix.m32 = -((2 * Settings.farPlane * Settings.nearPlane) / frustumLength);
         projectionMatrix.m33 = 0;
 
         inverseProjectionMatrix = Matrix4f.invert(projectionMatrix, null);
+    }
+
+    public static void refreshProjectionMatrix() {
+        createProjectionMatrix();
+
+        for (Shader shader : Shader.getShaders()) {
+            shader.start();
+            shader.loadMatrix("projectionMatrix", Renderer.getProjectionMatrix());
+            shader.loadMatrix("inverseProjectionMatrix", Renderer.getInverseProjectionMatrix());
+            shader.stop();
+        }
     }
 
     public static Matrix4f getProjectionMatrix() {

@@ -60,7 +60,7 @@ public class Loader {
         storeDataInAttributeList(4, 3, weights);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size() - 5, indices.length, 3);
+        return new Mesh(vaoID, vbos.size() - 4, indices.length, 3);
     }
 
     public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices) {
@@ -72,7 +72,7 @@ public class Loader {
         storeDataInAttributeList(2, 3, normals);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size() - 3, indices.length, 3);
+        return new Mesh(vaoID, vbos.size() - 2, indices.length, 3);
     }
 
     public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, float[] tangents, int[] indices) {
@@ -85,7 +85,7 @@ public class Loader {
         storeDataInAttributeList(3, 3, tangents);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size() - 4, indices.length, 3);
+        return new Mesh(vaoID, vbos.size() - 3, indices.length, 3);
     }
 
     public Mesh loadToVAO(float[] positions, int dimensions) {
@@ -108,14 +108,12 @@ public class Loader {
         GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    public void updateVbo(int vbo, float[] data, FloatBuffer buffer) {
+    public void updateVBO(int vbo, float[] data, FloatBuffer buffer) {
         buffer.clear();
         buffer.put(data);
         buffer.flip();
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        if (vbo == 40)
-            System.out.println(data.length);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data.length * 4, GL15.GL_DYNAMIC_DRAW);
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, buffer);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
@@ -163,16 +161,6 @@ public class Loader {
 
         try {
             texture = new Texture(file);
-            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
-            GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, -0.4f);
-
-            if (GLContext.getCapabilities().GL_EXT_texture_filter_anisotropic) {
-                float amount = Math.min(4, GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT));
-                GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, amount);
-            } else {
-                System.err.println("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
-            }
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Error whilst loading texture " + fileName + ".png!");
@@ -183,24 +171,24 @@ public class Loader {
         return texture;
     }
 
-    public int loadTexture(int width, int height, float red, float green, float blue) {
-        return loadTexture(width, height, red, green, blue, 1);
+    public int loadColour(float red, float green, float blue) {
+        return loadColour(red, green, blue, 1);
     }
 
-    public int loadTexture(int width, int height, int red, int green, int blue) {
-        return loadTexture(width, height, red, green, blue, 1);
+    public int loadColour(int red, int green, int blue) {
+        return loadColour(red, green, blue, 1);
     }
 
-    public int loadTexture(int width, int height, float red, float green, float blue, float alpha) {
+    public int loadColour(float red, float green, float blue, float alpha) {
         if (red < 0 || red > 1 || green < 0 || green > 1 || blue < 0 || blue > 1 || alpha < 0 || alpha > 1) {
             System.err.println("Colour is out of range! " + red + " " + green + " " + blue);
             return -1;
         }
 
-        return loadTexture(width, height, (int) (255 * red), (int) (255 * green), (int) (255 * blue), (int) (255 * alpha));
+        return loadColour((int) (255 * red), (int) (255 * green), (int) (255 * blue), (int) (255 * alpha));
     }
 
-    public int loadTexture(int width, int height, int red, int green, int blue, int alpha) {
+    public int loadColour(int red, int green, int blue, int alpha) {
         if (red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255 || alpha < 0 || alpha > 255) {
             System.err.println("Colour is out of range! " + red + " " + green + " " + blue);
             return -1;
@@ -208,10 +196,10 @@ public class Loader {
 
         Texture texture = null;
         try {
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
             Graphics2D graphics = image.createGraphics();
             graphics.setColor(new Color(red, green, blue, alpha));
-            graphics.fillRect(0, 0, width, height);
+            graphics.fillRect(0, 0, 1, 1);
 
             texture = new Texture(image);
             GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
@@ -245,13 +233,11 @@ public class Loader {
             GL11.glDeleteTextures(texture);
     }
 
-    public int loadCubeMap(String[] textureFiles) {
-        int texID = GL11.glGenTextures();
-        textures.add(texID);
+    public int loadCubemap(String[] textureFiles) {
+        int id = GL11.glGenTextures();
+        textures.add(id);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, texID);
-
+        Engine.bindCubemap(id, 0);
         for (int i = 0; i < textureFiles.length; i++) {
             Texture texture = new Texture(FileHelper.newGameFile(RES_LOC, textureFiles[i] + ".png"));
 
@@ -259,19 +245,42 @@ public class Loader {
         }
 
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
 
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL12.GL_CLAMP_TO_EDGE);
+        GL30.glGenerateMipmap(GL13.GL_TEXTURE_CUBE_MAP);
 
-        return texID;
+        return id;
+    }
+
+    public int loadCubemap(Texture[] cubemapTextures) {
+        int id = GL11.glGenTextures();
+        textures.add(id);
+
+        Engine.bindCubemap(id, 0);
+        for (int i = 0; i < cubemapTextures.length; i++) {
+            Texture texture = cubemapTextures[i];
+
+            GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL11.GL_RGBA, texture.getWidth(), texture.getHeight(), 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, texture.getBuffer());
+        }
+
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL12.GL_CLAMP_TO_EDGE);
+        GL30.glGenerateMipmap(GL13.GL_TEXTURE_CUBE_MAP);
+
+        return id;
     }
 
     private int createVAO() {
         int vaoID = GL30.glGenVertexArrays();
-        vaos.add(vaoID);
-
         GL30.glBindVertexArray(vaoID);
+        vaos.add(vaoID);
 
         return vaoID;
     }

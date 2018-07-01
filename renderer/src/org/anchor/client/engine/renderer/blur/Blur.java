@@ -1,10 +1,9 @@
 package org.anchor.client.engine.renderer.blur;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 
 public class Blur {
 
@@ -17,8 +16,8 @@ public class Blur {
     }
 
     public Blur(int width, int height) {
-        horizontal = new Framebuffer(width, height, Framebuffer.DEPTH_TEXTURE);
-        vertical = new Framebuffer(width, height, Framebuffer.DEPTH_TEXTURE);
+        horizontal = new Framebuffer(width, height, Framebuffer.NONE);
+        vertical = new Framebuffer(width, height, Framebuffer.NONE);
         shader = BlurShader.getInstance();
 
         this.width = width;
@@ -29,18 +28,18 @@ public class Blur {
         shader.start();
         QuadRenderer.bind();
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-
-        horizontal.bindFrameBuffer();
+        Engine.bind2DTexture(texture, 0);
+        horizontal.bindFramebuffer();
         shader.loadInformation(true, width);
         QuadRenderer.render();
-        horizontal.unbindFrameBuffer();
+        horizontal.unbindFramebuffer();
 
-        vertical.bindFrameBuffer();
+        Engine.bindColourTexture(horizontal, 0);
+
+        vertical.bindFramebuffer();
         shader.loadInformation(false, height);
         QuadRenderer.render();
-        vertical.unbindFrameBuffer();
+        vertical.unbindFramebuffer();
 
         QuadRenderer.unbind();
         shader.stop();

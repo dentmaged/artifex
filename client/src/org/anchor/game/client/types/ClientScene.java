@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.anchor.client.engine.renderer.Renderer;
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.shadows.ShadowShader;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Model;
@@ -36,7 +37,7 @@ public class ClientScene extends Scene {
                     continue;
 
                 if (!renderables.containsKey(component.model))
-                    renderables.put(component.model, new ArrayList<>());
+                    renderables.put(component.model, new ArrayList<Entity>());
                 renderables.get(component.model).add(entity);
             }
         }
@@ -73,7 +74,7 @@ public class ClientScene extends Scene {
                     continue;
 
                 if (!renderables.containsKey(component.model))
-                    renderables.put(component.model, new ArrayList<>());
+                    renderables.put(component.model, new ArrayList<Entity>());
                 renderables.get(component.model).add(entity);
             }
         }
@@ -109,9 +110,9 @@ public class ClientScene extends Scene {
             if (component.shader == null || component.model == null || !component.model.isLoaded())
                 continue;
 
-            if (component.model.getTexture().isBlendingEnabled() || entity.hasComponent(WaterComponent.class)) {
+            if (entity.hasComponent(WaterComponent.class)) {
                 if (!renderables.containsKey(component.model))
-                    renderables.put(component.model, new ArrayList<>());
+                    renderables.put(component.model, new ArrayList<Entity>());
                 renderables.get(component.model).add(entity);
             }
         }
@@ -148,26 +149,58 @@ public class ClientScene extends Scene {
                 continue;
 
             if (!renderables.containsKey(component.model))
-                renderables.put(component.model, new ArrayList<>());
+                renderables.put(component.model, new ArrayList<Entity>());
             renderables.get(component.model).add(entity);
         }
 
         ShadowShader shader = ShadowShader.getInstance();
         shader.start();
-        shader.load(shadows.getProjectionViewMatrix());
-        for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
-            Renderer.bind(entry.getKey());
+        for (int i = 0; i < Settings.shadowSplits; i++) {
+            shadows.bind(i);
+            shader.load(shadows.getProjectionViewMatrix(i));
+            for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
+                Renderer.bind(entry.getKey());
 
-            for (Entity entity : entry.getValue()) {
-                shader.loadEntitySpecificInformation(entity.getTransformationMatrix(), entry.getKey().getTexture().getNumberOfRows(), entity.getComponent(MeshComponent.class).getTextureOffset());
+                for (Entity entity : entry.getValue()) {
+                    shader.loadEntitySpecificInformation(entity.getTransformationMatrix(), entry.getKey().getTexture().getNumberOfRows(), entity.getComponent(MeshComponent.class).getTextureOffset());
 
-                Renderer.render(entry.getKey());
+                    Renderer.render(entry.getKey());
+                }
+
+                Renderer.unbind(entry.getKey());
             }
-
-            Renderer.unbind(entry.getKey());
         }
 
         shader.stop();
+    }
+
+    public boolean isLoaded() {
+        boolean loaded = true;
+        for (Entity entity : entities) {
+            MeshComponent component = entity.getComponent(MeshComponent.class);
+            if (component == null || component.model == null)
+                continue;
+
+            if (!component.model.isLoaded())
+                loaded = false;
+        }
+        
+        return loaded;
+    }
+
+    public static void renderEntity(Entity entity) {
+        MeshComponent component = entity.getComponent(MeshComponent.class);
+        if (component == null || !component.model.isLoaded())
+            return;
+
+        Renderer.bind(component.model);
+        ClientShader shader = entity.getComponent(MeshComponent.class).shader;
+        shader.start();
+        shader.loadEntitySpecificInformation(entity);
+        Renderer.render(component.model);
+
+        shader.stop();
+        Renderer.unbind(component.model);
     }
 
 }

@@ -8,13 +8,17 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.Renderer;
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
+import org.anchor.client.engine.renderer.debug.DebugRenderer;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.godrays.Godrays;
+import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.shadows.Shadows;
+import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.engine.common.utils.FileHelper;
@@ -22,10 +26,12 @@ import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
-import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.scheduler.Scheduler;
+import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
+import org.anchor.game.client.audio.Audio;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
@@ -48,8 +54,8 @@ import org.anchor.game.editor.gizmo.GizmoRenderer;
 import org.anchor.game.editor.ui.LevelEditor;
 import org.anchor.game.editor.ui.Window;
 import org.anchor.game.editor.utils.MapWriter;
-import org.anchor.game.editor.utils.RenderSettings;
 import org.anchor.game.editor.utils.TerrainCreate;
+import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -65,12 +71,12 @@ public class GameEditor extends Game {
     protected Vignette vignette;
 
     protected float accumulator, snapAmount = 0.5f;
-    protected int mode = 0;
+    protected int mode = 0; // select, translate, rotate, scale
+    protected TransformationMode transformationMode = TransformationMode.LOCAL;
     protected boolean game;
     protected GizmoRenderer gizmo;
 
     protected LightComponent lightComponent;
-    protected LivingComponent livingComponent;
     protected PhysicsEngine physics;
 
     private LevelEditor editor;
@@ -103,8 +109,11 @@ public class GameEditor extends Game {
 
     @Override
     public void init() {
+        Engine.init();
+        Audio.init();
         System.out.println("APP INIT");
 
+        sceneFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
         fxaa = new FXAA();
         deferred = new DeferredShading();
         bloom = new Bloom();
@@ -154,7 +163,7 @@ public class GameEditor extends Game {
 
         for (TerrainCreate terrain : terrains) {
             System.out.println("Creating terrain at " + terrain.x + ", " + terrain.z);
-            scene.getTerrains().add(new ClientTerrain(terrain.x, terrain.z, terrain.heightmap, new TerrainTexture("blendmap", "grass", "mud", "grass_flowers", "path")));
+            scene.getTerrains().add(new ClientTerrain(terrain.x, terrain.z, terrain.heightmap, new TerrainTexture("blendmap", "default", "default", "default", "default")));
         }
 
         if (terrains.size() > 0)
@@ -162,7 +171,7 @@ public class GameEditor extends Game {
 
         terrains.clear();
 
-        if (KeyboardUtils.isKeyPressed(Keyboard.KEY_G)) {
+        if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_G)) {
             game = !game;
             livingComponent.gravity = game;
 
@@ -173,7 +182,7 @@ public class GameEditor extends Game {
 
                 Vector3f backupPosition = new Vector3f(player.getPosition());
                 float backupPitch = livingComponent.pitch;
-                float backupYaw = player.getRotation().y;
+                float backupYaw = livingComponent.yaw;
 
                 List<Entity> spawn = originalScene.getEntitiesWithComponent(SpawnComponent.class);
                 if (spawn.size() > 0)
@@ -183,14 +192,26 @@ public class GameEditor extends Game {
                 player.getVelocity().set(0, 0, 0);
 
                 livingComponent.pitch = originalPlayerPitch;
-                player.getRotation().y = originalPlayerYaw;
+                livingComponent.yaw = originalPlayerYaw;
 
                 originalPlayerPosition = backupPosition;
                 originalPlayerPitch = backupPitch;
                 originalPlayerYaw = backupYaw;
 
-                for (Entity entity : originalScene.getEntities())
-                    scene.getEntities().add(entity.copy());
+                for (Entity entity : originalScene.getEntities()) {
+                    if (entity.getParent() != null)
+                        continue;
+
+                    Entity parent = entity.copy();
+                    scene.getEntities().add(parent);
+
+                    for (Entity child : entity.getChildren()) {
+                        Entity copy = child.copy();
+                        copy.setParent(parent);
+
+                        scene.getEntities().add(copy);
+                    }
+                }
 
                 editor.setSelectedEntity(null);
                 editor.setSelectedTerrain(null);
@@ -200,11 +221,11 @@ public class GameEditor extends Game {
                 editor.updateList();
 
                 float backupPitch = livingComponent.pitch;
-                float backupYaw = player.getRotation().y;
+                float backupYaw = livingComponent.yaw;
 
                 player.getPosition().set(originalPlayerPosition);
                 livingComponent.pitch = originalPlayerPitch;
-                player.getRotation().y = originalPlayerYaw;
+                livingComponent.yaw = originalPlayerYaw;
 
                 originalPlayerPitch = backupPitch;
                 originalPlayerYaw = backupYaw;
@@ -218,7 +239,8 @@ public class GameEditor extends Game {
             if (accumulator > 0.2)
                 accumulator = 0;
 
-            livingComponent.move(scene, getTerrainByPoint(player.getPosition()));
+            livingComponent.move(scene, GameClient.getTerrainByPoint(player.getPosition()));
+            Scheduler.tick();
             if (game) {
                 scene.updateFixed();
                 physics.update(scene);
@@ -239,6 +261,16 @@ public class GameEditor extends Game {
             if (editor.getSelectedEntity() != null)
                 ignore = gizmo.update(editor.getSelectedEntity(), ray);
 
+            if (Mouse.isButtonDown(0)) {
+                if (editor.isEditingTerrain()) {
+                    if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
+                        ignore = true;
+
+                        editor.editTerrain(terrainRaycast.getPoint());
+                    }
+                }
+            }
+
             if (MouseUtils.canLeftClick() || MouseUtils.canRightClick() || MouseUtils.canMiddleClick()) {
                 editor.hidePopupMenu();
 
@@ -248,10 +280,12 @@ public class GameEditor extends Game {
                         editor.setSelectedTerrain(null);
                     } else {
                         if (!KeyboardUtils.isKeyDown(Keyboard.KEY_LMENU)) {
-                            if (isEntityRaycast(terrainRaycast, entityRaycast))
+                            if (isEntityRaycast(terrainRaycast, entityRaycast)) {
                                 editor.setSelectedEntity(entityRaycast.getEntity());
-                            else if (isTerrainRaycast(terrainRaycast, entityRaycast))
-                                editor.setSelectedTerrain((ClientTerrain) terrainRaycast.getTerrain());
+                            } else if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
+                                if (!editor.isEditingTerrain())
+                                    editor.setSelectedTerrain((ClientTerrain) terrainRaycast.getTerrain());
+                            }
                         } else if (editor.getSelectedEntity() != null) {
                             Vector3f point = null;
                             if (isEntityRaycast(terrainRaycast, entityRaycast))
@@ -272,37 +306,40 @@ public class GameEditor extends Game {
             }
 
             if (!Mouse.isGrabbed()) {
-                if (KeyboardUtils.isKeyPressed(Keyboard.KEY_Q))
+                if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_Q))
                     mode = 0;
-                else if (KeyboardUtils.isKeyPressed(Keyboard.KEY_W))
+                else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_W))
                     mode = 1;
-                else if (KeyboardUtils.isKeyPressed(Keyboard.KEY_E))
+                else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_E))
                     mode = 2;
-                else if (KeyboardUtils.isKeyPressed(Keyboard.KEY_R))
+                else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R))
                     mode = 3;
             }
+        } else {
+            checkForInteractions();
         }
     }
 
     @Override
     public void render() {
-        shadows.start(livingComponent.getEyePosition(), player.getComponent(LivingComponent.class).pitch, player.getRotation().y);
-        scene.renderShadows(shadows);
-        shadows.stop();
+        if (shadows.start(livingComponent.getInverseViewMatrix(), livingComponent.getEyePosition(), livingComponent.pitch, livingComponent.yaw)) {
+            scene.renderShadows(shadows);
+            shadows.stop();
+        }
 
         deferred.start();
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
         GL11.glClearColor(0, 0, 0, 0);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
-        if (RenderSettings.wireframe)
+        if (Settings.wireframe)
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.render();
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-        deferred.stop(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, shadows);
+        deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
 
-        if (RenderSettings.wireframe)
+        if (Settings.wireframe)
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.renderBlending();
@@ -310,14 +347,28 @@ public class GameEditor extends Game {
         deferred.reflective();
         scene.renderReflective();
 
-        if (!game && editor.getSelectedEntity() != null)
+        if (!game && editor.getSelectedEntity() != null) {
             gizmo.render();
 
+            LightComponent component = editor.getSelectedEntity().getComponent(LightComponent.class);
+            if (component != null) {
+                float radius = component.getRadius();
+                DebugRenderer.circle(livingComponent.getViewMatrix(), editor.getSelectedEntity().getPosition(), new Vector3f(), new Vector3f(radius, radius, radius), new Vector3f(1, 1, 1));
+            }
+        }
+
         deferred.output();
+        sceneFBO.bindFramebuffer();
+        GUIRenderer.perform(deferred.getOutputFBO().getColourTexture());
+        sceneFBO.unbindFramebuffer();
+
         fxaa.perform(deferred.getOutputFBO().getColourTexture());
         bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
-        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), livingComponent.getViewMatrix(), lightComponent);
+        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
         vignette.perform(godrays.getOutputFBO().getColourTexture());
+        if (Keyboard.isKeyDown(Keyboard.KEY_M))
+            GUIRenderer.perform(GameClient.getShadowMap(0));
+        Engine.frameEnd();
     }
 
     @Override
@@ -357,13 +408,12 @@ public class GameEditor extends Game {
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
         lightComponent.attenuation.set(1, 0, 0);
+        light.getRotation().set(109, 23, 0);
         light.spawn();
         shadows = new Shadows(lightComponent);
 
         Entity skydome = new Entity(MeshComponent.class, SkyComponent.class);
-        float scale = Renderer.FAR_PLANE / 1.5f;
-        skydome.getScale().set(scale, scale, scale);
-        skydome.setValue("model", "core/skysphere");
+        skydome.setValue("model", "core/skybox");
         skydome.spawn();
 
         skydome.setHidden(true);
@@ -464,6 +514,14 @@ public class GameEditor extends Game {
         this.mode = mode;
     }
 
+    public TransformationMode getTransformationMode() {
+        return transformationMode;
+    }
+
+    public void setTransformationMode(TransformationMode transformationMode) {
+        this.transformationMode = transformationMode;
+    }
+
     public static List<Light> getSceneLights() {
         return ((Game) AppManager.getInstance()).getLights();
     }
@@ -535,7 +593,6 @@ public class GameEditor extends Game {
         } else {
             FileHelper.write(getInstance().level, MapWriter.write(getInstance().scene));
             getInstance().modifiedSinceLastSave = false;
-
             System.out.println("Saved to " + getInstance().level.getAbsolutePath());
         }
     }
@@ -549,19 +606,7 @@ public class GameEditor extends Game {
         getInstance().level = file;
 
         Window.getInstance().setTabName(file.getName());
-
         System.out.println("Saved to " + getInstance().level.getAbsolutePath());
-    }
-
-    public static Terrain getTerrainByPoint(Vector3f point) {
-        int gridX = (int) Math.floor(point.x / Terrain.SIZE);
-        int gridZ = (int) Math.floor(point.z / Terrain.SIZE);
-
-        for (Terrain terrain : ((GameEditor) AppManager.getInstance()).scene.getTerrains())
-            if (gridX == terrain.getGridX() && gridZ == terrain.getGridZ())
-                return terrain;
-
-        return null;
     }
 
     public boolean isEntityRaycast(TerrainRaycast terrainRaycast, EntityRaycast entityRaycast) {
@@ -592,6 +637,10 @@ public class GameEditor extends Game {
 
     public LevelEditor getLevelEditor() {
         return editor;
+    }
+
+    public static boolean isInGame() {
+        return ((GameEditor) AppManager.getInstance()).game;
     }
 
 }

@@ -1,8 +1,7 @@
 package org.anchor.client.engine.renderer.vignette;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 
 public class Vignette {
 
@@ -15,9 +14,7 @@ public class Vignette {
     public void perform(int texture) {
         shader.start();
         QuadRenderer.bind();
-
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+        Engine.bind2DTexture(texture, 0);
 
         QuadRenderer.render();
 

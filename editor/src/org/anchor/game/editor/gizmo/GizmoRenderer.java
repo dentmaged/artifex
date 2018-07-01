@@ -1,9 +1,9 @@
 package org.anchor.game.editor.gizmo;
 
+import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
-import org.anchor.engine.shared.utils.Maths;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.utils.KeyboardUtils;
 import org.anchor.game.editor.GameEditor;
@@ -51,13 +51,13 @@ public class GizmoRenderer {
         Gizmo gizmo = gizmos[editor.getMode()];
         Vector3f origin = GameClient.getPlayer().getComponent(LivingComponent.class).getEyePosition();
 
-        xMatrix = Maths.createTransformationMatrix(position, gizmo.getXRotation(), scale);
-        yMatrix = Maths.createTransformationMatrix(position, gizmo.getYRotation(), scale);
-        zMatrix = Maths.createTransformationMatrix(position, gizmo.getZRotation(), scale);
+        xMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getXRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        yMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getYRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        zMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getZRotation(entity.getRotation(), editor.getTransformationMode()), scale);
 
-        Vector3f xAxisOffset = gizmo.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(), scale);
-        Vector3f yAxisOffset = gizmo.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(), scale);
-        Vector3f zAxisOffset = gizmo.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(), scale);
+        Vector3f xAxisOffset = gizmo.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        Vector3f yAxisOffset = gizmo.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        Vector3f zAxisOffset = gizmo.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(entity.getRotation(), editor.getTransformationMode()), scale);
 
         xAxis = xAxisOffset != null;
         yAxis = yAxisOffset != null;
@@ -96,7 +96,7 @@ public class GizmoRenderer {
         }
 
         if (dragging) {
-            if (KeyboardUtils.isKeyPressed(Keyboard.KEY_ESCAPE)) {
+            if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_ESCAPE)) {
                 dragging = false;
                 axis = null;
 
@@ -106,7 +106,7 @@ public class GizmoRenderer {
                     editor.removeEntity(entity);
                 copied = false;
             } else {
-                Vector3f.add(original, snap(gizmo.performMove(axis, Vector3f.add(original, axisOffset, null), position, origin, ray, Mouse.getX() - startMouseX, Mouse.getY() - startMouseY), editor.getSnapAmount()), gizmo.getVector(entity));
+                Vector3f.add(original, snap(gizmo.performMove(axis, Vector3f.add(original, axisOffset, null), position, entity.getRotation(), origin, ray, Mouse.getX() - startMouseX, Mouse.getY() - startMouseY), editor.getSnapAmount()), gizmo.getVector(entity));
                 editor.refreshComponenetValues();
             }
         }

@@ -253,6 +253,14 @@ public class Window {
         toolBar.add(btnScale);
 
         JComboBox<TransformationMode> transformationModeDropdown = new JComboBox<TransformationMode>();
+        transformationModeDropdown.addActionListener(new ActionListener() {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                GameEditor.getInstance().setTransformationMode((TransformationMode) transformationModeDropdown.getSelectedItem());
+            }
+
+        });
         transformationModeDropdown.setModel(new DefaultComboBoxModel<TransformationMode>(TransformationMode.values()));
         toolBar.add(transformationModeDropdown);
     }

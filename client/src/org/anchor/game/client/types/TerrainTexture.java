@@ -64,4 +64,20 @@ public class TerrainTexture {
         return blendmap.isLoaded() && background.isLoaded() && red.isLoaded() && green.isLoaded() && blue.isLoaded();
     }
 
+    public void setBackgroundTexture(TextureRequest request) {
+        this.background = request;
+    }
+
+    public void setRedTexture(TextureRequest request) {
+        this.red = request;
+    }
+
+    public void setGreenTexture(TextureRequest request) {
+        this.green = request;
+    }
+
+    public void setBlueTexture(TextureRequest request) {
+        this.blue = request;
+    }
+
 }

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.anchor.engine.common.multiplayer.User;
+import org.anchor.engine.common.net.User;
 
 public class GameCommandManager {
 

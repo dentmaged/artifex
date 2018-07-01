@@ -8,6 +8,7 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.utils.CollisionMeshLoader;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.loaders.ModelLoader;
+import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.StaticShader;
 import org.anchor.game.client.shaders.WaterShader;
@@ -50,12 +51,6 @@ public class MeshComponent implements IComponent {
             if (entity.containsKey("blending"))
                 model.getTexture().setBlendingEnabled(Boolean.parseBoolean(entity.getValue("blending")));
 
-            if (entity.containsKey("shineDamper"))
-                model.getTexture().setShineDamper(Float.parseFloat(entity.getValue("shineDamper")));
-
-            if (entity.containsKey("reflectivity"))
-                model.getTexture().setReflectivity(Float.parseFloat(entity.getValue("reflectivity")));
-
             if (shader == null)
                 refreshShader();
         }
@@ -65,18 +60,11 @@ public class MeshComponent implements IComponent {
     public void update() {
         if (model != null && model.isLoaded() && !ran) {
             ran = true;
-
             if (entity.containsKey("backface"))
                 model.getTexture().setCullingEnabled(Boolean.parseBoolean(entity.getValue("backface")));
 
             if (entity.containsKey("blending"))
                 model.getTexture().setBlendingEnabled(Boolean.parseBoolean(entity.getValue("blending")));
-
-            if (entity.containsKey("shineDamper"))
-                model.getTexture().setShineDamper(Float.parseFloat(entity.getValue("shineDamper")));
-
-            if (entity.containsKey("reflectivity"))
-                model.getTexture().setReflectivity(Float.parseFloat(entity.getValue("reflectivity")));
 
             if (shader == null)
                 refreshShader();
@@ -134,6 +122,9 @@ public class MeshComponent implements IComponent {
             shader = NormalShader.getInstance();
         else
             shader = StaticShader.getInstance();
+
+        if (model.getTexture().isBlendingEnabled())
+            shader = ForwardStaticShader.getInstance();
 
         if (entity.hasComponent(WaterComponent.class))
             shader = WaterShader.getInstance();

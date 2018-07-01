@@ -12,11 +12,20 @@ public class StaticShader extends ModelShader {
     }
 
     @Override
+    public void onBind() {
+        super.onBind();
+
+        loadInt("specular", 2);
+        loadInt("metallic", 3);
+        loadInt("roughness", 4);
+        loadInt("ao", 5);
+    }
+
+    @Override
     public void loadEntitySpecificInformation(Entity entity) {
         super.loadEntitySpecificInformation(entity);
 
-        loadFloat("reflectivity", entity.getComponent(MeshComponent.class).model.getTexture().getReflectivity());
-        loadFloat("shineDamper", entity.getComponent(MeshComponent.class).model.getTexture().getShineDamper());
+        loadBoolean("useAOMap", entity.getComponent(MeshComponent.class).model.getTexture().getAmbientOcclusionMap() != -1);
     }
 
     public static StaticShader getInstance() {

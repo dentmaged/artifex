@@ -6,10 +6,10 @@ FS_OUT(colour)
 
 tex scene;
 tex godrays;
+tex exposure;
 
 uniform vec2 lightPositionOnScreen;
 uniform int numSamples;
-uniform float exposure;
 
 const float decay = 1;
 const float density = 1;
@@ -37,5 +37,5 @@ void main() {
 
 	out_colour = texture2D(scene, tc);
 	out_colour.xyz = pow(out_colour.xyz, vec3(1.0 / GAMMA));
-	out_colour.xyz += colour * exposure;
+	out_colour.xyz += colour * texture2D(exposure, vec2(0.5)).x;
 }

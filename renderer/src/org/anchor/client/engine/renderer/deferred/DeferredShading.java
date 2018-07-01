@@ -2,8 +2,10 @@ package org.anchor.client.engine.renderer.deferred;
 
 import java.util.List;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
-import org.anchor.client.engine.renderer.shadows.ShadowFrustum;
+import org.anchor.client.engine.renderer.Settings;
+import org.anchor.client.engine.renderer.pbr.BRDF;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.ssao.SSAO;
 import org.anchor.client.engine.renderer.types.Framebuffer;
@@ -17,69 +19,66 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class DeferredShading {
 
-    protected Framebuffer multisampleFBO, diffuseFBO, positionFBO, normalFBO, bloomFBO, godraysFBO;
+    protected Framebuffer multisampleFBO, diffuseFBO, otherFBO, normalFBO, bloomFBO, godraysFBO;
     protected SSAO ssao;
+    protected BRDF brdf;
     protected DeferredShader shader;
 
-    public static boolean showLightmaps = false;
-    public static float minDiffuse = 0.1f;
-    public static float density = 0.0035f;
-    public static float gradient = 5;
-
     public DeferredShading() {
-        multisampleFBO = new Framebuffer(Display.getWidth(), Display.getHeight());
-        diffuseFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.DEPTH_TEXTURE);
-        positionFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
-        normalFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
+        multisampleFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), true);
+        diffuseFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.DEPTH_TEXTURE, true);
+        otherFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, true);
+        normalFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, true);
 
         bloomFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
         godraysFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
 
         ssao = new SSAO();
+        brdf = new BRDF();
+        brdf.perform();
         shader = DeferredShader.getInstance();
     }
 
     public void start() {
-        multisampleFBO.bindFrameBuffer();
+        multisampleFBO.bindFramebuffer();
         GL11.glDisable(GL11.GL_BLEND);
     }
 
-    public void stop(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Vector3f skyColour, Shadows shadows) {
-        resolve(diffuseFBO, positionFBO, normalFBO);
+    public void stop(Framebuffer sceneFBO, Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Vector3f baseColour, Vector3f topColour, int skybox, int irradiance, int prefilter, Shadows shadows) {
+        if (!Settings.performLighting)
+            return;
 
-        ssao.perform(inverseViewMatrix, positionFBO.getColourTexture(), normalFBO.getColourTexture());
+        resolve(diffuseFBO, otherFBO, normalFBO, bloomFBO, godraysFBO);
+        ssao.perform(inverseViewMatrix, diffuseFBO.getDepthTexture(), normalFBO.getColourTexture());
+        multisampleFBO.bindFramebuffer();
 
-        multisampleFBO.bindFrameBuffer();
-
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
         GL11.glDepthMask(false);
 
         shader.start();
-        shader.loadInformation(viewMatrix, inverseViewMatrix, lights, showLightmaps, minDiffuse, density, gradient, skyColour, shadows.getToShadowMapSpaceMatrix(), ShadowFrustum.SHADOW_DISTANCE);
+        shader.loadInformation(viewMatrix, inverseViewMatrix, lights, baseColour, topColour, shadows);
         QuadRenderer.bind();
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, diffuseFBO.getColourTexture());
+        Engine.bindColourTexture(diffuseFBO, 0);
+        Engine.bindColourTexture(otherFBO, 1);
+        Engine.bindColourTexture(normalFBO, 2);
+        Engine.bindColourTexture(bloomFBO, 3);
+        Engine.bindColourTexture(godraysFBO, 4);
+        Engine.bindDepthTexture(diffuseFBO, 5);
+        Engine.bind2DTexture(ssao.getAmbientOcclusionTexture(), 6);
+        Engine.bindColourTexture(sceneFBO, 7);
+        Engine.bindCubemap(skybox, 8);
+        Engine.bindCubemap(irradiance, 9);
+        Engine.bindCubemap(prefilter, 10);
+        Engine.bindColourTexture(brdf.getOutputFBO(), 11);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE1);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, positionFBO.getColourTexture());
-
-        GL13.glActiveTexture(GL13.GL_TEXTURE2);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, normalFBO.getColourTexture());
-
-        GL13.glActiveTexture(GL13.GL_TEXTURE3);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadows.getPCFShadowMap());
-
-        GL13.glActiveTexture(GL13.GL_TEXTURE4);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, ssao.getAmbientOcclusionTexture());
+        for (int i = 0; i < Settings.shadowSplits; i++)
+            Engine.bind2DTexture(shadows.getPCFShadowMap(i), 12 + i);
 
         QuadRenderer.render();
         QuadRenderer.unbind();
         shader.stop();
 
         GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
     }
 
     public void resolve(Framebuffer... fbos) {
@@ -102,7 +101,7 @@ public class DeferredShading {
 
         multisampleFBO.shutdown();
         diffuseFBO.shutdown();
-        positionFBO.shutdown();
+        otherFBO.shutdown();
         normalFBO.shutdown();
         bloomFBO.shutdown();
         godraysFBO.shutdown();
@@ -110,7 +109,7 @@ public class DeferredShading {
 
     public void reflective() {
         resolve(GL30.GL_COLOR_ATTACHMENT0, diffuseFBO);
-        multisampleFBO.bindFrameBuffer();
+        multisampleFBO.bindFramebuffer();
     }
 
     public void output() {
@@ -123,6 +122,10 @@ public class DeferredShading {
         return diffuseFBO;
     }
 
+    public Framebuffer getPositionFBO() {
+        return otherFBO;
+    }
+
     public Framebuffer getBloomFBO() {
         return bloomFBO;
     }
@@ -133,6 +136,10 @@ public class DeferredShading {
 
     public int getAmbientOcclusionTexture() {
         return ssao.getAmbientOcclusionTexture();
+    }
+
+    public int getBRDF() {
+        return brdf.getOutputFBO().getColourTexture();
     }
 
 }

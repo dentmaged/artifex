@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;
 import org.anchor.game.client.types.ClientScene;
@@ -51,8 +52,11 @@ public class GameMap {
             String[] parts = lines[i].split(PARTS);
             String[] coordinates = parts[0].split(SUBPARTS);
             String[] textures = parts[2].split(SUBPARTS);
+            float size = Terrain.DEFAULT_SIZE;
+            if (parts.length > 3)
+                size = Float.parseFloat(parts[3]);
 
-            scene.getTerrains().add(new ClientTerrain(Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), parts[1], new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
+            scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), parts[1], new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
             i++;
         }
     }

@@ -6,22 +6,19 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import org.anchor.engine.common.TextureType;
+import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.FileHelper;
-import org.anchor.engine.shared.utils.Maths;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 public class Terrain {
 
-    public static final int SIZE = 100;
+    public static final float DEFAULT_SIZE = 1024;
     public static final float MAX_HEIGHT = 16;
     public static final float MAX_PIXEL_COLOUR = 256 * 256 * 256;
-    public static final float[] LODs = {
-            SIZE * SIZE, SIZE * SIZE * 4, SIZE * SIZE * 16, SIZE * SIZE * 64,
-    };
 
-    protected float x, z;
-    protected int gridX, gridZ, LOD;
+    protected float x, z, size;
+    protected int gridX, gridZ;
     protected Vector3f center;
 
     protected String heightmap;
@@ -29,6 +26,11 @@ public class Terrain {
     protected boolean refresh;
 
     public Terrain(int gridX, int gridZ, String heightmap) {
+        this(DEFAULT_SIZE, gridX, gridZ, heightmap);
+    }
+
+    public Terrain(float size, int gridX, int gridZ, String heightmap) {
+        this.size = size;
         setGridX(gridX);
         setGridZ(gridZ);
 
@@ -42,16 +44,24 @@ public class Terrain {
 
     public void setGridX(int gridX) {
         this.gridX = gridX;
-        this.x = gridX * SIZE;
+        this.x = gridX * size;
 
-        this.center = new Vector3f(x + (SIZE / 2), 0, z + (SIZE / 2));
+        this.center = new Vector3f(x + (size / 2), 0, z + (size / 2));
     }
 
     public void setGridZ(int gridZ) {
         this.gridZ = gridZ;
-        this.z = gridZ * SIZE;
+        this.z = gridZ * size;
 
-        this.center = new Vector3f(x + (SIZE / 2), 0, z + (SIZE / 2));
+        this.center = new Vector3f(x + (size / 2), 0, z + (size / 2));
+    }
+
+    public void setSize(float size) {
+        this.size = size;
+        this.x = gridX * size;
+        this.z = gridZ * size;
+
+        this.center = new Vector3f(x + (size / 2), 0, z + (size / 2));
     }
 
     public float getX() {
@@ -60,6 +70,10 @@ public class Terrain {
 
     public float getZ() {
         return z;
+    }
+
+    public float getSize() {
+        return size;
     }
 
     public float getGridX() {
@@ -82,10 +96,6 @@ public class Terrain {
         return center;
     }
 
-    public int getLOD() {
-        return LOD;
-    }
-
     public String getHeightmap() {
         return heightmap;
     }
@@ -99,7 +109,7 @@ public class Terrain {
     public float getHeightOfTerrain(float worldX, float worldZ) {
         float terrainX = worldX - this.x;
         float terrainZ = worldZ - this.z;
-        float gridSquareSize = SIZE / ((float) heights.length - 1);
+        float gridSquareSize = size / ((float) heights.length - 1);
         int gridX = (int) Math.floor(terrainX / gridSquareSize);
         int gridZ = (int) Math.floor(terrainZ / gridSquareSize);
 
@@ -110,9 +120,9 @@ public class Terrain {
         float zCoord = (terrainZ % gridSquareSize) / gridSquareSize;
 
         if (xCoord <= (1 - zCoord))
-            return Maths.barryCentric(new Vector3f(0, heights[gridX][gridZ], 0), new Vector3f(1, heights[gridX + 1][gridZ], 0), new Vector3f(0, heights[gridX][gridZ + 1], 1), new Vector2f(xCoord, zCoord));
+            return CoreMaths.barryCentric(new Vector3f(0, heights[gridX][gridZ], 0), new Vector3f(1, heights[gridX + 1][gridZ], 0), new Vector3f(0, heights[gridX][gridZ + 1], 1), new Vector2f(xCoord, zCoord));
         else
-            return Maths.barryCentric(new Vector3f(1, heights[gridX + 1][gridZ], 0), new Vector3f(1, heights[gridX + 1][gridZ + 1], 1), new Vector3f(0, heights[gridX][gridZ + 1], 1), new Vector2f(xCoord, zCoord));
+            return CoreMaths.barryCentric(new Vector3f(1, heights[gridX + 1][gridZ], 0), new Vector3f(1, heights[gridX + 1][gridZ + 1], 1), new Vector3f(0, heights[gridX][gridZ + 1], 1), new Vector2f(xCoord, zCoord));
     }
 
     // LOADING \\
@@ -137,6 +147,10 @@ public class Terrain {
         refresh = true;
     }
 
+    public void unload() {
+        heights = null;
+    }
+
     protected float getHeightHeightmap(int x, int z, BufferedImage image) {
         if (x < 0 || x >= image.getHeight() || z < 0 || z >= image.getHeight()) {
             return 0;
@@ -148,6 +162,10 @@ public class Terrain {
         height *= MAX_HEIGHT;
 
         return height;
+    }
+
+    public float getIncrement() {
+        return (float) heights.length / (float) size;
     }
 
 }

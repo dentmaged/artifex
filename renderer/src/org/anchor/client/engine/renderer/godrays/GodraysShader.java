@@ -17,12 +17,12 @@ public class GodraysShader extends Shader {
 
         loadInt("scene", 0);
         loadInt("godrays", 1);
+        loadInt("exposure", 1);
     }
 
-    public void loadInformation(int samples, Vector2f projectedSunPosition, float exposure) {
+    public void loadInformation(int samples, Vector2f projectedSunPosition) {
         loadInt("numSamples", samples);
         loadVector("lightPositionOnScreen", projectedSunPosition);
-        loadFloat("exposure", exposure);
     }
 
     @Override

@@ -11,7 +11,12 @@ import java.nio.IntBuffer;
 
 import javax.imageio.ImageIO;
 
+import org.anchor.client.engine.renderer.Settings;
+import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GLContext;
 
 public class Texture {
 
@@ -90,16 +95,23 @@ public class Texture {
         int result = GL11.glGenTextures();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, result);
 
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
+        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, -0.4f);
 
         buffer = ByteBuffer.allocateDirect(data.length << 2).order(ByteOrder.nativeOrder()).asIntBuffer();
         buffer.put(data).flip();
-
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
+
+        GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
+
+        if (GLContext.getCapabilities().GL_EXT_texture_filter_anisotropic)
+            GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, Math.min(Settings.anisotropyLevel, GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+        else
+            System.err.println("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
 
         return result;

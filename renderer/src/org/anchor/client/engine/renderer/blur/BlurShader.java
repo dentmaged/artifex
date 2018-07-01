@@ -16,6 +16,12 @@ public class BlurShader extends Shader {
     }
 
     @Override
+    protected void bindAttributes() {
+        super.bindFragOutput(0, "out_colour");
+        super.bindAttribute(0, "position");
+    }
+
+    @Override
     public void start() {
         super.start();
 
@@ -29,12 +35,6 @@ public class BlurShader extends Shader {
         else
             direction.y = 1f / dimension;
         loadVector("unit", direction);
-    }
-
-    @Override
-    protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
-        super.bindAttribute(0, "position");
     }
 
     public static BlurShader getInstance() {

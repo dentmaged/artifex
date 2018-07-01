@@ -28,7 +28,7 @@ public class KeyboardUtils {
         return keysDown.contains(key);
     }
 
-    public static boolean isKeyPressed(int key) {
+    public static boolean wasKeyJustPressed(int key) {
         boolean pressed = keysPressed.contains(key);
         keysPressed.remove(Integer.valueOf(key));
 

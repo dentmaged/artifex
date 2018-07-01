@@ -1,9 +1,7 @@
 package org.anchor.client.engine.renderer.shadows;
 
-import org.anchor.client.engine.renderer.Renderer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.utils.Mathf;
-import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -12,28 +10,30 @@ public class ShadowFrustum {
 
     private static final Vector4f UP = new Vector4f(0, 1, 0, 0);
     private static final Vector4f FORWARD = new Vector4f(0, 0, -1, 0);
-    public static final float SHADOW_DISTANCE = 50;
 
-    public static final float WORLD_UNITS_PER_TEXEL = SHADOW_DISTANCE * 2f / (float) Shadows.SHADOW_MAP_SIZE;
+    private float worldUnitsPerTexel;
 
     private float minX, maxX;
     private float minY, maxY;
     private float minZ, maxZ;
+    private float near, far;
 
-    private Light sun;
     private Matrix4f lightViewMatrix;
 
     private float farHeight, farWidth, nearHeight, nearWidth;
 
-    public ShadowFrustum(Light sun, Matrix4f lightViewMatrix) {
-        this.sun = sun;
+    public ShadowFrustum(Matrix4f lightViewMatrix, float extents) {
         this.lightViewMatrix = lightViewMatrix;
 
-        float tanFOV = (float) Math.tan(Math.toRadians(Renderer.FOV / 2));
-        float aspectRatio = (float) Display.getWidth() / (float) Display.getHeight();
+        this.near = -extents;
+        this.far = extents;
+        this.worldUnitsPerTexel = extents * 2f / (float) Settings.shadowResolution;
 
-        farHeight = tanFOV * SHADOW_DISTANCE;
-        nearHeight = tanFOV * Renderer.NEAR_PLANE;
+        float tanFOV = Mathf.tan(Mathf.toRadians(Settings.fov / 2));
+        float aspectRatio = (float) Settings.width / (float) Settings.height;
+
+        farHeight = tanFOV * far;
+        nearHeight = tanFOV * near;
 
         farWidth = farHeight * aspectRatio;
         nearWidth = nearHeight * aspectRatio;
@@ -41,10 +41,6 @@ public class ShadowFrustum {
 
     public void update(Vector3f position, float pitch, float yaw) {
         Matrix4f rotation = new Matrix4f();
-        Vector3f direction = new Vector3f(sun.getPosition());
-        direction.negate();
-        if (sun.getPosition().lengthSquared() > 0)
-            direction.normalise();
 
         Matrix4f.rotate((float) Math.toRadians(-pitch), new Vector3f(1, 0, 0), rotation, rotation);
         Matrix4f.rotate((float) Math.toRadians(-yaw), new Vector3f(0, 1, 0), rotation, rotation);
@@ -53,8 +49,8 @@ public class ShadowFrustum {
         Vector3f toFar = new Vector3f(forwardVector);
         Vector3f toNear = new Vector3f(forwardVector);
 
-        toFar.scale(SHADOW_DISTANCE);
-        toNear.scale(Renderer.NEAR_PLANE);
+        toFar.scale(far);
+        toNear.scale(near);
 
         Vector3f centerNear = Vector3f.add(toNear, position, null);
         Vector3f centerFar = Vector3f.add(toFar, position, null);
@@ -79,11 +75,11 @@ public class ShadowFrustum {
             maxZ = Math.max(maxZ, point.z);
         }
 
-        minX = Mathf.roundTo(minX, WORLD_UNITS_PER_TEXEL);
-        minY = Mathf.roundTo(minY, WORLD_UNITS_PER_TEXEL);
+        minX = Mathf.roundTo(minX, worldUnitsPerTexel);
+        minY = Mathf.roundTo(minY, worldUnitsPerTexel);
 
-        maxX = Mathf.roundTo(maxX, WORLD_UNITS_PER_TEXEL);
-        maxY = Mathf.roundTo(maxY, WORLD_UNITS_PER_TEXEL);
+        maxX = Mathf.roundTo(maxX, worldUnitsPerTexel);
+        maxY = Mathf.roundTo(maxY, worldUnitsPerTexel);
         maxZ += 18;
     }
 
@@ -98,10 +94,6 @@ public class ShadowFrustum {
         return new Vector3f(Matrix4f.transform(invertedLight, new Vector4f(x, y, z, 1), null));
     }
 
-    public void setSun(Light sun) {
-        this.sun = sun;
-    }
-
     public float getWidth() {
         return maxX - minX;
     }
@@ -112,6 +104,10 @@ public class ShadowFrustum {
 
     public float getLength() {
         return maxZ - minZ;
+    }
+
+    public float getFarPlane() {
+        return far;
     }
 
     private Vector4f[] calculateFrustumVertices(Matrix4f rotation, Vector3f forwardVector, Vector3f centerNear, Vector3f centerFar) {

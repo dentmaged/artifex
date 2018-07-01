@@ -1,7 +1,8 @@
 package org.anchor.game.client.shaders;
 
+import org.anchor.client.engine.renderer.Renderer;
+import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.shared.components.LivingComponent;
-import org.anchor.engine.shared.utils.Maths;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.types.ClientTerrain;
 import org.lwjgl.util.vector.Matrix4f;
@@ -27,9 +28,8 @@ public class TerrainShader extends ModelShader {
     }
 
     public void loadTerrainInformation(ClientTerrain terrain) {
-        Matrix4f transformationMatrix = Maths.createTransformationMatrix(new Vector3f(terrain.getX(), 0, terrain.getZ()), new Vector3f(), new Vector3f(1, 1, 1));
-        loadMatrix("transformationMatrix", transformationMatrix);
-        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(transformationMatrix));
+        loadMatrix("projectionViewTransformationMatrix", Matrix4f.mul(Matrix4f.mul(Renderer.getProjectionMatrix(), GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix(), null), CoreMaths.createTransformationMatrix(new Vector3f(terrain.getX(), 0, terrain.getZ()), new Vector3f(), new Vector3f(terrain.getSize(), 1, terrain.getSize())), null));
+        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(new Vector3f(terrain.getX(), 0, terrain.getZ()), new Vector3f()));
 
         loadVector("colour", terrain.getColour());
     }

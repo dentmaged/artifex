@@ -17,7 +17,6 @@ public class QuadRenderer {
     }
 
     public static void render() {
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
         GL11.glEnable(GL11.GL_DEPTH_TEST);

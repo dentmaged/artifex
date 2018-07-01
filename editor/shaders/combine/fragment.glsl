@@ -4,10 +4,11 @@ in vec2 tc;
 
 FS_OUT(colour)
 
-tex a;
-tex b;
-
-uniform float exposure;
+tex ldr;
+tex bloomOne;
+tex bloomTwo;
+tex bloomThree;
+tex exposure;
 
 vec3 A = vec3(0.15);
 vec3 B = vec3(0.50);
@@ -22,10 +23,11 @@ vec3 Uncharted2Tonemap(vec3 x) {
 }
 
 void main(void) {
-	vec3 hdrColour = texture(a, tc).rgb;
-	vec3 bloomColour = texture(b, tc).rgb;
-	hdrColour += bloomColour;
+	vec3 hdrColour = texture2D(ldr, tc).xyz;
+	vec3 bloomColour = texture2D(bloomOne, tc).xyz + texture2D(bloomTwo, tc).xyz + texture2D(bloomThree, tc).xyz;
+	hdrColour += bloomColour * 0.5;
 
+	float exposure = texture2D(exposure, vec2(0.5)).x;
 	vec3 curr = Uncharted2Tonemap(2 * exposure * hdrColour);
 	vec3 whiteScale = vec3(1.0) / Uncharted2Tonemap(W);
 	vec3 color = curr * whiteScale;

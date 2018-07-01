@@ -2,11 +2,9 @@ package org.anchor.client.engine.renderer.types;
 
 public class ModelTexture {
 
-    protected TextureRequest texture, normal, specular;
+    protected TextureRequest albedo, normal, metallic, roughness, ao, specular;
     protected int numberOfRows = 1;
     protected boolean culling, blending;
-
-    protected float shineDamper = 1, reflectivity = 0;
 
     public ModelTexture(TextureRequest texture) {
         this(texture, true);
@@ -17,13 +15,13 @@ public class ModelTexture {
     }
 
     public ModelTexture(TextureRequest texture, boolean culling, boolean blending) {
-        this.texture = texture;
+        this.albedo = texture;
         this.culling = culling;
         this.blending = blending;
     }
 
     public int getId() {
-        return texture.getTexture();
+        return albedo.getTexture();
     }
 
     public boolean isCullingEnabled() {
@@ -72,20 +70,37 @@ public class ModelTexture {
         this.specular = specular;
     }
 
-    public float getShineDamper() {
-        return shineDamper;
+    public int getMetallicMap() {
+        if (metallic == null)
+            return -1;
+
+        return metallic.getTexture();
     }
 
-    public void setShineDamper(float shineDamper) {
-        this.shineDamper = shineDamper;
+    public void setMetallicMap(TextureRequest metallic) {
+        this.metallic = metallic;
     }
 
-    public float getReflectivity() {
-        return reflectivity;
+    public int getRoughnessMap() {
+        if (roughness == null)
+            return -1;
+
+        return roughness.getTexture();
     }
 
-    public void setReflectivity(float reflectivity) {
-        this.reflectivity = reflectivity;
+    public void setRoughnessMap(TextureRequest roughness) {
+        this.roughness = roughness;
+    }
+
+    public int getAmbientOcclusionMap() {
+        if (ao == null)
+            return -1;
+
+        return ao.getTexture();
+    }
+
+    public void setAmbientOcclusionMap(TextureRequest ao) {
+        this.ao = ao;
     }
 
     public boolean isLoaded() {
@@ -97,7 +112,19 @@ public class ModelTexture {
         if (specular != null)
             specularLoaded = specular.isLoaded();
 
-        return texture.isLoaded() && normalLoaded && specularLoaded;
+        boolean metallicLoaded = true;
+        if (metallic != null)
+            metallicLoaded = metallic.isLoaded();
+
+        boolean roughnessLoaded = true;
+        if (roughness != null)
+            roughnessLoaded = roughness.isLoaded();
+
+        boolean aoLoaded = true;
+        if (ao != null)
+            aoLoaded = ao.isLoaded();
+
+        return albedo.isLoaded() && normalLoaded && specularLoaded && metallicLoaded && roughnessLoaded && aoLoaded;
     }
 
 }

@@ -13,10 +13,11 @@ import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 public class Entity {
 
-    protected int id;
+    protected int id = ENTITY_ID++;
     protected boolean hidden, spawned;
 
     protected Entity parent;
@@ -27,12 +28,15 @@ public class Entity {
 
     protected Matrix4f transformationMatrix = new Matrix4f();
 
+    private static int ENTITY_ID = 1;
+
     public Entity() {
         addComponent(new TransformComponent());
     }
 
     public Entity(Class<? extends IComponent>... clazzes) {
         addComponent(new TransformComponent());
+
         for (Class<? extends IComponent> clazz : clazzes) {
             try {
                 addComponent(clazz.newInstance());
@@ -52,8 +56,21 @@ public class Entity {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public Vector3f getPosition() {
         return getComponent(TransformComponent.class).position;
+    }
+
+    public Vector3f getAbsolutePosition() {
+        Matrix4f matrix = new Matrix4f();
+        if (parent != null)
+            matrix = parent.getTransformationMatrix();
+        Vector3f position = getComponent(TransformComponent.class).position;
+
+        return new Vector3f(Matrix4f.transform(matrix, new Vector4f(position.x, position.y, position.z, 1), null));
     }
 
     public Vector3f getRotation() {

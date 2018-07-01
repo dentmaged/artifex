@@ -1,15 +1,15 @@
 package org.anchor.client.engine.renderer.godrays;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Renderer;
-import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.Light;
 import org.anchor.engine.common.utils.Projection;
+import org.anchor.engine.common.utils.VectorUtils;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector3f;
 
 public class Godrays {
 
@@ -23,23 +23,24 @@ public class Godrays {
         projection = new Projection(Renderer.getProjectionMatrix());
     }
 
-    public void perform(int scene, int godraysTexture, Matrix4f viewMatrix, Light light) {
-        outputFBO.bindFrameBuffer();
+    public void perform(int scene, int godraysTexture, int exposureTexture, Matrix4f viewMatrix, Light light) {
+        outputFBO.bindFramebuffer();
         shader.start();
         QuadRenderer.bind();
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, scene);
+        Engine.bind2DTexture(scene, 0);
+        Engine.bind2DTexture(godraysTexture, 1);
+        Engine.bind2DTexture(exposureTexture, 2);
 
-        GL13.glActiveTexture(GL13.GL_TEXTURE1);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, godraysTexture);
-
-        shader.loadInformation(100, projection.update(light.getPosition(), viewMatrix), Bloom.exposure);
+        Vector3f position = light.getPosition();
+        if (light.isDirectionalLight())
+            position = VectorUtils.mul(position, 20000);
+        shader.loadInformation(100, projection.update(position, viewMatrix));
 
         QuadRenderer.render();
         QuadRenderer.unbind();
         shader.stop();
-        outputFBO.unbindFrameBuffer();
+        outputFBO.unbindFramebuffer();
     }
 
     public void shutdown() {

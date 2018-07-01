@@ -1,6 +1,6 @@
 package org.anchor.engine.common.console;
 
-import org.anchor.engine.common.multiplayer.User;
+import org.anchor.engine.common.net.User;
 
 public abstract class GameCommand {
 

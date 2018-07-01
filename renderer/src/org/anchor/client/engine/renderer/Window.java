@@ -4,31 +4,28 @@ import org.lwjgl.Sys;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.PixelFormat;
 
 public class Window {
-
-    public static int WIDTH = 1280;
-    public static int HEIGHT = 720;
-    public static final int FPS_CAP = 300;
 
     private static long lastFrameTime;
     private static float delta, timeScale = 1;
 
     public static void create(String title) {
         try {
-            DisplayMode selected = new DisplayMode(WIDTH, HEIGHT);
+            DisplayMode selected = new DisplayMode(Settings.width, Settings.height);
 
             for (DisplayMode mode : Display.getAvailableDisplayModes())
-                if (mode.getWidth() == WIDTH && mode.getHeight() == HEIGHT && mode.isFullscreenCapable())
+                if (mode.getWidth() == Settings.width && mode.getHeight() == Settings.height && mode.isFullscreenCapable())
                     selected = mode;
 
+            Display.setFullscreen(Settings.fullscreen);
             Display.setDisplayMode(selected);
             Display.create(new PixelFormat().withDepthBits(24));
             Display.setTitle(title);
 
-            GL11.glEnable(GL13.GL_MULTISAMPLE);
+            GL11.glEnable(GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -39,7 +36,7 @@ public class Window {
     }
 
     public static void endFrame() {
-        Display.sync(FPS_CAP);
+        Display.sync(Settings.maxFPS);
         Display.update();
 
         long currentFrameTime = getCurrentTime();

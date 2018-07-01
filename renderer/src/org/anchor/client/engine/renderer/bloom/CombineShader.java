@@ -11,21 +11,20 @@ public class CombineShader extends Shader {
     }
 
     @Override
-    public void start() {
-        super.start();
-
-        loadInt("a", 0);
-        loadInt("b", 1);
-    }
-
-    public void loadInformation(float exposure) {
-        loadFloat("exposure", exposure);
-    }
-
-    @Override
     protected void bindAttributes() {
         super.bindFragOutput(0, "out_colour");
         super.bindAttribute(0, "position");
+    }
+
+    @Override
+    public void start() {
+        super.start();
+
+        loadInt("ldr", 0);
+        loadInt("bloomOne", 1);
+        loadInt("bloomTwo", 2);
+        loadInt("bloomThree", 3);
+        loadInt("exposure", 4);
     }
 
     public static CombineShader getInstance() {

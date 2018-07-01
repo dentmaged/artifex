@@ -31,4 +31,18 @@ public class BroadphaseCollisionResult {
         return meshTwo;
     }
 
+    public Entity getOther(Entity other) {
+        if (other == one)
+            return two;
+
+        return one;
+    }
+
+    public int getOtherMesh(Entity other) {
+        if (other == one)
+            return meshTwo;
+
+        return meshOne;
+    }
+
 }

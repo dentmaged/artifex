@@ -44,10 +44,18 @@ public class CollisionMesh {
         List<Vector3f> transformedNormals = new ArrayList<Vector3f>();
         Matrix4f normalMatrix = Matrix4f.transpose(Matrix4f.invert(transformationMatrix, null), null);
 
-        for (Vector4f normal : normals)
-            transformedNormals.add(new Vector3f(Matrix4f.transform(normalMatrix, normal, null)));
+        for (Vector4f normal : normals) {
+            Vector3f transformed = new Vector3f(Matrix4f.transform(normalMatrix, normal, null));
+            transformed.normalise();
+
+            transformedNormals.add(transformed);
+        }
 
         return transformedNormals;
+    }
+
+    public int[] getIndices() {
+        return indices;
     }
 
     public AABB getAABB(Matrix4f transformationMatrix) {

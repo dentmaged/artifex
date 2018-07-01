@@ -1,5 +1,6 @@
 package org.anchor.game.client;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -7,7 +8,6 @@ import org.anchor.game.client.shaders.TerrainShader;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.client.utils.FrustumCull;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
@@ -23,7 +23,7 @@ public class TerrainRenderer {
                 continue;
 
             ClientTerrain terrain = (ClientTerrain) shared;
-            if (terrain.getLOD() == 3 || !terrain.isLoaded())
+            if (!terrain.isLoaded())
                 continue;
 
             Mesh mesh = terrain.getMesh();
@@ -33,22 +33,17 @@ public class TerrainRenderer {
             GL20.glEnableVertexAttribArray(1);
             GL20.glEnableVertexAttribArray(2);
 
-            GL13.glActiveTexture(GL13.GL_TEXTURE0);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, terrain.getTextures().getBlendmap());
-            GL13.glActiveTexture(GL13.GL_TEXTURE1);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, terrain.getTextures().getBackgroundTexture());
-            GL13.glActiveTexture(GL13.GL_TEXTURE2);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, terrain.getTextures().getRedTexture());
-            GL13.glActiveTexture(GL13.GL_TEXTURE3);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, terrain.getTextures().getGreenTexture());
-            GL13.glActiveTexture(GL13.GL_TEXTURE4);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, terrain.getTextures().getBlueTexture());
+            Engine.bind2DTexture(terrain.getTextures().getBlendmap(), 0);
+            Engine.bind2DTexture(terrain.getTextures().getBackgroundTexture(), 1);
+            Engine.bind2DTexture(terrain.getTextures().getRedTexture(), 2);
+            Engine.bind2DTexture(terrain.getTextures().getGreenTexture(), 3);
+            Engine.bind2DTexture(terrain.getTextures().getBlueTexture(), 4);
 
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glCullFace(GL11.GL_BACK);
             shader.loadTerrainInformation(terrain);
 
-            GL11.glDrawElements(GL11.GL_TRIANGLES, terrain.getEnd(), GL11.GL_UNSIGNED_INT, terrain.getOffset() * 4);
+            GL11.glDrawElements(GL11.GL_TRIANGLES, terrain.getMesh().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
 
             GL20.glDisableVertexAttribArray(0);
             GL20.glDisableVertexAttribArray(1);

@@ -18,6 +18,9 @@ public class LightComponent implements IComponent, Light {
     @Property("Attenuation")
     public Vector3f attenuation = new Vector3f(1, 0, 0.001f);
 
+    @Property("Directional")
+    public boolean directional = false;
+
     @Override
     public void spawn(Entity entity) {
         this.entity = entity;
@@ -44,6 +47,11 @@ public class LightComponent implements IComponent, Light {
     @Override
     public Vector3f getAttenuation() {
         return attenuation;
+    }
+
+    @Override
+    public boolean isDirectionalLight() {
+        return directional;
     }
 
     @Override

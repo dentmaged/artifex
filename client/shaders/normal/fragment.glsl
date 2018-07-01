@@ -1,35 +1,35 @@
 #version 330
 
-in vec4 viewPosition;
 in mat3 tbn;
 in vec2 tc;
 
 FS_OUT(diffuse)
-FS_OUT(position)
+FS_OUT(other)
 FS_OUT(normal)
 FS_OUT(bloom)
 FS_OUT(godrays)
 
-tex modelTexture;
-tex normalMap;
-tex specularMap;
-uniform float shineDamper;
-uniform float reflectivity;
+tex albedo;
+tex normal;
+tex specular;
+tex metallic;
+tex roughness;
+tex ao;
+
 uniform vec4 colour;
+uniform bool usesAOMap;
+
+#include "material.glsl"
 
 void main(void) {
-	out_diffuse = texture2D(modelTexture, tc);
-	if (out_diffuse.a < 0.5)
+	vec4 diffuse = texture2D(albedo, tc);
+	if (diffuse.a < 0.5)
 		discard;
 
-	out_diffuse.xyz = mix(pow(out_diffuse.xyz, vec3(GAMMA)), colour.xyz, colour.a);
-	out_position = vec4(viewPosition);
+	float metallic = texture2D(metallic, tc).r;
+	float roughness = texture2D(roughness, tc).r;
+	float ao = usesAOMap ? texture2D(ao, tc).r : 1;
 
-	vec3 mappedNormal = texture2D(normalMap, tc).xyz * 2 - 1;
-	out_normal = vec4(normalize(tbn * mappedNormal), reflectivity);
-
-	out_bloom = vec4(0, 0, 0, 1);
-	out_godrays = vec4(0, 0, 0, 1);
-
-	out_diffuse.a = shineDamper;
+	vec3 mappedNormal = texture2D(normal, tc).xyz * 2 - 1;
+	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), normalize(tbn * mappedNormal), texture2D(specular, tc).r * diffuse.xyz, metallic, roughness, ao);
 }

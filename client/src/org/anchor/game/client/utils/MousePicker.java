@@ -123,6 +123,7 @@ public class MousePicker {
     private boolean intersectionInRange(float start, float finish, Vector3f ray) {
         Vector3f startPoint = getPointOnRay(ray, start);
         Vector3f endPoint = getPointOnRay(ray, finish);
+
         if (!isUnderGround(startPoint) && isUnderGround(endPoint))
             return true;
         else

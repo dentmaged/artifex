@@ -1,6 +1,7 @@
 package org.anchor.engine.common.utils;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -22,8 +23,24 @@ public class VectorUtils {
         return (float) Math.sqrt(vector.x * vector.x + vector.z * vector.z);
     }
 
+    public static Vector3f mul(Vector3f v, Vector3f b) {
+        return new Vector3f(v.x * b.x, v.y * b.y, v.z * b.z);
+    }
+
     public static Vector3f mul(Vector3f v, float f) {
         return new Vector3f(v.x * f, v.y * f, v.z * f);
+    }
+
+    public static Vector2f mul(Vector2f v, float f) {
+        return new Vector2f(v.x * f, v.y * f);
+    }
+
+    public static Vector3f div(Vector3f v, Vector3f b) {
+        return new Vector3f(v.x / b.x, v.y / b.y, v.z / b.z);
+    }
+
+    public static Vector3f div(Vector3f v, float f) {
+        return new Vector3f(v.x / f, v.y / f, v.z / f);
     }
 
     public static Vector3f floor(Vector3f v) {

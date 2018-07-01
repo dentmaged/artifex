@@ -1,13 +1,17 @@
 package org.anchor.client.engine.renderer;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.anchor.client.engine.renderer.deferred.DeferredShader;
+import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
@@ -25,7 +29,9 @@ public abstract class Shader {
     protected Map<String, Integer> uniforms = new HashMap<String, Integer>();
 
     private static FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private static String DEFINES = "\n#define tex uniform sampler2D\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define MAX_LIGHTS " + DeferredShader.MAX_LIGHTS + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA 2.2\n";
+    private static String DEFINES = "\n#define tex uniform sampler2D\n#define texCube uniform samplerCube\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define SHADOW_SPLITS " + Settings.shadowSplits + "\n#define MAX_LIGHTS " + DeferredShader.MAX_LIGHTS + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA 2.2\n";
+
+    private static List<Shader> shaders = new ArrayList<Shader>();
 
     public Shader(String program) {
         this.program = program;
@@ -44,6 +50,8 @@ public abstract class Shader {
         loadMatrix("projectionMatrix", Renderer.getProjectionMatrix());
         loadMatrix("inverseProjectionMatrix", Matrix4f.invert(Renderer.getProjectionMatrix(), null));
         stop();
+
+        shaders.add(this);
     }
 
     protected int getUniformLocation(String name) {
@@ -120,15 +128,18 @@ public abstract class Shader {
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String line;
 
-            while ((line = reader.readLine()) != null)
-                shaderSource.append(line).append("\n");
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("#include"))
+                    shaderSource.append(FileHelper.read(new File("shaders", line.substring(line.indexOf('"') + 1, line.lastIndexOf('"'))))).append("\n");
+                else
+                    shaderSource.append(line).append("\n");
+            }
 
             reader.close();
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
         }
-
         shaderSource.insert(shaderSource.indexOf("\n", shaderSource.indexOf("#version")) + 1, DEFINES);
 
         int shaderId = GL20.glCreateShader(type);
@@ -136,13 +147,22 @@ public abstract class Shader {
         GL20.glCompileShader(shaderId);
 
         if (GL20.glGetShaderi(shaderId, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
-            System.out.println(GL20.glGetShaderInfoLog(shaderId, 500));
+            String error = GL20.glGetShaderInfoLog(shaderId, 500);
+            String[] lines = shaderSource.toString().split("\n");
+            int location = Integer.parseInt(error.substring(error.indexOf('(') + 1, error.indexOf(')')));
+
+            System.out.println(error);
+            System.out.println("Possible offending lines:\n\t" + lines[location - 2] + "\n\t" + lines[location - 1] + "\n\t" + lines[location]);
             System.err.println("Could not compile shader " + file + "!");
 
             System.exit(-1);
         }
 
         return shaderId;
+    }
+
+    public static List<Shader> getShaders() {
+        return shaders;
     }
 
 }

@@ -52,8 +52,8 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
-import org.anchor.client.engine.renderer.bloom.Bloom;
-import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.Settings;
+import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.Pointer;
 import org.anchor.engine.shared.components.IComponent;
@@ -75,25 +75,32 @@ import org.anchor.engine.shared.ui.listener.CheckboxListener;
 import org.anchor.engine.shared.ui.listener.DropdownListener;
 import org.anchor.engine.shared.ui.listener.TextFieldListener;
 import org.anchor.engine.shared.ui.listener.UIListener;
-import org.anchor.engine.shared.ui.listener.adapter.ButtonAdapter;
 import org.anchor.engine.shared.ui.swing.CustomButton;
 import org.anchor.engine.shared.ui.swing.CustomCheckbox;
 import org.anchor.engine.shared.ui.swing.CustomDropdown;
 import org.anchor.engine.shared.ui.swing.CustomTextField;
 import org.anchor.game.client.GameClient;
+import org.anchor.game.client.app.AppManager;
+import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
-import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SoundComponent;
+import org.anchor.game.client.components.SlidingDoorComponent;
 import org.anchor.game.client.components.WaterComponent;
 import org.anchor.game.client.loaders.ModelLoader;
 import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.properties.PropertyUIKit;
-import org.anchor.game.editor.utils.AssetManagerUtils;
+import org.anchor.game.editor.terrain.brush.IncreaseDecreaseHeightBrush;
+import org.anchor.game.editor.terrain.brush.SetHeightBrush;
+import org.anchor.game.editor.terrain.brush.SmoothBrush;
+import org.anchor.game.editor.terrain.brush.TerrainBrush;
+import org.anchor.game.editor.terrain.shape.Shape;
+import org.anchor.game.editor.utils.AssetManager;
 import org.anchor.game.editor.utils.LogRedirector;
 import org.anchor.game.editor.utils.RenderSettings;
+import org.lwjgl.util.vector.Vector3f;
 
 public class LevelEditor extends JPanel {
 
@@ -132,11 +139,22 @@ public class LevelEditor extends JPanel {
     private boolean updateRAM;
     private long lastUpdateTime;
 
+    private float radius = 5;
+    private float strength = 1;
+    private TerrainBrush selectedBrush = BRUSHES[0];
+    private Shape selectedShape = SHAPES[0];
+
     protected boolean paint, terraform;
 
     private static Class<?>[] COMPONENTS = new Class[] {
-            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, WaterComponent.class, SpawnComponent.class
+            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, WaterComponent.class, SpawnComponent.class, SlidingDoorComponent.class
     };
+
+    private static TerrainBrush[] BRUSHES = new TerrainBrush[] {
+            new IncreaseDecreaseHeightBrush(), new SetHeightBrush(), new SmoothBrush()
+    };
+
+    private static Shape[] SHAPES = AssetManager.getShapes();
 
     public LevelEditor() {
         setLayout(null);
@@ -615,7 +633,7 @@ public class LevelEditor extends JPanel {
 
         TextFieldBlueprint createGridX = new TextFieldBlueprint("Grid X: ", "0");
         TextFieldBlueprint createGridZ = new TextFieldBlueprint("Grid Z: ", "0");
-        DropdownBlueprint createHeightmaps = new DropdownBlueprint("Heightmap: ", AssetManagerUtils.getHeightmaps());
+        DropdownBlueprint createHeightmaps = new DropdownBlueprint("Heightmap: ", AssetManager.getHeightmaps());
 
         JScrollPane terrainCreatePanel = UIKit.createSubpanel("Terrain", Arrays.asList(createGridX, createGridZ, createHeightmaps, new ButtonBlueprint("Create", new ButtonListener() {
 
@@ -629,7 +647,7 @@ public class LevelEditor extends JPanel {
         })), height);
         terrainCreatePanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
 
-        DropdownBlueprint createModel = new DropdownBlueprint("Model: ", AssetManagerUtils.getModels());
+        DropdownBlueprint createModel = new DropdownBlueprint("Model: ", AssetManager.getModels());
         JScrollPane geometryCreatePanel = UIKit.createSubpanel("Geometry", Arrays.asList(createModel, new ButtonBlueprint("Create", new ButtonListener() {
 
             @Override
@@ -645,7 +663,7 @@ public class LevelEditor extends JPanel {
         })), height);
         geometryCreatePanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
 
-        DropdownBlueprint prefabDropdown = new DropdownBlueprint("Prefab: ", AssetManagerUtils.getPrefabs());
+        DropdownBlueprint prefabDropdown = new DropdownBlueprint("Prefab: ", AssetManager.getPrefabs());
         JScrollPane prefabCreatePanel = UIKit.createSubpanel("Prefab", Arrays.asList(prefabDropdown, new ButtonBlueprint("Load", new ButtonListener() {
 
             @Override
@@ -878,24 +896,69 @@ public class LevelEditor extends JPanel {
         tabbedPane.addTab("Terrain", null, terrainPanel, null);
         terrainPanel.setLayout(null);
 
-        JScrollPane terrainPaintPanel = UIKit.createSubpanel("Terrain Paint", Arrays.asList(new TextFieldBlueprint("Radius: ", "1", new TextFieldListener() {
+        JScrollPane terrainPaintPanel = UIKit.createSubpanel("Paint", Arrays.asList(new DropdownBlueprint("Texture: ", Arrays.asList(), new DropdownListener() {
 
             @Override
-            public void onTextFieldEdit(CustomTextField field) {
+            public void onDropdownSelect(CustomDropdown field) {
 
             }
 
-        }), new TextFieldBlueprint("Strength: ", "1", new TextFieldListener() {
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomDropdown dropdown = (CustomDropdown) component;
+
+                dropdown.setEnabled(false);
+                dropdown.removeAllItems();
+                if (current != null) {
+                    ClientTerrain terrain = (ClientTerrain) current;
+
+                    dropdown.addItem(terrain.getTextures().getBackgroundName());
+                    dropdown.addItem(terrain.getTextures().getRedName());
+                    dropdown.addItem(terrain.getTextures().getGreenName());
+                    dropdown.addItem(terrain.getTextures().getBlueName());
+                    dropdown.setEnabled(true);
+                }
+            }
+
+        })), height);
+        terrainPaintPanel.setBounds(UIKit.SUBPANEL_X, 432, UIKit.SUBPANEL_WIDTH, height.get());
+
+        List<String> brushes = new ArrayList<String>();
+        for (TerrainBrush brush : BRUSHES)
+            brushes.add(brush.getName());
+
+        JScrollPane terrainTerraformPanel = UIKit.createSubpanel("Terraform", Arrays.asList(new DropdownBlueprint("Brush: ", brushes, new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                selectedBrush = BRUSHES[field.getSelectedIndex()];
+            }
+
+        })), height);
+        terrainTerraformPanel.setBounds(UIKit.SUBPANEL_X, 432, UIKit.SUBPANEL_WIDTH, height.get());
+
+        JScrollPane terrainSettingsPanel = UIKit.createSubpanel("Terrain Settings", Arrays.asList(new TextFieldBlueprint("Size: ", Terrain.DEFAULT_SIZE + "", new TextFieldListener() {
 
             @Override
             public void onTextFieldEdit(CustomTextField field) {
-
+                if (selectedTerrain != null)
+                    selectedTerrain.setSize(parseFloat(field.getText()));
             }
 
-        }), new DropdownBlueprint("Texture: ", Arrays.asList())), height);
-        terrainPaintPanel.setBounds(UIKit.SUBPANEL_X, 159 + 19, UIKit.SUBPANEL_WIDTH, height.get());
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomTextField field = (CustomTextField) component;
 
-        JScrollPane terrainSettingsPanel = UIKit.createSubpanel("Terrain Settings", Arrays.asList(new TextFieldBlueprint("Grid X: ", "0", new TextFieldListener() {
+                field.setEnabled(false);
+                if (current != null) {
+                    field.setText(current.getSize() + "");
+                    field.setEnabled(true);
+                } else {
+                    field.setText(Terrain.DEFAULT_SIZE + "");
+                }
+            }
+
+        }), new TextFieldBlueprint("Grid X: ", "0", new TextFieldListener() {
 
             @Override
             public void onTextFieldEdit(CustomTextField field) {
@@ -937,7 +1000,7 @@ public class LevelEditor extends JPanel {
                 }
             }
 
-        }), new DropdownBlueprint("Heightmap: ", AssetManagerUtils.getHeightmaps(), new DropdownListener() {
+        }), new DropdownBlueprint("Heightmap: ", AssetManager.getHeightmaps(), new DropdownListener() {
 
             @Override
             public void onDropdownSelect(CustomDropdown field) {
@@ -951,7 +1014,91 @@ public class LevelEditor extends JPanel {
 
                 dropdown.setEnabled(false);
                 if (current != null) {
-                    dropdown.setSelectedIndex(AssetManagerUtils.getIndex(dropdown, current.getHeightmap()));
+                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, current.getHeightmap()));
+                    dropdown.setEnabled(true);
+                } else {
+                    dropdown.setSelectedIndex(0);
+                }
+            }
+
+        }), new DropdownBlueprint("Background Texture: ", AssetManager.getTerrainTextures(), new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                if (field.isEnabled() && selectedTerrain != null)
+                    selectedTerrain.getTextures().setBackgroundTexture(Requester.requestTexture(TextureType.TERRAIN, (String) field.getSelectedItem()));
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomDropdown dropdown = (CustomDropdown) component;
+
+                dropdown.setEnabled(false);
+                if (current != null) {
+                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, ((ClientTerrain) current).getTextures().getBackgroundName()));
+                    dropdown.setEnabled(true);
+                } else {
+                    dropdown.setSelectedIndex(0);
+                }
+            }
+
+        }), new DropdownBlueprint("Red Texture: ", AssetManager.getTerrainTextures(), new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                if (field.isEnabled() && selectedTerrain != null)
+                    selectedTerrain.getTextures().setRedTexture(Requester.requestTexture(TextureType.TERRAIN, (String) field.getSelectedItem()));
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomDropdown dropdown = (CustomDropdown) component;
+
+                dropdown.setEnabled(false);
+                if (current != null) {
+                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, ((ClientTerrain) current).getTextures().getRedName()));
+                    dropdown.setEnabled(true);
+                } else {
+                    dropdown.setSelectedIndex(0);
+                }
+            }
+
+        }), new DropdownBlueprint("Green Texture: ", AssetManager.getTerrainTextures(), new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                if (field.isEnabled() && selectedTerrain != null)
+                    selectedTerrain.getTextures().setGreenTexture(Requester.requestTexture(TextureType.TERRAIN, (String) field.getSelectedItem()));
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomDropdown dropdown = (CustomDropdown) component;
+
+                dropdown.setEnabled(false);
+                if (current != null) {
+                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, ((ClientTerrain) current).getTextures().getGreenName()));
+                    dropdown.setEnabled(true);
+                } else {
+                    dropdown.setSelectedIndex(0);
+                }
+            }
+
+        }), new DropdownBlueprint("Blue Texture: ", AssetManager.getTerrainTextures(), new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                if (field.isEnabled() && selectedTerrain != null)
+                    selectedTerrain.getTextures().setBlueTexture(Requester.requestTexture(TextureType.TERRAIN, (String) field.getSelectedItem()));
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomDropdown dropdown = (CustomDropdown) component;
+
+                dropdown.setEnabled(false);
+                if (current != null) {
+                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, ((ClientTerrain) current).getTextures().getBlueName()));
                     dropdown.setEnabled(true);
                 } else {
                     dropdown.setSelectedIndex(0);
@@ -962,12 +1109,109 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void onButtonClick(CustomButton field) {
+                terraform = !terraform;
 
+                if (terraform) {
+                    terrainPanel.remove(terrainPaintPanel);
+                    terrainPanel.add(terrainTerraformPanel);
+                } else {
+                    terrainPanel.remove(terrainTerraformPanel);
+                }
+
+                terrainPanel.revalidate();
+                terrainPanel.repaint();
             }
 
-        }, new ButtonAdapter())), height);
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                terraform = false;
+
+                terrainPanel.remove(terrainTerraformPanel);
+                terrainPanel.revalidate();
+                terrainPanel.repaint();
+            }
+
+        }, new ButtonListener() {
+
+            @Override
+            public void onButtonClick(CustomButton field) {
+                paint = !paint;
+
+                if (paint) {
+                    terrainPanel.remove(terrainTerraformPanel);
+                    terrainPanel.add(terrainPaintPanel);
+                } else {
+                    terrainPanel.remove(terrainPaintPanel);
+                }
+
+                terrainPanel.revalidate();
+                terrainPanel.repaint();
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                paint = false;
+
+                terrainPanel.remove(terrainPaintPanel);
+                terrainPanel.revalidate();
+                terrainPanel.repaint();
+            }
+
+        })), height);
         terrainSettingsPanel.setBounds(UIKit.SUBPANEL_X, 26, UIKit.SUBPANEL_WIDTH, height.get());
         terrainPanel.add(terrainSettingsPanel);
+
+        List<String> shapes = new ArrayList<String>();
+        for (Shape shape : SHAPES)
+            shapes.add(shape.getName());
+
+        JScrollPane terrainBrushPanel = UIKit.createSubpanel("Brush", Arrays.asList(new TextFieldBlueprint("Radius: ", "5", new TextFieldListener() {
+
+            @Override
+            public void onTextFieldEdit(CustomTextField field) {
+                radius = parseFloat(field.getText());
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomTextField field = (CustomTextField) component;
+
+                field.setEnabled(false);
+                if (current != null) {
+                    field.setText(radius + "");
+                    field.setEnabled(true);
+                }
+            }
+
+        }), new TextFieldBlueprint("Strength: ", "1", new TextFieldListener() {
+
+            @Override
+            public void onTextFieldEdit(CustomTextField field) {
+                strength = parseFloat(field.getText());
+            }
+
+            @Override
+            public void onTerrainSelect(Terrain previous, Terrain current) {
+                CustomTextField field = (CustomTextField) component;
+
+                field.setEnabled(false);
+                if (current != null) {
+                    field.setText(strength + "");
+                    field.setEnabled(true);
+                }
+            }
+
+        }), new DropdownBlueprint("Shape: ", shapes, new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                selectedShape = SHAPES[field.getSelectedIndex()];
+            }
+
+        })), height);
+        terrainBrushPanel.setBounds(UIKit.SUBPANEL_X, 310, UIKit.SUBPANEL_WIDTH, height.get());
+        terrainPanel.add(terrainBrushPanel);
+        System.out.println(terrainBrushPanel.getBounds().y + height.get() + 19);
 
         JPanel environmentPanel = new JPanel();
         tabbedPane.addTab("Environment", null, environmentPanel, null);
@@ -1006,19 +1250,23 @@ public class LevelEditor extends JPanel {
 
         environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] {
                 {
-                        "Wireframe", false
+                        "Wireframe", Settings.wireframe
                 }, {
-                        "Show Lightmaps", false
+                        "Procedural Skybox", Settings.proceduralSky
                 }, {
-                        "Minimum Diffuse", DeferredShading.minDiffuse
+                        "Perform Lighting", Settings.performLighting
                 }, {
-                        "Sky Time Scale", SkyComponent.TIME_SCALE
+                        "Perform SSAO", Settings.performSSAO
                 }, {
-                        "Fog Density", DeferredShading.density
+                        "Show Lightmaps", Settings.showLightmaps
                 }, {
-                        "Fog Gradient", DeferredShading.gradient
+                        "Minimum Diffuse", Settings.minDiffuse
                 }, {
-                        "Exposure", Bloom.exposure
+                        "Fog Density", Settings.density
+                }, {
+                        "Fog Gradient", Settings.gradient
+                }, {
+                        "Exposure Speed", Settings.exposureSpeed
                 }
         }, new String[] {
                 "Property", "Value"
@@ -1133,54 +1381,6 @@ public class LevelEditor extends JPanel {
                 }
             }
 
-        }), new TextFieldBlueprint("Shine Damper: ", "1.0", new TextFieldListener() {
-
-            @Override
-            public void onTextFieldEdit(CustomTextField field) {
-                if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).model.getTexture().setShineDamper(parseFloat(field.getText()));
-            }
-
-            @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                CustomTextField field = (CustomTextField) component;
-
-                field.setEnabled(false);
-                if (current != null) {
-                    MeshComponent mesh = current.getComponent(MeshComponent.class);
-                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
-                        field.setText(mesh.model.getTexture().getShineDamper() + "");
-                        field.setEnabled(true);
-                    }
-                } else {
-                    field.setText("1.0");
-                }
-            }
-
-        }), new TextFieldBlueprint("Reflectivity: ", "0.0", new TextFieldListener() {
-
-            @Override
-            public void onTextFieldEdit(CustomTextField field) {
-                if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).model.getTexture().setReflectivity(parseFloat(field.getText()));
-            }
-
-            @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                CustomTextField field = (CustomTextField) component;
-
-                field.setEnabled(false);
-                if (current != null) {
-                    MeshComponent mesh = current.getComponent(MeshComponent.class);
-                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
-                        field.setText(mesh.model.getTexture().getReflectivity() + "");
-                        field.setEnabled(true);
-                    }
-                } else {
-                    field.setText("0.0");
-                }
-            }
-
         })), height);
         modelSettingsPanel.setBounds(UIKit.SUBPANEL_X, 26, UIKit.SUBPANEL_WIDTH, height.get());
         modelPanel.add(modelSettingsPanel);
@@ -1289,6 +1489,17 @@ public class LevelEditor extends JPanel {
                 lblMbRAM.setText(String.format("%.1f", getUsedMemory()) + "MB (RAM)");
                 lastUpdateTime = currentTime;
             }
+        }
+    }
+
+    public void editTerrain(Vector3f point) {
+        if (terraform) {
+            if (selectedTerrain != null) {
+                selectedBrush.perform(selectedShape, selectedTerrain, point, radius, 1f / selectedTerrain.getIncrement(), strength * AppManager.getFrameTimeSeconds());
+                selectedTerrain.reloadHeights();
+            }
+        } else if (paint) {
+            
         }
     }
 
@@ -1409,6 +1620,10 @@ public class LevelEditor extends JPanel {
 
     public void setGameEditor(GameEditor gameEditor) {
         this.gameEditor = gameEditor;
+    }
+
+    public boolean isEditingTerrain() {
+        return terraform || paint;
     }
 
     private void hideTitle(JInternalFrame frame) {

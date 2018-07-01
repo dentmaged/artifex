@@ -21,7 +21,7 @@ import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.loaders.ModelLoader;
 import org.anchor.game.editor.GameEditor;
-import org.anchor.game.editor.utils.AssetManagerUtils;
+import org.anchor.game.editor.utils.AssetManager;
 import org.lwjgl.util.vector.Vector3f;
 
 public class PropertyUIKit {
@@ -87,7 +87,7 @@ public class PropertyUIKit {
 
         try {
             if (field.getType() == Model.class) {
-                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManagerUtils.getModels()) {
+                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManager.getModels()) {
 
                     private static final long serialVersionUID = 5436389935838674534L;
 

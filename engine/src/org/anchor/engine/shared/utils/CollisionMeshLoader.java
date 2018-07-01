@@ -24,7 +24,6 @@ public class CollisionMeshLoader {
         List<Integer> indices = new ArrayList<Integer>();
         List<CollisionMesh> meshes = new ArrayList<CollisionMesh>();
 
-        int vo = 0;
         for (String line : lines) {
             line = line.trim().replaceAll(" +", " ");
             if (line.startsWith("v ")) {
@@ -41,20 +40,18 @@ public class CollisionMeshLoader {
                 if (indices.size() == 0)
                     continue;
 
+                List<Integer> meshIndices = new ArrayList<Integer>();
                 List<Vector3f> meshVertices = new ArrayList<Vector3f>();
-                List<Vector3f> original = new ArrayList<Vector3f>(vertices);
 
+                int i = 0;
                 for (int index : indices) {
-                    Vector3f vertex = original.get(index - 1);
-                    if (!meshVertices.contains(vertex)) {
-                        meshVertices.add(vertex);
-                        vertices.remove(vertex);
-                    }
+                    i++;
+
+                    meshVertices.add(vertices.get(index - 1));
+                    meshIndices.add(i);
                 }
 
-                vo += vertices.size();
-
-                meshes.add(new CollisionMesh(meshVertices, normals, indices));
+                meshes.add(new CollisionMesh(meshVertices, normals, meshIndices));
                 indices.clear();
             } else if (line.startsWith("f")) {
                 String[] currentLine = line.split(" ");
@@ -62,9 +59,9 @@ public class CollisionMeshLoader {
                 String[] vertex2 = currentLine[2].split("/");
                 String[] vertex3 = currentLine[3].split("/");
 
-                indices.add(Integer.parseInt(vertex1[0]) - vo);
-                indices.add(Integer.parseInt(vertex2[0]) - vo);
-                indices.add(Integer.parseInt(vertex3[0]) - vo);
+                indices.add(Integer.parseInt(vertex1[0]));
+                indices.add(Integer.parseInt(vertex2[0]));
+                indices.add(Integer.parseInt(vertex3[0]));
             }
         }
 

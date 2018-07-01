@@ -16,10 +16,17 @@ public class SSAOShader extends Shader {
     }
 
     @Override
+    protected void bindAttributes() {
+        super.bindFragOutput(0, "out_colour");
+
+        super.bindAttribute(0, "position");
+    }
+
+    @Override
     public void start() {
         super.start();
 
-        loadInt("positions", 0);
+        loadInt("depthMap", 0);
         loadInt("normal", 1);
         loadInt("noise", 2);
     }
@@ -37,13 +44,6 @@ public class SSAOShader extends Shader {
 
     public void loadInverseViewMatrix(Matrix4f inverseViewMatrix) {
         loadMatrix("inverseViewMatrix", inverseViewMatrix);
-    }
-
-    @Override
-    protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
-
-        super.bindAttribute(0, "position");
     }
 
     public static SSAOShader getInstance() {

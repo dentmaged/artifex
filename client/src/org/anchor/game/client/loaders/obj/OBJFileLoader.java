@@ -51,15 +51,10 @@ public class OBJFileLoader {
         for (String line : lines) {
             if (line.startsWith("f ")) {
                 String[] currentLine = line.split(" ");
-                String[] vertex1 = currentLine[1].split("/");
-                String[] vertex2 = currentLine[2].split("/");
-                String[] vertex3 = currentLine[3].split("/");
 
-                Vertex v0 = processVertex(vertex1, vertices, indices);
-                Vertex v1 = processVertex(vertex2, vertices, indices);
-                Vertex v2 = processVertex(vertex3, vertices, indices);
-
-                calculateTangents(v0, v1, v2, textures);
+                calculateTangents(processVertex(currentLine[1].split("/"), vertices, indices), processVertex(currentLine[2].split("/"), vertices, indices), processVertex(currentLine[3].split("/"), vertices, indices), textures);
+                if (currentLine.length == 5)
+                    calculateTangents(processVertex(currentLine[1].split("/"), vertices, indices), processVertex(currentLine[3].split("/"), vertices, indices), processVertex(currentLine[4].split("/"), vertices, indices), textures);
             }
         }
 
@@ -95,6 +90,7 @@ public class OBJFileLoader {
     public static Mesh loadOBJ(File file) {
         ModelData data = loadOBJModel(file);
         Mesh mesh = Loader.getInstance().loadToVAO(data.getVertices(), data.getTextureCoords(), data.getNormals(), data.getIndices());
+
         mesh.setAABB(AABB.generateAABB(data.getVertices()));
         mesh.setFurthestVertex(data.getFurthestVertex());
 
@@ -109,12 +105,12 @@ public class OBJFileLoader {
         Vector2f uv1 = textures.get(v1.getTextureIndex());
         Vector2f uv2 = textures.get(v2.getTextureIndex());
 
-        Vector2f deltaUv1 = Vector2f.sub(uv1, uv0, null);
-        Vector2f deltaUv2 = Vector2f.sub(uv2, uv0, null);
+        Vector2f deltaUV1 = Vector2f.sub(uv1, uv0, null);
+        Vector2f deltaUV2 = Vector2f.sub(uv2, uv0, null);
 
-        float r = 1.0f / (deltaUv1.x * deltaUv2.y - deltaUv1.y * deltaUv2.x);
-        deltaPos1.scale(deltaUv2.y);
-        deltaPos2.scale(deltaUv1.y);
+        float r = 1f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+        deltaPos1.scale(deltaUV2.y);
+        deltaPos2.scale(deltaUV1.y);
 
         Vector3f tangent = Vector3f.sub(deltaPos1, deltaPos2, null);
         tangent.scale(r);
@@ -126,20 +122,19 @@ public class OBJFileLoader {
 
     private static Vertex processVertex(String[] vertex, List<Vertex> vertices, List<Integer> indices) {
         int index = Integer.parseInt(vertex[0]) - 1;
-        Vertex currentVertex = vertices.get(index);
         int textureIndex = Integer.parseInt(vertex[1]) - 1;
         int normalIndex = Integer.parseInt(vertex[2]) - 1;
 
+        Vertex currentVertex = vertices.get(index);
         if (!currentVertex.isSet()) {
             currentVertex.setTextureIndex(textureIndex);
             currentVertex.setNormalIndex(normalIndex);
-
             indices.add(index);
 
             return currentVertex;
-        } else {
-            return dealWithAlreadyProcessedVertex(currentVertex, textureIndex, normalIndex, indices, vertices);
         }
+
+        return dealWithAlreadyProcessedVertex(currentVertex, textureIndex, normalIndex, indices, vertices);
     }
 
     private static int[] convertIndicesListToArray(List<Integer> indices) {
@@ -152,9 +147,10 @@ public class OBJFileLoader {
 
     private static Vector3f convertDataToArrays(List<Vertex> vertices, List<Vector2f> textures, List<Vector3f> normals, float[] verticesArray, float[] texturesArray, float[] normalsArray, float[] tangentsArray) {
         Vertex furthestVertex = vertices.get(0);
+
         for (int i = 0; i < vertices.size(); i++) {
             Vertex currentVertex = vertices.get(i);
-            if (currentVertex.getLength() > furthestVertex.getLength())
+            if (currentVertex.getLength() >= furthestVertex.getLength())
                 furthestVertex = currentVertex;
 
             Vector3f position = currentVertex.getPosition();
@@ -167,7 +163,7 @@ public class OBJFileLoader {
             verticesArray[i * 3 + 2] = position.z;
 
             texturesArray[i * 2] = textureCoords.x;
-            texturesArray[i * 2 + 1] = 1 - textureCoords.y;
+            texturesArray[i * 2 + 1] = 1 - textureCoords.y; // flip Y
 
             normalsArray[i * 3] = normal.x;
             normalsArray[i * 3 + 1] = normal.y;
@@ -184,24 +180,22 @@ public class OBJFileLoader {
     private static Vertex dealWithAlreadyProcessedVertex(Vertex previousVertex, int newTextureIndex, int newNormalIndex, List<Integer> indices, List<Vertex> vertices) {
         if (previousVertex.hasSameTextureAndNormal(newTextureIndex, newNormalIndex)) {
             indices.add(previousVertex.getIndex());
+
             return previousVertex;
         } else {
             Vertex anotherVertex = previousVertex.getDuplicateVertex();
-
-            if (anotherVertex != null) {
+            if (anotherVertex != null)
                 return dealWithAlreadyProcessedVertex(anotherVertex, newTextureIndex, newNormalIndex, indices, vertices);
-            } else {
-                Vertex duplicateVertex = new Vertex(vertices.size(), previousVertex.getPosition());
-                duplicateVertex.setTextureIndex(newTextureIndex);
-                duplicateVertex.setNormalIndex(newNormalIndex);
 
-                previousVertex.setDuplicateVertex(duplicateVertex);
-                vertices.add(duplicateVertex);
-                indices.add(duplicateVertex.getIndex());
+            Vertex duplicateVertex = new Vertex(vertices.size(), previousVertex.getPosition());
+            duplicateVertex.setTextureIndex(newTextureIndex);
+            duplicateVertex.setNormalIndex(newNormalIndex);
 
-                return duplicateVertex;
-            }
+            previousVertex.setDuplicateVertex(duplicateVertex);
+            vertices.add(duplicateVertex);
+            indices.add(duplicateVertex.getIndex());
 
+            return duplicateVertex;
         }
     }
 

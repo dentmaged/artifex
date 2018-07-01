@@ -4,6 +4,7 @@ import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
@@ -43,15 +44,15 @@ public class Gizmo {
         return null;
     }
 
-    public Vector3f getXRotation() {
+    public Vector3f getXRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f();
     }
 
-    public Vector3f getYRotation() {
+    public Vector3f getYRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f();
     }
 
-    public Vector3f getZRotation() {
+    public Vector3f getZRotation(Vector3f rotation, TransformationMode mode) {
         return new Vector3f();
     }
 
@@ -59,7 +60,7 @@ public class Gizmo {
         return new Vector3f();
     }
 
-    public Vector3f performMove(Vector3f axis, Vector3f original, Vector3f position, Vector3f origin, Vector3f ray, int mouseDX, int mouseDY) {
+    public Vector3f performMove(Vector3f axis, Vector3f original, Vector3f position, Vector3f rotation, Vector3f origin, Vector3f ray, int mouseDX, int mouseDY) {
         int dist = mouseDX;
         if (Math.abs(mouseDY) > Math.abs(mouseDX))
             dist = mouseDY;

@@ -1,5 +1,6 @@
 package org.anchor.game.client.async;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -11,9 +12,11 @@ import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.client.engine.renderer.types.MeshRequest;
 import org.anchor.client.engine.renderer.types.MeshType;
 import org.anchor.client.engine.renderer.types.TextureRequest;
+import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.async.types.CompletedAnimatedMesh;
+import org.anchor.game.client.async.types.CompletedCubemap;
 import org.anchor.game.client.async.types.CompletedNormalMesh;
 import org.anchor.game.client.async.types.CompletedPlainMesh;
 import org.anchor.game.client.async.types.CompletedRequest;
@@ -29,6 +32,7 @@ public class Requester {
 
     private static LinkedBlockingQueue<MeshRequest> meshRequests = new LinkedBlockingQueue<MeshRequest>();
     private static LinkedBlockingQueue<TextureRequest> textureRequests = new LinkedBlockingQueue<TextureRequest>();
+    private static LinkedBlockingQueue<CubemapRequest> cubemapRequests = new LinkedBlockingQueue<CubemapRequest>();
 
     private static LinkedBlockingQueue<CompletedRequest> toOpenGL = new LinkedBlockingQueue<CompletedRequest>();
 
@@ -43,6 +47,7 @@ public class Requester {
                 while (running) {
                     MeshRequest meshRequest = meshRequests.poll();
                     TextureRequest textureRequest = textureRequests.poll();
+                    CubemapRequest cubemapRequest = cubemapRequests.poll();
 
                     if (meshRequest != null) {
                         if (meshRequest.getType() == MeshType.PLAIN)
@@ -62,6 +67,25 @@ public class Requester {
                             }
 
                             toOpenGL.offer(new CompletedTexture(textureRequest, ImageIO.read(new FileInputStream(file))));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (cubemapRequest != null) {
+                        try {
+                            BufferedImage[] data = new BufferedImage[cubemapRequest.getTextures().length];
+                            for (int i = 0; i < data.length; i++) {
+                                File file = FileHelper.newGameFile(Loader.RES_LOC, cubemapRequest.getTextures()[i].replace(Loader.RES_LOC + "/", "").replace(Loader.RES_LOC, "") + ".png");
+                                if (!file.exists()) {
+                                    System.err.println(file.getName() + " does not exist! Falling back on default texture.");
+                                    file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
+                                }
+
+                                data[i] = ImageIO.read(new FileInputStream(file));
+                            }
+
+                            toOpenGL.offer(new CompletedCubemap(cubemapRequest, data));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -155,6 +179,13 @@ public class Requester {
     public static TextureRequest requestTexture(String texture) {
         TextureRequest request = new TextureRequest(texture);
         textureRequests.offer(request);
+
+        return request;
+    }
+
+    public static CubemapRequest requestCubemap(String[] textures) {
+        CubemapRequest request = new CubemapRequest(textures);
+        cubemapRequests.offer(request);
 
         return request;
     }

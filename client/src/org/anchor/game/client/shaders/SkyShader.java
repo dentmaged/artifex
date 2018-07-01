@@ -1,5 +1,7 @@
 package org.anchor.game.client.shaders;
 
+import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.components.SkyComponent;
 
@@ -12,14 +14,26 @@ public class SkyShader extends ModelShader {
     }
 
     @Override
+    public void onBind() {
+        super.onBind();
+
+        loadInt("skybox", 1);
+    }
+
+    @Override
     public void loadEntitySpecificInformation(Entity entity) {
         super.loadEntitySpecificInformation(entity);
 
-        loadVector("sunDirection", entity.getComponent(SkyComponent.class).direction);
-        loadVector("sunColour", entity.getComponent(SkyComponent.class).sunColour);
+        SkyComponent component = entity.getComponent(SkyComponent.class);
+        Engine.bindCubemap(component.getSkybox(), 1);
 
-        loadVector("baseColour", entity.getComponent(SkyComponent.class).baseColour);
-        loadVector("topColour", entity.getComponent(SkyComponent.class).topColour);
+        loadVector("sunDirection", component.direction);
+        loadVector("sunColour", component.sunColour);
+
+        loadVector("baseColour", component.baseColour);
+        loadVector("topColour", component.topColour);
+
+        loadBoolean("proceduralSky", Settings.proceduralSky);
     }
 
     public static SkyShader getInstance() {

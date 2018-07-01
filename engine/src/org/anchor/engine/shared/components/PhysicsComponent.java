@@ -80,6 +80,10 @@ public class PhysicsComponent implements IComponent {
         return meshes.get(mesh).getNormals(entity.getTransformationMatrix());
     }
 
+    public int[] getIndices(int mesh) {
+        return meshes.get(mesh).getIndices();
+    }
+
     public AABB getAABB(int mesh) {
         if (entity == null)
             return null;
@@ -137,7 +141,7 @@ public class PhysicsComponent implements IComponent {
     @Override
     public IComponent copy() {
         PhysicsComponent copy = new PhysicsComponent();
-        copy.meshes = new ArrayList<>(meshes);
+        copy.meshes = new ArrayList<CollisionMesh>(meshes);
         copy.velocity = new Vector3f(velocity);
         copy.collidable = collidable;
         copy.gravity = gravity;

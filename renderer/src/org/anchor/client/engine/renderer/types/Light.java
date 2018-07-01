@@ -10,4 +10,10 @@ public interface Light {
 
     public Vector3f getAttenuation();
 
+    public boolean isDirectionalLight();
+
+    public default float getRadius() {
+        return 0;
+    }
+
 }

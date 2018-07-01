@@ -1,8 +1,8 @@
 package org.anchor.engine.shared.components;
 
+import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
-import org.anchor.engine.shared.utils.Maths;
 import org.anchor.engine.shared.utils.Property;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -36,7 +36,7 @@ public class TransformComponent implements IComponent {
     }
 
     public Matrix4f getTransformationMatrix() {
-        return Maths.createTransformationMatrix(position, rotation, scale);
+        return CoreMaths.createTransformationMatrix(position, rotation, scale);
     }
 
     @Override
