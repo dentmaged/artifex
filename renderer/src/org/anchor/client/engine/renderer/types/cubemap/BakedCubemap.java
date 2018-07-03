@@ -1,11 +1,14 @@
 package org.anchor.client.engine.renderer.types.cubemap;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
-import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.opengl.Display;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -15,8 +18,10 @@ public class BakedCubemap {
     private BakedShader shader;
     private int mipmaps, size;
 
+    private static Map<String, BakedShader> shaders = new HashMap<String, BakedShader>();
+
     public BakedCubemap(int size, String shader, int mipmaps) {
-        this(size, new BakedShader(shader), mipmaps);
+        this(size, getShader(shader), mipmaps);
     }
 
     public BakedCubemap(int size, BakedShader shader, int mipmaps) {
@@ -26,7 +31,7 @@ public class BakedCubemap {
         this.mipmaps = mipmaps;
     }
 
-    public void perform(Model model, int skybox) {
+    public void perform(int skybox) {
         float fov = Settings.fov;
         Settings.fov = 90;
         Settings.width = size;
@@ -35,9 +40,11 @@ public class BakedCubemap {
 
         cubemap.bindFramebuffer();
         shader.start();
-        Renderer.bind(model);
 
+        Renderer.bind(Renderer.getCubeModel());
+        GL11.glDisable(GL11.GL_CULL_FACE);
         Engine.bindCubemap(skybox, 1);
+
         for (int mip = 0; mip < mipmaps; mip++) {
             cubemap.startMipmapRender(mip);
 
@@ -45,11 +52,11 @@ public class BakedCubemap {
                 cubemap.startFaceRender(i, mip);
                 shader.loadInformation(CoreMaths.createViewMatrix(new Vector3f(), cubemap.getPitch(i), cubemap.getYaw(i), 180), new Matrix4f(), mipmaps > 1 ? (float) mip / (float) (mipmaps - 1) : 0, i);
 
-                Renderer.render(model);
+                Renderer.render(Renderer.getCubeModel());
             }
         }
 
-        Renderer.unbind(model);
+        Renderer.unbind(Renderer.getCubeModel());
         shader.stop();
         cubemap.unbindFramebuffer();
 
@@ -61,6 +68,13 @@ public class BakedCubemap {
 
     public int getCubemap() {
         return cubemap.getTexture();
+    }
+
+    public static BakedShader getShader(String shader) {
+        if (!shaders.containsKey(shader))
+            shaders.put(shader, new BakedShader(shader));
+
+        return shaders.get(shader);
     }
 
 }

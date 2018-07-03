@@ -4,11 +4,13 @@ import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
+import org.anchor.client.engine.renderer.types.light.LightType;
 import org.anchor.engine.common.utils.Projection;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 public class Godrays {
@@ -32,10 +34,15 @@ public class Godrays {
         Engine.bind2DTexture(godraysTexture, 1);
         Engine.bind2DTexture(exposureTexture, 2);
 
-        Vector3f position = light.getPosition();
-        if (light.isDirectionalLight())
-            position = VectorUtils.mul(position, 20000);
-        shader.loadInformation(100, projection.update(position, viewMatrix));
+        if (light != null) {
+            Vector3f position = light.getPosition();
+            if (light.getLightType() == LightType.DIRECTIONAL)
+                position = VectorUtils.mul(light.getDirection(), 20000);
+
+            shader.loadInformation(100, projection.update(position, viewMatrix));
+        } else {
+            shader.loadInformation(0, new Vector2f(0, 0));
+        }
 
         QuadRenderer.render();
         QuadRenderer.unbind();

@@ -1,4 +1,4 @@
-package org.anchor.client.engine.renderer.types;
+package org.anchor.client.engine.renderer.types.texture;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

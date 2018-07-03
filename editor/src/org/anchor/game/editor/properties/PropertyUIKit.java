@@ -14,12 +14,15 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import org.anchor.client.engine.renderer.types.Model;
+import org.anchor.client.engine.renderer.types.texture.ModelTexture;
+import org.anchor.engine.common.utils.EnumUtils;
 import org.anchor.engine.common.utils.Pointer;
+import org.anchor.engine.common.utils.StringUtils;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.utils.Property;
-import org.anchor.game.client.loaders.ModelLoader;
+import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.utils.AssetManager;
 import org.lwjgl.util.vector.Vector3f;
@@ -96,7 +99,80 @@ public class PropertyUIKit {
                         entity.setValue("model", value);
                         GameEditor.getInstance().getLevelEditor().updateList();
 
-                        return ModelLoader.loadModel(value);
+                        return AssetLoader.loadModel(value);
+                    }
+
+                    @Override
+                    public void update() {
+                        try {
+                            Model model = (Model) field.get(icomponent);
+                            if (model == null)
+                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue("model")));
+                            else
+                                setSelectedIndex(AssetManager.getIndex(this, model.getName()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                };
+                dropdown.update();
+                dropdown.setBounds(x, y, remainingWidth, 23);
+                components.add(dropdown);
+            } else if (field.getType() == ModelTexture.class) {
+                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManager.getTextures()) {
+
+                    private static final long serialVersionUID = -842084660378969213L;
+
+                    @Override
+                    public Object convert(String value) {
+                        entity.setValue("texture", value);
+                        GameEditor.getInstance().getLevelEditor().updateList();
+
+                        return AssetLoader.loadDecalTexture(value);
+                    }
+
+                    @Override
+                    public void update() {
+                        try {
+                            ModelTexture modelTexture = (ModelTexture) field.get(icomponent);
+                            if (modelTexture == null)
+                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue("texture")));
+                            else
+                                setSelectedIndex(AssetManager.getIndex(this, modelTexture.getName()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                };
+                dropdown.update();
+                dropdown.setBounds(x, y, remainingWidth, 23);
+                components.add(dropdown);
+            } else if (field.getType().isEnum()) {
+                List<String> names = new ArrayList<String>();
+                for (Object object : field.getType().getEnumConstants())
+                    names.add(StringUtils.upperCaseFirst(object.toString().toLowerCase()));
+
+                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, names) {
+
+                    private static final long serialVersionUID = 7503855159428548350L;
+
+                    @Override
+                    public Object convert(String value) {
+                        entity.setValue(StringUtils.lowerCaseFirst(field.getType().getSimpleName()), value);
+                        GameEditor.getInstance().getLevelEditor().updateList();
+
+                        return EnumUtils.getEnumValue(field.getType().getEnumConstants(), name);
+                    }
+
+                    @Override
+                    public void update() {
+                        try {
+                            setSelectedIndex(AssetManager.getIndex(this, ((Enum<?>) field.get(icomponent)).name()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
                 };

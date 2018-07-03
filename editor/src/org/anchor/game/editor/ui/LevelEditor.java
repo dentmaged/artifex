@@ -82,12 +82,14 @@ import org.anchor.engine.shared.ui.swing.CustomTextField;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.async.Requester;
+import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
+import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SoundComponent;
 import org.anchor.game.client.components.SlidingDoorComponent;
 import org.anchor.game.client.components.WaterComponent;
-import org.anchor.game.client.loaders.ModelLoader;
+import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.editor.GameEditor;
@@ -147,7 +149,7 @@ public class LevelEditor extends JPanel {
     protected boolean paint, terraform;
 
     private static Class<?>[] COMPONENTS = new Class[] {
-            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, WaterComponent.class, SpawnComponent.class, SlidingDoorComponent.class
+            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, WaterComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ReflectionProbeComponent.class
     };
 
     private static TerrainBrush[] BRUSHES = new TerrainBrush[] {
@@ -536,7 +538,7 @@ public class LevelEditor extends JPanel {
                             String model = file.getName().replace(".obj", "");
 
                             selectedEntity.setValue("model", model);
-                            mesh.model = ModelLoader.loadModel(model);
+                            mesh.model = AssetLoader.loadModel(model);
 
                             refreshComponentValues();
                             updateList();
@@ -1600,6 +1602,8 @@ public class LevelEditor extends JPanel {
                 name = entity.getValue("model");
             } else if (entity.hasComponent(LightComponent.class)) {
                 name = "Light";
+            } else if (entity.hasComponent(DecalComponent.class)) {
+                name = "Decal";
             } else {
                 name = "Entity";
             }

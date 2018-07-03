@@ -24,6 +24,17 @@ public class AssetManager {
         });
     }
 
+    public static List<String> getTextures() {
+        return recursiveGet(FileHelper.newGameFile("res"), new Filter() {
+
+            @Override
+            public boolean allow(File file, String tmp) {
+                return file.getName().endsWith("png");
+            }
+
+        });
+    }
+
     public static List<String> getPrefabs() {
         return recursiveGet(FileHelper.newGameFile("res"), new Filter() {
 
@@ -84,7 +95,7 @@ public class AssetManager {
 
     public static int getIndex(JComboBox<String> dropdown, String value) {
         for (int i = 0; i < dropdown.getItemCount(); i++) {
-            if (dropdown.getItemAt(i).equals(value))
+            if (dropdown.getItemAt(i).equalsIgnoreCase(value))
                 return i;
         }
 

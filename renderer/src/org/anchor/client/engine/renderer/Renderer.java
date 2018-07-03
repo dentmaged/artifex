@@ -1,8 +1,8 @@
 package org.anchor.client.engine.renderer;
 
-import org.anchor.client.engine.renderer.types.Mesh;
 import org.anchor.client.engine.renderer.types.Model;
-import org.anchor.client.engine.renderer.types.ModelTexture;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
+import org.anchor.client.engine.renderer.types.texture.ModelTexture;
 import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
@@ -12,6 +12,7 @@ import org.lwjgl.util.vector.Matrix4f;
 public class Renderer {
 
     private static Matrix4f projectionMatrix, inverseProjectionMatrix;
+    private static Model cube;
 
     static {
         createProjectionMatrix();
@@ -79,6 +80,14 @@ public class Renderer {
             shader.loadMatrix("inverseProjectionMatrix", Renderer.getInverseProjectionMatrix());
             shader.stop();
         }
+    }
+
+    public static void setCubeModel(Model cube) {
+        Renderer.cube = cube;
+    }
+
+    public static Model getCubeModel() {
+        return cube;
     }
 
     public static Matrix4f getProjectionMatrix() {

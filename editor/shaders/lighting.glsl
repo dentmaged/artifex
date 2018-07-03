@@ -14,9 +14,11 @@ uniform vec3 skyColour;
 uniform mat4 toShadowMapSpaces[SHADOW_SPLITS];
 uniform float shadowDistances[SHADOW_SPLITS];
 
-uniform vec3 lightPosition[MAX_LIGHTS];
+uniform vec4 lightPosition[MAX_LIGHTS];
 uniform vec3 attenuation[MAX_LIGHTS];
 uniform vec3 lightColour[MAX_LIGHTS];
+uniform vec2 lightCutoff[MAX_LIGHTS];
+uniform vec3 lightDirection[MAX_LIGHTS];
 
 const float transitionDistance = 3;
 const int pcfCount = 6;
@@ -77,7 +79,7 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 	int map = 0;
 	for (int i = 0; i < SHADOW_SPLITS; i++)
 		if (shadowDistances[i] < distance)
-		map = i;
+			map = i;
 
 	mat4 toShadowMapSpace = toShadowMapSpaces[map];
 	float shadowDistance = shadowDistances[map] * 2;
@@ -98,11 +100,16 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 		if (dot(lightColour[i], lightColour[i]) == 0)
 			continue;
 
-		vec3 L = normalize(lightPosition[i] - viewPosition);
+		vec3 L = normalize(lightPosition[i].xyz - viewPosition);
+		if (lightPosition[i].w == 1)
+			L = normalize(lightDirection[i].xyz);
 		vec3 H = normalize(V + L);
 
-		float distance = length(lightPosition[i] - viewPosition);
+		float distance = length(lightPosition[i].xyz - viewPosition);
 		float attenuation = 1.0 / (attenuation[i].x + (attenuation[i].y * distance) + (attenuation[i].z * distance * distance));
+		if (lightPosition[i].w == 1)
+			attenuation = 1;
+
 		vec3 radiance = lightColour[i] * attenuation;
 		float NdotL = max(dot(N, L), 0);
 
@@ -115,9 +122,9 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 		kD *= 1 - metallic;
 		float shadow = 1;
 
-		if (i == 0) {
+		if (lightPosition[i].w == 1) {
 			float total = 0;
-			float bias = 0.002;
+			float bias = 0.003;
 
 			for (int x = -pcfCount; x <= pcfCount; x++)
 				for (int y = -pcfCount; y <= pcfCount; y++)
@@ -128,11 +135,16 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 			shadow = 1 - (total * shadowCoords.w);
 		}
 
-		if (shadow == 0 || NdotL == 0)
+		float intensity = 1;
+		vec2 cutoff = lightCutoff[i];
+		if (lightPosition[i].w == 2)
+			intensity = clamp((dot(L, normalize(-lightDirection[i])) - cutoff.y) / (cutoff.x - cutoff.y), 0, 1);
+
+		if (shadow == 0 || NdotL == 0 || intensity == 0)
 			continue;
 
-		Lo += (kD * albedo.xyz / pi + specular) * radiance * NdotL * shadow;
-		sLo += kD / albedo.xyz * attenuation * NdotL * shadow;
+		Lo += (kD * albedo.xyz / pi + specular) * radiance * NdotL * shadow * intensity;
+		sLo += kD / albedo.xyz * attenuation * NdotL * shadow * intensity;
 	}
 
 	vec3 fresnel = fresnelRoughness(max(NdotV, 0), F0, roughness);
@@ -142,7 +154,7 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 	vec3 irradiance = texture(irradianceMap, normalize(mat3(inverseViewMatrix) * N)).xyz;
 	vec3 diffuse = irradiance * albedo;
 
-	vec3 prefiltered = textureLod(prefilter, mat3(inverseViewMatrix) * R, roughness * 4).xyz;
+	vec3 prefiltered = textureLod(prefilter, mat3(inverseViewMatrix) * R, roughness * 8).xyz;
 	vec2 brdf = texture2D(brdf, vec2(NdotV, roughness)).xy;
 	vec3 specular = prefiltered * (fresnel * brdf.x + brdf.y);
 

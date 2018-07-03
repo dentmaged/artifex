@@ -1,7 +1,7 @@
 package org.anchor.game.client.loaders.obj.normals;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.game.client.loaders.obj.ModelData;
 import org.anchor.game.client.loaders.obj.OBJFileLoader;

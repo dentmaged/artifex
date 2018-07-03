@@ -39,7 +39,7 @@ public class SSAOShader extends Shader {
         loadFloat("bias", 0.025f);
 
         for (int i = 0; i < 64; i++)
-            super.loadVector("samples[" + i + "]", samples.get(i));
+            loadVector("samples[" + i + "]", samples.get(i));
     }
 
     public void loadInverseViewMatrix(Matrix4f inverseViewMatrix) {

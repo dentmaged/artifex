@@ -6,15 +6,17 @@ import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.deferred.DeferredShader;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
+import org.anchor.client.engine.renderer.types.light.LightType;
 import org.anchor.engine.common.TextureType;
+import org.anchor.engine.common.utils.Mathf;
+import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.WaterComponent;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -83,18 +85,25 @@ public class WaterShader extends ModelShader {
         Matrix4f viewMatrix = GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix();
         for (int i = 0; i < DeferredShader.MAX_LIGHTS; i++) {
             if (i < lights.size()) {
-                Vector3f position = lights.get(i).getPosition();
-                float multiplier = 1;
-                if (lights.get(i).isDirectionalLight())
-                    multiplier = 20000;
+                Light light = lights.get(i);
 
-                super.loadVector("lightPosition[" + i + "]", new Vector3f(Matrix4f.transform(viewMatrix, new Vector4f(position.x * multiplier, position.y * multiplier, position.z * multiplier, 1), null)));
-                super.loadVector("lightColour[" + i + "]", lights.get(i).getColour());
-                super.loadVector("attenuation[" + i + "]", lights.get(i).getAttenuation());
+                Vector3f position = light.getPosition();
+                Vector3f spotlightDirection = light.getDirection();
+
+                if (lights.get(i).getLightType() == LightType.DIRECTIONAL)
+                    position = VectorUtils.mul(light.getDirection(), 20000);
+
+                loadAs3DVector("lightPosition[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(position.x, position.y, position.z, 1), null));
+                loadVector("lightColour[" + i + "]", light.getColour());
+                loadVector("attenuation[" + i + "]", light.getAttenuation());
+                loadAs3DVector("lightDirection[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(spotlightDirection.x, spotlightDirection.y, spotlightDirection.z, 0), null));
+                loadVector("lightCutoff[" + i + "]", Mathf.cos(Mathf.toRadians(light.getCutoff())), Mathf.cos(Mathf.toRadians(light.getOuterCutoff()))); // performance
             } else {
-                super.loadVector("lightPosition[" + i + "]", new Vector3f(0, 0, 0));
-                super.loadVector("lightColour[" + i + "]", new Vector3f(0, 0, 0));
-                super.loadVector("attenuation[" + i + "]", new Vector3f(1, 0, 0));
+                loadVector("lightPosition[" + i + "]", 0, 0, 0);
+                loadVector("lightColour[" + i + "]", 0, 0, 0);
+                loadVector("attenuation[" + i + "]", 1, 0, 0);
+                loadVector("lightDirection[" + i + "]", 0, 0, 0);
+                loadVector("lightCutoff[" + i + "]", 180, 180);
             }
         }
     }
@@ -104,7 +113,7 @@ public class WaterShader extends ModelShader {
         super.loadEntitySpecificInformation(entity);
 
         loadMatrix("transformationMatrix", entity.getTransformationMatrix());
-        loadVector("tiling", new Vector2f(SCALE * entity.getScale().x, SCALE * entity.getScale().z));
+        loadVector("tiling", SCALE * entity.getScale().x, SCALE * entity.getScale().z);
         loadFloat("height", entity.getPosition().y);
 
         WaterComponent water = entity.getComponent(WaterComponent.class);

@@ -1,9 +1,9 @@
 package org.anchor.game.client.animation;
 
-import org.anchor.client.engine.renderer.types.MeshRequest;
 import org.anchor.client.engine.renderer.types.Model;
-import org.anchor.client.engine.renderer.types.ModelTexture;
-import org.anchor.client.engine.renderer.types.TextureRequest;
+import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
+import org.anchor.client.engine.renderer.types.texture.ModelTexture;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.lwjgl.util.vector.Matrix4f;
 
 public class AnimatedModel extends Model {

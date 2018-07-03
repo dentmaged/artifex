@@ -1,7 +1,7 @@
 package org.anchor.game.client;
 
 import org.anchor.client.engine.renderer.Engine;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.game.client.shaders.TerrainShader;

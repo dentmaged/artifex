@@ -1,4 +1,4 @@
-package org.anchor.client.engine.renderer.types;
+package org.anchor.client.engine.renderer.types.texture;
 
 public class ModelTexture {
 
@@ -125,6 +125,10 @@ public class ModelTexture {
             aoLoaded = ao.isLoaded();
 
         return albedo.isLoaded() && normalLoaded && specularLoaded && metallicLoaded && roughnessLoaded && aoLoaded;
+    }
+
+    public String getName() {
+        return albedo.getName();
     }
 
 }

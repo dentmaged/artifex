@@ -1,7 +1,7 @@
 package org.anchor.client.engine.renderer.debug;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;

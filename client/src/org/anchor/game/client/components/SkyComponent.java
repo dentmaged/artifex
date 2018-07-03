@@ -50,7 +50,7 @@ public class SkyComponent implements IComponent {
     protected LightComponent lightComponent;
 
     public float interp, interp_night, altitude, azimuth;
-    public Vector3f direction, sunColour, originalLightColour, baseColour, topColour;
+    public Vector3f direction = new Vector3f(), sunColour = new Vector3f(), originalLightColour, baseColour = new Vector3f(NOON_BASE), topColour = new Vector3f(NOON_TOP);
     public CubemapRequest skybox;
     public BakedCubemap irradiance, prefilter;
 
@@ -80,8 +80,6 @@ public class SkyComponent implements IComponent {
         entity.getComponent(MeshComponent.class).disableFrustumCulling = true;
         entity.setValue("backface", "false");
         entity.setHidden(false);
-        irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
-        prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 9);
 
         skybox = Requester.requestCubemap(new String[] {
                 Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz"
@@ -95,10 +93,12 @@ public class SkyComponent implements IComponent {
         if (Settings.proceduralSky)
             updateSky();
 
-        if (!loaded && skybox.isLoaded() && entity.getComponent(MeshComponent.class).model.isLoaded()) {
+        if (!loaded && skybox != null && skybox.isLoaded()) {
+            irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
+            prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 9);
             loaded = true;
-            irradiance.perform(entity.getComponent(MeshComponent.class).model, skybox.getTexture());
-            prefilter.perform(entity.getComponent(MeshComponent.class).model, skybox.getTexture());
+            irradiance.perform(skybox.getTexture());
+            prefilter.perform(skybox.getTexture());
         }
     }
 
@@ -139,7 +139,7 @@ public class SkyComponent implements IComponent {
         }
 
         if (light != null) {
-            light.getPosition().set(direction);
+            lightComponent.getDirection().set(direction);
 
             if (sunColour.equals(NIGHT_SUN))
                 lightComponent.colour.set(0, 0, 0);
@@ -175,10 +175,12 @@ public class SkyComponent implements IComponent {
     }
 
     public void setLight(Entity entity) {
+        if (entity.getComponent(SunComponent.class) == null)
+            return;
+
         light = entity;
         lightComponent = entity.getComponent(LightComponent.class);
         originalLightColour = new Vector3f(lightComponent.colour);
-        lightComponent.directional = true;
 
         updateSky();
     }

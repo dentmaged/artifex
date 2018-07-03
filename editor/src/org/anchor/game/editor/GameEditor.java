@@ -10,6 +10,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Loader;
+import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.debug.DebugRenderer;
@@ -19,7 +20,8 @@ import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
+import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.components.LivingComponent;
@@ -35,6 +37,9 @@ import org.anchor.game.client.audio.Audio;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
+import org.anchor.game.client.components.SunComponent;
+import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyShader;
 import org.anchor.game.client.shaders.StaticShader;
@@ -120,6 +125,8 @@ public class GameEditor extends Game {
         godrays = new Godrays();
         vignette = new Vignette();
 
+        Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
+
         player = new Entity(EditorInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
@@ -133,6 +140,9 @@ public class GameEditor extends Game {
         NormalShader.getInstance();
         StaticShader.getInstance();
         WaterShader.getInstance();
+        ForwardStaticShader.getInstance();
+        BakedCubemap.getShader("irradianceConvolution");
+        BakedCubemap.getShader("prefilter");
 
         if (level == null)
             createScene();
@@ -336,6 +346,8 @@ public class GameEditor extends Game {
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.render();
+        deferred.decals();
+        scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
 
@@ -404,7 +416,7 @@ public class GameEditor extends Game {
     }
 
     public void createScene() {
-        Entity light = new Entity(LightComponent.class);
+        Entity light = new Entity(LightComponent.class, SunComponent.class);
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
         lightComponent.attenuation.set(1, 0, 0);
@@ -432,17 +444,17 @@ public class GameEditor extends Game {
         this.level = map;
 
         scene = new GameMap(map).getScene();
-        List<Entity> lights = scene.getEntitiesWithComponent(LightComponent.class);
-        if (lights.size() > 0) {
-            List<Entity> skies = scene.getEntitiesWithComponent(SkyComponent.class);
-            if (skies.size() > 0) {
-                this.sky = skies.get(0).getComponent(SkyComponent.class);
-                this.sky.setLight(lights.get(0));
-            }
+        for (Entity entity : scene.getEntitiesWithComponent(SkyComponent.class))
+            sky = entity.getComponent(SkyComponent.class);
 
-            lightComponent = lights.get(0).getComponent(LightComponent.class);
+        for (Entity entity : scene.getEntitiesWithComponent(SunComponent.class)) {
+            sky.setLight(entity);
+            lightComponent = entity.getComponent(LightComponent.class);
             shadows = new Shadows(lightComponent);
         }
+
+        for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
+            player.getPosition().set(entity.getPosition());
 
         for (Entity entity : scene.getEntities())
             if (entity.hasComponent(SkyComponent.class))

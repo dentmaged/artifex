@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.shadows.ShadowShader;
@@ -14,15 +15,18 @@ import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.game.client.TerrainRenderer;
+import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.WaterComponent;
+import org.anchor.game.client.shaders.DecalShader;
 import org.anchor.game.client.utils.FrustumCull;
 import org.lwjgl.opengl.GL11;
 
 public class ClientScene extends Scene {
 
     private Map<Model, List<Entity>> renderables = new HashMap<Model, List<Entity>>();
+    private static DecalShader shader = DecalShader.getInstance();
 
     public void render() {
         renderables.clear();
@@ -59,6 +63,38 @@ public class ClientScene extends Scene {
         }
 
         TerrainRenderer.render(this);
+    }
+
+    public void renderDecals(int depth) {
+        if (!Renderer.getCubeModel().isLoaded())
+            return;
+
+        Renderer.bind(Renderer.getCubeModel());
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_BLEND);
+        shader.start();
+
+        Engine.bind2DTexture(depth, 6);
+        for (Entity entity : getEntitiesWithComponent(DecalComponent.class)) {
+            DecalComponent component = entity.getComponent(DecalComponent.class);
+            if (component.texture == null || !component.texture.isLoaded())
+                continue;
+
+            Engine.bind2DTexture(component.texture.getId(), 0);
+            Engine.bind2DTexture(component.texture.getNormalMap(), 1);
+            Engine.bind2DTexture(component.texture.getSpecularMap(), 2);
+            Engine.bind2DTexture(component.texture.getMetallicMap(), 3);
+            Engine.bind2DTexture(component.texture.getRoughnessMap(), 4);
+            Engine.bind2DTexture(component.texture.getAmbientOcclusionMap(), 5);
+            shader.loadEntitySpecificInformation(entity);
+
+            Renderer.render(Renderer.getCubeModel());
+        }
+
+        shader.stop();
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        Renderer.unbind(Renderer.getCubeModel());
     }
 
     public void renderBlending() {
@@ -184,7 +220,7 @@ public class ClientScene extends Scene {
             if (!component.model.isLoaded())
                 loaded = false;
         }
-        
+
         return loaded;
     }
 

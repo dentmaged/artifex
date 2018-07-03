@@ -2,8 +2,8 @@ package org.anchor.game.client.async.types;
 
 import java.awt.image.BufferedImage;
 
-import org.anchor.client.engine.renderer.types.Texture;
-import org.anchor.client.engine.renderer.types.TextureRequest;
+import org.anchor.client.engine.renderer.types.texture.Texture;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 
 public class CompletedTexture extends CompletedRequest {
 

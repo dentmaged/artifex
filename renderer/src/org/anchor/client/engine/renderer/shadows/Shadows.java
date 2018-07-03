@@ -2,7 +2,7 @@ package org.anchor.client.engine.renderer.shadows;
 
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -55,7 +55,7 @@ public class Shadows {
         for (ShadowFrustum frustum : frustums)
             frustum.update(position, pitch, yaw);
 
-        Vector3f direction = new Vector3f(sun.getPosition());
+        Vector3f direction = new Vector3f(sun.getDirection());
         direction.negate();
 
         for (int i = 0; i < Settings.shadowSplits; i++)

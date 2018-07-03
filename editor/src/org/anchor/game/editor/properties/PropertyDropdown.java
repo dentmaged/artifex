@@ -8,7 +8,6 @@ import java.util.List;
 import javax.swing.JComboBox;
 
 import org.anchor.engine.shared.entity.Entity;
-import org.anchor.game.editor.utils.AssetManager;
 
 public abstract class PropertyDropdown extends JComboBox<String> {
 
@@ -46,9 +45,7 @@ public abstract class PropertyDropdown extends JComboBox<String> {
         this.object = object;
     }
 
-    public void update() {
-        setSelectedIndex(AssetManager.getIndex(this, entity.getValue("model")));
-    }
+    public abstract void update();
 
     public abstract Object convert(String value);
 

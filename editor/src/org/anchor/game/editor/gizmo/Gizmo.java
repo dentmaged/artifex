@@ -1,7 +1,7 @@
 package org.anchor.game.editor.gizmo;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.editor.utils.TransformationMode;

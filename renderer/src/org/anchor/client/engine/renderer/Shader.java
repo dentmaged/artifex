@@ -111,6 +111,22 @@ public abstract class Shader {
         GL20.glUniform4f(getUniformLocation(location), vector.x, vector.y, vector.z, vector.w);
     }
 
+    protected void loadAs3DVector(String location, Vector4f vector) {
+        GL20.glUniform3f(getUniformLocation(location), vector.x, vector.y, vector.z);
+    }
+
+    protected void loadVector(String location, float x, float y) {
+        GL20.glUniform2f(getUniformLocation(location), x, y);
+    }
+
+    protected void loadVector(String location, float x, float y, float z) {
+        GL20.glUniform3f(getUniformLocation(location), x, y, z);
+    }
+
+    protected void loadVector(String location, float x, float y, float z, float w) {
+        GL20.glUniform4f(getUniformLocation(location), x, y, z, w);
+    }
+
     protected void loadBoolean(String location, boolean value) {
         GL20.glUniform1f(getUniformLocation(location), value ? 1 : 0);
     }

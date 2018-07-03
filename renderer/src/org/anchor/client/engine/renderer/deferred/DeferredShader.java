@@ -5,7 +5,9 @@ import java.util.List;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.Shader;
 import org.anchor.client.engine.renderer.shadows.Shadows;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
+import org.anchor.client.engine.renderer.types.light.LightType;
+import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -60,20 +62,32 @@ public class DeferredShader extends Shader {
             loadFloat("shadowDistances[" + i + "]", shadows.getFarPlane(i) / 2f);
         }
 
-        for (int i = 0; i < MAX_LIGHTS; i++) {
+        for (int i = 0; i < DeferredShader.MAX_LIGHTS; i++) {
             if (i < lights.size()) {
-                Vector3f position = lights.get(i).getPosition();
-                float multiplier = 1;
-                if (lights.get(i).isDirectionalLight())
-                    multiplier = 20000;
+                Light light = lights.get(i);
 
-                super.loadVector("lightPosition[" + i + "]", new Vector3f(Matrix4f.transform(viewMatrix, new Vector4f(position.x * multiplier, position.y * multiplier, position.z * multiplier, 1), null)));
-                super.loadVector("lightColour[" + i + "]", lights.get(i).getColour());
-                super.loadVector("attenuation[" + i + "]", lights.get(i).getAttenuation());
+                Vector3f position = light.getPosition();
+                Vector3f direction = light.getDirection();
+
+                Vector4f v = Matrix4f.transform(viewMatrix, new Vector4f(position.x, position.y, position.z, 1), null);
+                if (light.getLightType() == LightType.POINT)
+                    v.w = 0;
+                else if (light.getLightType() == LightType.DIRECTIONAL)
+                    v.w = 1;
+                else
+                    v.w = 2;
+
+                loadVector("lightPosition[" + i + "]", v);
+                loadVector("lightColour[" + i + "]", light.getColour());
+                loadVector("attenuation[" + i + "]", light.getAttenuation());
+                loadAs3DVector("lightDirection[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(direction.x, direction.y, direction.z, 0), null));
+                loadVector("lightCutoff[" + i + "]", Mathf.cos(Mathf.toRadians(light.getCutoff())), Mathf.cos(Mathf.toRadians(light.getOuterCutoff()))); // performance
             } else {
-                super.loadVector("lightPosition[" + i + "]", new Vector3f(0, 0, 0));
-                super.loadVector("lightColour[" + i + "]", new Vector3f(0, 0, 0));
-                super.loadVector("attenuation[" + i + "]", new Vector3f(1, 0, 0));
+                loadVector("lightPosition[" + i + "]", 0, 0, 0, 0);
+                loadVector("lightColour[" + i + "]", 0, 0, 0);
+                loadVector("attenuation[" + i + "]", 1, 0, 0);
+                loadVector("lightDirection[" + i + "]", 0, -1, 0);
+                loadVector("lightCutoff[" + i + "]", 35, 45);
             }
         }
     }

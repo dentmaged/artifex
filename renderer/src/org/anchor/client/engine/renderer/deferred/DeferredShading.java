@@ -9,7 +9,7 @@ import org.anchor.client.engine.renderer.pbr.BRDF;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.ssao.SSAO;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -105,6 +105,11 @@ public class DeferredShading {
         normalFBO.shutdown();
         bloomFBO.shutdown();
         godraysFBO.shutdown();
+    }
+
+    public void decals() {
+        resolve(GL30.GL_COLOR_ATTACHMENT0, diffuseFBO);
+        multisampleFBO.bindFramebuffer();
     }
 
     public void reflective() {

@@ -1,6 +1,6 @@
 package org.anchor.game.client.types;
 
-import org.anchor.client.engine.renderer.types.TextureRequest;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.TextureType;
 import org.anchor.game.client.async.Requester;
 

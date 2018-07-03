@@ -1,8 +1,8 @@
 package org.anchor.game.client.loaders.dae;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.ModelTexture;
-import org.anchor.client.engine.renderer.types.TextureRequest;
+import org.anchor.client.engine.renderer.types.texture.ModelTexture;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.animation.AnimatedModel;
 import org.anchor.game.client.animation.Joint;

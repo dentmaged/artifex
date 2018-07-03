@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.anchor.client.engine.renderer.Engine;
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.shaders.QuadtreeShader;

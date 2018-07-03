@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;

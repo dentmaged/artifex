@@ -10,8 +10,8 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.client.engine.renderer.types.Mesh;
-import org.anchor.client.engine.renderer.types.Texture;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
+import org.anchor.client.engine.renderer.types.texture.Texture;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.BufferUtils;

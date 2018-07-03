@@ -14,7 +14,7 @@ public class Shape {
     private BufferedImage image;
 
     public Shape(String path) {
-        this.name = StringUtils.upperFirst(path).replace("_smooth", " (Smooth)");
+        this.name = StringUtils.upperCaseFirst(path).replace("_smooth", " (Smooth)");
 
         try {
             this.image = ImageIO.read(FileHelper.newGameFile("brushes", path + ".png"));

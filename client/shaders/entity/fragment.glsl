@@ -9,8 +9,8 @@ FS_OUT(normal)
 FS_OUT(bloom)
 FS_OUT(godrays)
 
-tex specular;
 tex albedo;
+tex specular;
 tex metallic;
 tex roughness;
 tex ao;

@@ -7,7 +7,7 @@ import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.utils.CollisionMeshLoader;
 import org.anchor.engine.shared.utils.Property;
-import org.anchor.game.client.loaders.ModelLoader;
+import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.StaticShader;
@@ -41,7 +41,7 @@ public class MeshComponent implements IComponent {
     public void spawn(Entity entity) {
         this.entity = entity;
         if (model == null && entity.containsKey("model"))
-            model = ModelLoader.loadModel(entity.getValue("model"));
+            model = AssetLoader.loadModel(entity.getValue("model"));
 
         if (model != null && model.isLoaded()) {
             ran = true;

@@ -44,5 +44,5 @@ void main(void) {
 	}
 
 	occlusion = 1 - occlusion / kernelSize;
-	out_colour = vec4(occlusion, occlusion, occlusion, 1);
+	out_colour = vec4(occlusion, 0, 0, 1);
 }

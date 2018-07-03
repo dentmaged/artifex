@@ -1,4 +1,4 @@
-package org.anchor.client.engine.renderer.types;
+package org.anchor.client.engine.renderer.types.texture;
 
 public class TextureRequest {
 

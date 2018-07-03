@@ -38,7 +38,7 @@ void main(void) {
 	float metallic = other.b;
 	float specular = normal.a;
 	float roughness = other.g;
-	float ao = texture2D(ssao, tc).r + other.r;
+	float ao = texture2D(ssao, tc).r * other.r;
 
 	vec3 viewPosition = getPosition(tc);
 	vec3 worldPosition = (inverseViewMatrix * vec4(viewPosition, 1)).xyz;

@@ -6,7 +6,7 @@ import java.util.List;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.engine.common.app.App;
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.shared.components.IComponent;

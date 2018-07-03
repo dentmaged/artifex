@@ -19,7 +19,7 @@ import org.anchor.client.engine.renderer.gui.GUI;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Framebuffer;
-import org.anchor.client.engine.renderer.types.Light;
+import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.engine.common.net.BaseNetworkable;
 import org.anchor.engine.common.net.client.Client;
@@ -41,10 +41,12 @@ import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.audio.Audio;
 import org.anchor.game.client.components.ClientInputComponent;
+import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
-import org.anchor.game.client.loaders.ModelLoader;
+import org.anchor.game.client.components.SunComponent;
+import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.shaders.ViewmodelShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
@@ -95,6 +97,8 @@ public class GameClient extends Game implements IPacketHandler {
         godrays = new Godrays();
         vignette = new Vignette();
 
+        Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
+
         player = new Entity(ClientInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
@@ -130,7 +134,7 @@ public class GameClient extends Game implements IPacketHandler {
         Requester.perform();
         MouseUtils.update();
         KeyboardUtils.update();
-        client.handle();    
+        client.handle();
 
         if (!Mouse.isGrabbed())
             Mouse.setGrabbed(true);
@@ -223,6 +227,8 @@ public class GameClient extends Game implements IPacketHandler {
         // ClientScene.renderEntity(gun);
         GL11.glDepthRange(0, 1);
 
+        deferred.decals();
+        scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
 
@@ -361,7 +367,7 @@ public class GameClient extends Game implements IPacketHandler {
         if (scene != null) {
             for (Entity entity : scene.getEntitiesWithComponent(MeshComponent.class)) {
                 entity.getComponent(MeshComponent.class).model.unload();
-                ModelLoader.removeModel(entity.getComponent(MeshComponent.class).model);
+                AssetLoader.removeModel(entity.getComponent(MeshComponent.class).model);
             }
 
             for (Terrain terrain : scene.getTerrains())
@@ -369,15 +375,14 @@ public class GameClient extends Game implements IPacketHandler {
         }
 
         scene = new GameMap(map).getScene();
-        List<Entity> lights = scene.getEntitiesWithComponent(LightComponent.class);
-        if (lights.size() > 0) {
+        for (Entity entity : scene.getEntitiesWithComponent(SunComponent.class)) {
             List<Entity> skies = scene.getEntitiesWithComponent(SkyComponent.class);
             if (skies.size() > 0) {
                 this.sky = skies.get(0).getComponent(SkyComponent.class);
-                this.sky.setLight(lights.get(0));
+                this.sky.setLight(entity);
             }
 
-            lightComponent = lights.get(0).getComponent(LightComponent.class);
+            lightComponent = entity.getComponent(LightComponent.class);
             shadows = new Shadows(lightComponent);
         }
 
@@ -385,6 +390,13 @@ public class GameClient extends Game implements IPacketHandler {
             spawn = entity.getPosition();
         player.getPosition().set(spawn);
         loaded = false;
+
+        Entity decal = new Entity(DecalComponent.class);
+        decal.setValue("texture", "editor/cube_diffuse_3");
+        decal.getPosition().set(4.5f, 7, 16f);
+        decal.getScale().set(2, 2, 2);
+        decal.spawn();
+        scene.getEntities().add(decal);
     }
 
     public static void main(String[] args) {

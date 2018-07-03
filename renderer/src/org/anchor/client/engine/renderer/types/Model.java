@@ -1,5 +1,9 @@
 package org.anchor.client.engine.renderer.types;
 
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
+import org.anchor.client.engine.renderer.types.texture.ModelTexture;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
 

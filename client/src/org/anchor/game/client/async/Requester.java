@@ -8,11 +8,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.imageio.ImageIO;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Mesh;
-import org.anchor.client.engine.renderer.types.MeshRequest;
-import org.anchor.client.engine.renderer.types.MeshType;
-import org.anchor.client.engine.renderer.types.TextureRequest;
 import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
+import org.anchor.client.engine.renderer.types.mesh.Mesh;
+import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
+import org.anchor.client.engine.renderer.types.mesh.MeshType;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.async.types.CompletedAnimatedMesh;

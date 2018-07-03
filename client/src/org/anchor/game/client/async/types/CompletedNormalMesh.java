@@ -1,7 +1,7 @@
 package org.anchor.game.client.async.types;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.MeshRequest;
+import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.game.client.loaders.obj.ModelData;
 

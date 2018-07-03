@@ -3,6 +3,7 @@ package org.anchor.engine.shared.utils;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
+import org.anchor.engine.common.utils.EnumUtils;
 import org.anchor.engine.shared.physics.Material;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -18,18 +19,27 @@ public class RawParser {
         String[] parts = value.split("@");
         if (type == Vector3f.class)
             return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
+
         if (type == Vector4f.class)
             return new Vector4f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]), Float.parseFloat(parts[3]));
+
         if (type == Material.class)
             return new Material(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
+
         if (type == float.class)
             return Float.parseFloat(value);
+
         if (type == int.class)
             return Integer.parseInt(value);
+
         if (type == boolean.class)
             return Boolean.parseBoolean(value);
+
         if (type == String.class)
             return value;
+
+        if (type.isEnum())
+            return EnumUtils.getEnumValue(type.getEnumConstants(), value);
 
         return null;
     }
@@ -53,11 +63,11 @@ public class RawParser {
             return material.getRestition() + "@" + material.getDensity() + "@" + material.getFriction();
         }
 
-        if (value instanceof Float || value instanceof Integer || value instanceof Boolean)
-            return value + "";
+        if (value.getClass().isEnum())
+            return ((Enum<?>) value).name();
 
-        if (value instanceof String)
-            return (String) value;
+        if (value instanceof Float || value instanceof Integer || value instanceof Boolean || value instanceof String)
+            return value + "";
 
         return "";
     }
@@ -100,6 +110,9 @@ public class RawParser {
 
             if (value instanceof String)
                 stream.writeUTF((String) value);
+
+            if (value.getClass().isEnum())
+                stream.writeUTF(((Enum<?>) value).name());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -109,18 +122,27 @@ public class RawParser {
         try {
             if (type == Vector3f.class)
                 return new Vector3f(stream.readFloat(), stream.readFloat(), stream.readFloat());
+
             if (type == Vector4f.class)
                 return new Vector4f(stream.readFloat(), stream.readFloat(), stream.readFloat(), stream.readFloat());
+
             if (type == Material.class)
                 return new Material(stream.readFloat(), stream.readFloat(), stream.readFloat());
+
             if (type == float.class)
                 return stream.readFloat();
+
             if (type == int.class)
                 return stream.readInt();
+
             if (type == boolean.class)
                 stream.readBoolean();
+
             if (type == String.class)
                 return stream.readUTF();
+
+            if (type.isEnum())
+                return EnumUtils.getEnumValue(type.getConstructors(), stream.readUTF());
         } catch (Exception e) {
             e.printStackTrace();
         }

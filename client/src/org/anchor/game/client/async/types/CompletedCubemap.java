@@ -3,8 +3,8 @@ package org.anchor.game.client.async.types;
 import java.awt.image.BufferedImage;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Texture;
 import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
+import org.anchor.client.engine.renderer.types.texture.Texture;
 
 public class CompletedCubemap extends CompletedRequest {
 

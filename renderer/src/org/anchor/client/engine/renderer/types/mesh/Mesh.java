@@ -1,4 +1,4 @@
-package org.anchor.client.engine.renderer.types;
+package org.anchor.client.engine.renderer.types.mesh;
 
 import org.anchor.engine.common.utils.AABB;
 import org.lwjgl.util.vector.Vector3f;
