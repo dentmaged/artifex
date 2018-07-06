@@ -22,7 +22,7 @@ import com.oracle.webservices.internal.api.message.PropertySet.Property;
 
 public class LivingComponent implements IComponent {
 
-    public float forwards, sideways, fallingDistance, pitch, yaw, roll, noPhysicsSpeed = 10;
+    public float forwards, sideways, fallingDistance, pitch, yaw, roll, noPhysicsSpeed = 50;
 
     @Property("Health")
     public float health = 100;
@@ -42,7 +42,7 @@ public class LivingComponent implements IComponent {
 
     private static boolean edgeCheck = true;
 
-    public float selectedSpeed = 4;
+    public float selectedSpeed = 15;
 
     @Override
     public void spawn(Entity entity) {

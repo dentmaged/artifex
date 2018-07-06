@@ -1,6 +1,6 @@
 package org.anchor.client.engine.renderer.fxaa;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.lwjgl.opengl.Display;
@@ -25,7 +25,7 @@ public class FXAA {
 
         shader.start();
         QuadRenderer.bind();
-        Engine.bind2DTexture(scene, 0);
+        Graphics.bind2DTexture(scene, 0);
 
         QuadRenderer.render();
         QuadRenderer.unbind();

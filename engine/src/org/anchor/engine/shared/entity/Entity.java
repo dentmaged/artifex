@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.anchor.engine.common.utils.VectorUtils;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
@@ -17,7 +18,7 @@ import org.lwjgl.util.vector.Vector4f;
 
 public class Entity {
 
-    protected int id = ENTITY_ID++;
+    protected int id, lineIndex = -1;
     protected boolean hidden, spawned;
 
     protected Entity parent;
@@ -28,10 +29,10 @@ public class Entity {
 
     protected Matrix4f transformationMatrix = new Matrix4f();
 
-    private static int ENTITY_ID = 1;
-
     public Entity() {
         addComponent(new TransformComponent());
+
+        Engine.getInstance().onEntityCreate(this);
     }
 
     public Entity(Class<? extends IComponent>... clazzes) {
@@ -44,12 +45,16 @@ public class Entity {
                 e.printStackTrace();
             }
         }
+
+        Engine.getInstance().onEntityCreate(this);
     }
 
     public void spawn() {
         for (IComponent component : components)
             component.spawn(this);
+
         spawned = true;
+        Engine.getInstance().onEntitySpawn(this);
     }
 
     public int getId() {
@@ -58,6 +63,14 @@ public class Entity {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public int getLineIndex() {
+        return lineIndex;
+    }
+
+    public void setLineIndex(int lineIndex) {
+        this.lineIndex = lineIndex;
     }
 
     public Vector3f getPosition() {
@@ -103,6 +116,8 @@ public class Entity {
 
         for (IComponent component : components)
             component.setValue(key, value);
+
+        Engine.getInstance().onEntityKeyValueChange(this, key, value);
     }
 
     public boolean containsKey(String key) {
@@ -115,6 +130,14 @@ public class Entity {
 
     public Set<Entry<String, String>> entrySet() {
         return data.entrySet();
+    }
+
+    public boolean isStatic() {
+        PhysicsComponent component = getComponent(PhysicsComponent.class);
+        if (component == null)
+            return true;
+
+        return component.inverseMass == 0;
     }
 
     public <T extends IComponent> T getComponent(Class<T> clazz) {
@@ -140,13 +163,16 @@ public class Entity {
                 e.printStackTrace();
             }
         }
+        Engine.getInstance().onComponentAdd(this, component);
     }
 
     public <T extends IComponent> void removeComponent(T component) {
+        Engine.getInstance().onComponentRemove(this, component);
         components.remove(component);
     }
 
     public <T extends IComponent> void removeComponent(Class<T> clazz) {
+        Engine.getInstance().onComponentAdd(this, getComponent(clazz));
         components.remove(getComponent(clazz));
     }
 
@@ -165,7 +191,7 @@ public class Entity {
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
 
-        data.put("hidden", hidden + "");
+        setValue("hidden", hidden + "");
     }
 
     public boolean isHidden() {

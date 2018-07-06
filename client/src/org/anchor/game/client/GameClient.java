@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
@@ -26,16 +26,26 @@ import org.anchor.engine.common.net.client.Client;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.common.net.packet.IPacketHandler;
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.net.CorePacketManager;
+import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
+import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
+import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
+import org.anchor.engine.shared.net.packet.EntityLinkPacket;
+import org.anchor.engine.shared.net.packet.EntityRemoveComponentPacket;
+import org.anchor.engine.shared.net.packet.EntityRemovePacket;
+import org.anchor.engine.shared.net.packet.EntitySpawnPacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
+import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.scheduler.IRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.Side;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
@@ -70,6 +80,7 @@ public class GameClient extends Game implements IPacketHandler {
     protected Vignette vignette;
 
     private Entity gun;
+    protected PhysicsEngine physics;
     protected float accumulator;
 
     protected LightComponent lightComponent;
@@ -86,7 +97,8 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void init() {
-        Engine.init();
+        Engine.init(Side.CLIENT);
+        Graphics.init();
         Audio.init();
         System.out.println("APP INIT");
 
@@ -99,18 +111,16 @@ public class GameClient extends Game implements IPacketHandler {
 
         Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
 
+        physics = new PhysicsEngine();
+
         player = new Entity(ClientInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
-        livingComponent.gravity = true;
-        livingComponent.noPhysicsSpeed = 50;
-        livingComponent.selectedSpeed = 15;
         player.getPosition().set(450, 0, 450);
         player.spawn();
 
         gun = new Entity(MeshComponent.class);
         gun.setValue("model", "deagle");
-        gun.getPosition().set(5, 0, 0);
         gun.spawn();
         gun.getComponent(MeshComponent.class).disableFrustumCulling = true;
         gun.getComponent(MeshComponent.class).shader = ViewmodelShader.getInstance();
@@ -147,12 +157,40 @@ public class GameClient extends Game implements IPacketHandler {
                 accumulator = 0;
 
             livingComponent.move(scene, getTerrainByPoint(player.getPosition()));
-            if (scene != null)
+            if (scene != null) {
                 scene.updateFixed();
+                physics.update(scene);
+            }
             Scheduler.tick();
 
             FrustumCull.update();
-            client.sendPacket(new PlayerMovementPacket(KeyboardUtils.isKeyDown(Keyboard.KEY_W), KeyboardUtils.isKeyDown(Keyboard.KEY_A), KeyboardUtils.isKeyDown(Keyboard.KEY_S), KeyboardUtils.isKeyDown(Keyboard.KEY_D), livingComponent.pitch, livingComponent.yaw));
+            client.sendPacket(new PlayerMovementPacket(KeyboardUtils.isKeyDown(Keyboard.KEY_W), KeyboardUtils.isKeyDown(Keyboard.KEY_A), KeyboardUtils.isKeyDown(Keyboard.KEY_S), KeyboardUtils.isKeyDown(Keyboard.KEY_D), player.getComponent(ClientInputComponent.class).space, KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT), livingComponent.pitch, livingComponent.yaw));
+
+            if (player.getPosition().y < -15)
+                livingComponent.health = 0;
+
+            if (livingComponent.health <= 0) {
+                livingComponent.health = 100;
+                player.getVelocity().set(0, 0, 0);
+                player.getPosition().set(spawn);
+                texts.add(yetAnother);
+                texts.remove(crosshair);
+
+                Scheduler.schedule(new IRunnable() {
+
+                    @Override
+                    public void tick(float time, float percentage) {
+                        yetAnother.setAlpha(Math.min(percentage * 6, 1));
+                    }
+
+                    @Override
+                    public void finish() {
+                        texts.remove(yetAnother);
+                        texts.add(crosshair);
+                    }
+
+                }, 2);
+            }
         }
 
         checkForInteractions();
@@ -170,32 +208,6 @@ public class GameClient extends Game implements IPacketHandler {
         if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_ESCAPE)) {
             shutdown();
             System.exit(0);
-        }
-
-        if (player.getPosition().y < -15)
-            livingComponent.health = 0;
-
-        if (livingComponent.health <= 0) {
-            livingComponent.health = 100;
-            player.getVelocity().set(0, 0, 0);
-            player.getPosition().set(spawn);
-            texts.add(yetAnother);
-            texts.remove(crosshair);
-
-            Scheduler.schedule(new IRunnable() {
-
-                @Override
-                public void tick(float time, float percentage) {
-                    yetAnother.setAlpha(Math.min(percentage * 3, 1));
-                }
-
-                @Override
-                public void finish() {
-                    texts.remove(yetAnother);
-                    texts.add(crosshair);
-                }
-
-            }, 1);
         }
         loaded = scene != null ? scene.isLoaded() : false;
 
@@ -224,7 +236,7 @@ public class GameClient extends Game implements IPacketHandler {
 
         scene.render();
         GL11.glDepthRange(0, 0.99f);
-        // ClientScene.renderEntity(gun);
+        ClientScene.renderEntity(gun);
         GL11.glDepthRange(0, 1);
 
         deferred.decals();
@@ -260,7 +272,7 @@ public class GameClient extends Game implements IPacketHandler {
             GUIRenderer.perform(0);
         GUIRenderer.render(guis);
         FontRenderer.render(texts);
-        Engine.frameEnd();
+        Graphics.frameEnd();
     }
 
     @Override
@@ -303,14 +315,62 @@ public class GameClient extends Game implements IPacketHandler {
     }
 
     @Override
-    public void handlePacket(BaseNetworkable net, IPacket packet) {
-        if (packet.getId() == CorePacketManager.LEVEL_CHANGE_PACKET)
-            loadMap(FileHelper.newGameFile("maps", ((LevelChangePacket) packet).level + ".asg"));
+    public void handlePacket(BaseNetworkable net, IPacket receivedPacket) {
+        System.out.println(receivedPacket);
+        if (receivedPacket.getId() == CorePacketManager.LEVEL_CHANGE_PACKET) {
+            loadMap(FileHelper.newGameFile("maps", ((LevelChangePacket) receivedPacket).level + ".asg"));
+        } else if (receivedPacket.getId() == CorePacketManager.PLAYER_POSITION_PACKET) {
+            System.out.println("PLAYER POSITION " + ((PlayerPositionPacket) receivedPacket).position);
+            player.getPosition().set(((PlayerPositionPacket) receivedPacket).position);
+        }
+
+        if (receivedPacket.getId() == CorePacketManager.ENTITY_SPAWN_PACKET) {
+            scene.getEntities().add(((EntitySpawnPacket) receivedPacket).entity);
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_ADD_COMPONENT_PACKET) {
+            EntityAddComponentPacket packet = (EntityAddComponentPacket) receivedPacket;
+
+            getNetworkedEntityFromId(packet.id).addComponent(packet.component);
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_COMPONENT_VARIABLE_CHANGE_PACKET) {
+            EntityComponentVariableChangePacket packet = (EntityComponentVariableChangePacket) receivedPacket;
+
+            try {
+                packet.field.set(getNetworkedEntityFromId(packet.id).getComponent(packet.clazz), packet.value);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_REMOVE_PACKET) {
+            EntityRemoveComponentPacket packet = (EntityRemoveComponentPacket) receivedPacket;
+
+            getNetworkedEntityFromId(packet.id).removeComponent(packet.clazz);
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_KEY_VALUE_PACKET) {
+            EntityKeyValuePacket packet = (EntityKeyValuePacket) receivedPacket;
+
+            getNetworkedEntityFromId(packet.id).setValue(packet.key, packet.value);
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_REMOVE_PACKET) {
+            scene.getEntities().remove(getNetworkedEntityFromId(((EntityRemovePacket) receivedPacket).id));
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_LINK_PACKET) {
+            EntityLinkPacket packet = (EntityLinkPacket) receivedPacket;
+
+            for (Entity entity : scene.getEntities()) {
+                if (entity.getLineIndex() == packet.lineIndex) {
+                    entity.setId(packet.id);
+                    break;
+                }
+            }
+        }
     }
 
     @Override
     public void disconnect(BaseNetworkable net) {
 
+    }
+
+    public Entity getNetworkedEntityFromId(int id) {
+        for (Entity entity : scene.getEntities())
+            if (entity.getId() == id)
+                return entity;
+
+        return null;
     }
 
     @Override
@@ -348,6 +408,10 @@ public class GameClient extends Game implements IPacketHandler {
 
     public static Matrix4f getToShadowMapSpaceMatrix(int map) {
         return ((Game) AppManager.getInstance()).shadows.getToShadowMapSpaceMatrix(map);
+    }
+
+    public static float getShadowExtents(int map) {
+        return ((Game) AppManager.getInstance()).shadows.getExtents(map);
     }
 
     public static Terrain getTerrainByPoint(Vector3f point) {

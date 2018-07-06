@@ -92,7 +92,7 @@ public class Shadows {
         return shadowFBOs[map].getDepthTexture();
     }
 
-    public float getFarPlane(int shadow) {
+    public float getExtents(int shadow) {
         return frustums[shadow].getFarPlane();
     }
 
@@ -106,7 +106,7 @@ public class Shadows {
         updateLightViewMatrix(lightViewMatrices[shadow], lightDirection, box.getCenter());
 
         Matrix4f.mul(projectionMatrix, lightViewMatrices[shadow], projectionViewMatrices[shadow]);
-        Matrix4f.mul(offset, projectionViewMatrices[shadow], toShadowMapSpaceMatrices[shadow]);
+        Matrix4f.mul(Matrix4f.mul(offset, projectionViewMatrices[shadow], null), inverseViewMatrix, toShadowMapSpaceMatrices[shadow]);
     }
 
     private void updateLightViewMatrix(Matrix4f lightViewMatrix, Vector3f direction, Vector3f center) {

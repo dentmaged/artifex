@@ -57,6 +57,7 @@ public class EntitySpawnPacket implements IPacket {
         entity = new Entity();
         entity.removeComponent(TransformComponent.class);
         entity.setId(stream.readInt());
+        System.out.println(entity.getId());
 
         int count = stream.readInt();
         for (int i = 0; i < count; i++)

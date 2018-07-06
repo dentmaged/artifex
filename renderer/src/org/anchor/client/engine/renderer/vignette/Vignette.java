@@ -1,6 +1,6 @@
 package org.anchor.client.engine.renderer.vignette;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 
 public class Vignette {
@@ -14,7 +14,7 @@ public class Vignette {
     public void perform(int texture) {
         shader.start();
         QuadRenderer.bind();
-        Engine.bind2DTexture(texture, 0);
+        Graphics.bind2DTexture(texture, 0);
 
         QuadRenderer.render();
 

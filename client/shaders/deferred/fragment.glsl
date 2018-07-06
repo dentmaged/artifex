@@ -40,13 +40,10 @@ void main(void) {
 	float roughness = other.g;
 	float ao = texture2D(ssao, tc).r * other.r;
 
-	vec3 viewPosition = getPosition(tc);
-	vec3 worldPosition = (inverseViewMatrix * vec4(viewPosition, 1)).xyz;
-
 	if (dot(bloom.xyz, bloom.xyz) > 0)
 		out_diffuse = vec4(diffuse.xyz, 1);
 	else
-		out_diffuse = vec4(performLighting(viewPosition, worldPosition, normal.xyz, diffuse.xyz, metallic, specular, roughness, ao), 1);
+		out_diffuse = vec4(performLighting(getPosition(tc), normal.xyz, diffuse.xyz, metallic, specular, roughness, ao), 1);
 
 	out_other = vec4(0);
 	out_normal = vec4(0);

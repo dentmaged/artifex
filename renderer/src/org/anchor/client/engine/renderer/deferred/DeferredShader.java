@@ -59,7 +59,7 @@ public class DeferredShader extends Shader {
 
         for (int i = 0; i < Settings.shadowSplits; i++) {
             loadMatrix("toShadowMapSpaces[" + i + "]", shadows.getToShadowMapSpaceMatrix(i));
-            loadFloat("shadowDistances[" + i + "]", shadows.getFarPlane(i) / 2f);
+            loadFloat("shadowDistances[" + i + "]", shadows.getExtents(i));
         }
 
         for (int i = 0; i < DeferredShader.MAX_LIGHTS; i++) {
@@ -94,12 +94,12 @@ public class DeferredShader extends Shader {
 
     @Override
     protected void bindAttributes() {
-        super.bindFragOutput(0, "out_diffuse");
-        super.bindFragOutput(1, "out_other");
-        super.bindFragOutput(2, "out_normal");
-        super.bindFragOutput(3, "out_bloom");
+        bindFragOutput(0, "out_diffuse");
+        bindFragOutput(1, "out_other");
+        bindFragOutput(2, "out_normal");
+        bindFragOutput(3, "out_bloom");
 
-        super.bindAttribute(0, "position");
+        bindAttribute(0, "position");
     }
 
     public static DeferredShader getInstance() {

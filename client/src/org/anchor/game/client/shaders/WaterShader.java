@@ -2,7 +2,7 @@ package org.anchor.game.client.shaders;
 
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.deferred.DeferredShader;
@@ -10,7 +10,6 @@ import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.Mathf;
-import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
@@ -40,21 +39,23 @@ public class WaterShader extends ModelShader {
         loadInt("depthMap", 1);
         loadInt("dudvMap", 2);
         loadInt("normalMap", 3);
-        loadInt("ssao", 6);
         loadInt("skybox", 8);
-        loadInt("irradiance", 9);
+        loadInt("irradianceMap", 9);
         loadInt("prefilter", 10);
         loadInt("brdf", 11);
-        loadInt("shadowMap", 11 + Settings.shadowSplits);
+        for (int i = 0; i < Settings.shadowSplits; i++)
+            loadInt("shadowMaps[" + i + "]", 12 + i);
 
-        Engine.bindColourTexture(GameClient.getSceneFramebuffer(), 0);
-        Engine.bindDepthTexture(GameClient.getSceneFramebuffer(), 1);
-        Engine.bind2DTexture(DUDV, 2);
-        Engine.bind2DTexture(NORMAL, 3);
+        Graphics.bindColourTexture(GameClient.getSceneFramebuffer(), 0);
+        Graphics.bindDepthTexture(GameClient.getSceneFramebuffer(), 1);
+        Graphics.bind2DTexture(DUDV, 2);
+        Graphics.bind2DTexture(NORMAL, 3);
 
-        Engine.bind2DTexture(GameClient.getAmbientOcclusionTexture(), 6);
-        Engine.bind2DTexture(GameClient.getBRDF(), 11);
-        Engine.bind2DTexture(GameClient.getShadowMap(Settings.shadowSplits - 1), 11 + Settings.shadowSplits);
+        for (int i = 0; i < Settings.shadowSplits; i++) {
+            loadMatrix("toShadowMapSpaces[" + i + "]", GameClient.getToShadowMapSpaceMatrix(i));
+            loadFloat("shadowDistances[" + i + "]", GameClient.getShadowExtents(i));
+            Graphics.bind2DTexture(GameClient.getShadowMap(i), 12 + i);
+        }
 
         loadFloat("minDiffuse", Settings.minDiffuse);
         loadFloat("density", Settings.density);
@@ -76,10 +77,11 @@ public class WaterShader extends ModelShader {
             loadVector("topColour", sky.topColour);
             loadBoolean("proceduralSky", Settings.proceduralSky);
 
-            Engine.bindCubemap(sky.getSkybox(), 8);
-            Engine.bindCubemap(sky.getIrradiance(), 9);
-            Engine.bindCubemap(sky.getPrefilter(), 10);
+            Graphics.bindCubemap(sky.getSkybox(), 8);
+            Graphics.bindCubemap(sky.getIrradiance(), 9);
+            Graphics.bindCubemap(sky.getPrefilter(), 10);
         }
+        Graphics.bind2DTexture(GameClient.getBRDF(), 11);
 
         List<Light> lights = GameClient.getSceneLights();
         Matrix4f viewMatrix = GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix();
@@ -88,22 +90,27 @@ public class WaterShader extends ModelShader {
                 Light light = lights.get(i);
 
                 Vector3f position = light.getPosition();
-                Vector3f spotlightDirection = light.getDirection();
+                Vector3f direction = light.getDirection();
 
-                if (lights.get(i).getLightType() == LightType.DIRECTIONAL)
-                    position = VectorUtils.mul(light.getDirection(), 20000);
+                Vector4f v = Matrix4f.transform(viewMatrix, new Vector4f(position.x, position.y, position.z, 1), null);
+                if (light.getLightType() == LightType.POINT)
+                    v.w = 0;
+                else if (light.getLightType() == LightType.DIRECTIONAL)
+                    v.w = 1;
+                else
+                    v.w = 2;
 
-                loadAs3DVector("lightPosition[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(position.x, position.y, position.z, 1), null));
+                loadVector("lightPosition[" + i + "]", v);
                 loadVector("lightColour[" + i + "]", light.getColour());
                 loadVector("attenuation[" + i + "]", light.getAttenuation());
-                loadAs3DVector("lightDirection[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(spotlightDirection.x, spotlightDirection.y, spotlightDirection.z, 0), null));
+                loadAs3DVector("lightDirection[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(direction.x, direction.y, direction.z, 0), null));
                 loadVector("lightCutoff[" + i + "]", Mathf.cos(Mathf.toRadians(light.getCutoff())), Mathf.cos(Mathf.toRadians(light.getOuterCutoff()))); // performance
             } else {
-                loadVector("lightPosition[" + i + "]", 0, 0, 0);
+                loadVector("lightPosition[" + i + "]", 0, 0, 0, 0);
                 loadVector("lightColour[" + i + "]", 0, 0, 0);
                 loadVector("attenuation[" + i + "]", 1, 0, 0);
-                loadVector("lightDirection[" + i + "]", 0, 0, 0);
-                loadVector("lightCutoff[" + i + "]", 180, 180);
+                loadVector("lightDirection[" + i + "]", 0, -1, 0);
+                loadVector("lightCutoff[" + i + "]", 35, 45);
             }
         }
     }

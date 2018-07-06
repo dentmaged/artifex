@@ -12,8 +12,8 @@ public class CombineShader extends Shader {
 
     @Override
     protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
-        super.bindAttribute(0, "position");
+        bindFragOutput(0, "out_colour");
+        bindAttribute(0, "position");
     }
 
     @Override

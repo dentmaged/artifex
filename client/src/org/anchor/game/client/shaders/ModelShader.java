@@ -44,15 +44,15 @@ public class ModelShader extends ClientShader {
 
     @Override
     protected void bindAttributes() {
-        super.bindFragOutput(0, "out_diffuse");
-        super.bindFragOutput(1, "out_other");
-        super.bindFragOutput(2, "out_normal");
-        super.bindFragOutput(3, "out_bloom");
-        super.bindFragOutput(4, "out_godrays");
+        bindFragOutput(0, "out_diffuse");
+        bindFragOutput(1, "out_other");
+        bindFragOutput(2, "out_normal");
+        bindFragOutput(3, "out_bloom");
+        bindFragOutput(4, "out_godrays");
 
-        super.bindAttribute(0, "position");
-        super.bindAttribute(1, "textureCoordinates");
-        super.bindAttribute(2, "normal");
+        bindAttribute(0, "position");
+        bindAttribute(1, "textureCoordinates");
+        bindAttribute(2, "normal");
     }
 
 }

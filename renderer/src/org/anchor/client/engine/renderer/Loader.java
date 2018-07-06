@@ -237,7 +237,7 @@ public class Loader {
         int id = GL11.glGenTextures();
         textures.add(id);
 
-        Engine.bindCubemap(id, 0);
+        Graphics.bindCubemap(id, 0);
         for (int i = 0; i < textureFiles.length; i++) {
             Texture texture = new Texture(FileHelper.newGameFile(RES_LOC, textureFiles[i] + ".png"));
 
@@ -259,7 +259,7 @@ public class Loader {
         int id = GL11.glGenTextures();
         textures.add(id);
 
-        Engine.bindCubemap(id, 0);
+        Graphics.bindCubemap(id, 0);
         for (int i = 0; i < cubemapTextures.length; i++) {
             Texture texture = cubemapTextures[i];
 

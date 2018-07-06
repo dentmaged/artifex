@@ -1,6 +1,6 @@
 package org.anchor.game.client;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -33,11 +33,11 @@ public class TerrainRenderer {
             GL20.glEnableVertexAttribArray(1);
             GL20.glEnableVertexAttribArray(2);
 
-            Engine.bind2DTexture(terrain.getTextures().getBlendmap(), 0);
-            Engine.bind2DTexture(terrain.getTextures().getBackgroundTexture(), 1);
-            Engine.bind2DTexture(terrain.getTextures().getRedTexture(), 2);
-            Engine.bind2DTexture(terrain.getTextures().getGreenTexture(), 3);
-            Engine.bind2DTexture(terrain.getTextures().getBlueTexture(), 4);
+            Graphics.bind2DTexture(terrain.getTextures().getBlendmap(), 0);
+            Graphics.bind2DTexture(terrain.getTextures().getBackgroundTexture(), 1);
+            Graphics.bind2DTexture(terrain.getTextures().getRedTexture(), 2);
+            Graphics.bind2DTexture(terrain.getTextures().getGreenTexture(), 3);
+            Graphics.bind2DTexture(terrain.getTextures().getBlueTexture(), 4);
 
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glCullFace(GL11.GL_BACK);

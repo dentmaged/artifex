@@ -1,6 +1,6 @@
 package org.anchor.client.engine.renderer.blur;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.lwjgl.opengl.Display;
@@ -28,13 +28,13 @@ public class Blur {
         shader.start();
         QuadRenderer.bind();
 
-        Engine.bind2DTexture(texture, 0);
+        Graphics.bind2DTexture(texture, 0);
         horizontal.bindFramebuffer();
         shader.loadInformation(true, width);
         QuadRenderer.render();
         horizontal.unbindFramebuffer();
 
-        Engine.bindColourTexture(horizontal, 0);
+        Graphics.bindColourTexture(horizontal, 0);
 
         vertical.bindFramebuffer();
         shader.loadInformation(false, height);

@@ -42,7 +42,11 @@ public class GameMap {
         String[] lines = contents.split("\n");
         int i = 0;
         while (!lines[i].equals(ENTITY_END)) {
-            scene.getEntities().add(parse(lines[i]));
+            Entity entity = parse(lines[i]);
+            if (entity != null) {
+                scene.getEntities().add(entity);
+                entity.setLineIndex(i);
+            }
             i++;
         }
         setParents(scene.getEntities());
@@ -116,9 +120,10 @@ public class GameMap {
             }
 
             for (String component : parts[1].split(SUBPARTS)) {
-                Class<IComponent> clazz = (Class<IComponent>) Class.forName(component);
+                if (component.startsWith("org.anchor.game.server"))
+                    continue;
 
-                entity.addComponent(clazz.newInstance());
+                entity.addComponent(((Class<IComponent>) Class.forName(component)).newInstance());
             }
 
             for (int j = 0; j < entity.getComponents().size(); j++) {

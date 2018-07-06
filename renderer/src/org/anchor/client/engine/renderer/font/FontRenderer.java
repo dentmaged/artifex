@@ -2,7 +2,7 @@ package org.anchor.client.engine.renderer.font;
 
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.opengl.GL11;
@@ -24,7 +24,7 @@ public class FontRenderer {
 
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            Engine.bind2DTexture(font.getAtlas(), 0);
+            Graphics.bind2DTexture(font.getAtlas(), 0);
 
             float x = text.isCentered() ? text.getLength() * -0.5f : 0;
             for (char c : text.getText().toCharArray()) {

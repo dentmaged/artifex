@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.blur.Blur;
@@ -86,9 +86,9 @@ public class SSAO {
             shader.loadInverseViewMatrix(inverseViewMatrix);
             QuadRenderer.bind();
 
-            Engine.bind2DTexture(depthMap, 0);
-            Engine.bind2DTexture(normal, 1);
-            Engine.bind2DTexture(noise, 2);
+            Graphics.bind2DTexture(depthMap, 0);
+            Graphics.bind2DTexture(normal, 1);
+            Graphics.bind2DTexture(noise, 2);
 
             QuadRenderer.render();
             QuadRenderer.unbind();

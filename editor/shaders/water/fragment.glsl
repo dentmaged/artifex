@@ -112,5 +112,5 @@ void main(void) {
 		out_diffuse.a = depthReduction;
 	}
 	*/
-	out_diffuse = vec4(performLighting(viewPosition.xyz, worldPosition.xyz, unitNormal, vec3(1), 1, 0.5, 0, 1), 1);
+	out_diffuse = vec4(performLighting(viewPosition.xyz, unitNormal, vec3(1), 1, 0.5, 0, 1), 1);
 }

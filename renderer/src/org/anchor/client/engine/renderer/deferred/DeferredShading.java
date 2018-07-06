@@ -2,7 +2,7 @@ package org.anchor.client.engine.renderer.deferred;
 
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.pbr.BRDF;
@@ -58,21 +58,21 @@ public class DeferredShading {
         shader.loadInformation(viewMatrix, inverseViewMatrix, lights, baseColour, topColour, shadows);
         QuadRenderer.bind();
 
-        Engine.bindColourTexture(diffuseFBO, 0);
-        Engine.bindColourTexture(otherFBO, 1);
-        Engine.bindColourTexture(normalFBO, 2);
-        Engine.bindColourTexture(bloomFBO, 3);
-        Engine.bindColourTexture(godraysFBO, 4);
-        Engine.bindDepthTexture(diffuseFBO, 5);
-        Engine.bind2DTexture(ssao.getAmbientOcclusionTexture(), 6);
-        Engine.bindColourTexture(sceneFBO, 7);
-        Engine.bindCubemap(skybox, 8);
-        Engine.bindCubemap(irradiance, 9);
-        Engine.bindCubemap(prefilter, 10);
-        Engine.bindColourTexture(brdf.getOutputFBO(), 11);
+        Graphics.bindColourTexture(diffuseFBO, 0);
+        Graphics.bindColourTexture(otherFBO, 1);
+        Graphics.bindColourTexture(normalFBO, 2);
+        Graphics.bindColourTexture(bloomFBO, 3);
+        Graphics.bindColourTexture(godraysFBO, 4);
+        Graphics.bindDepthTexture(diffuseFBO, 5);
+        Graphics.bind2DTexture(ssao.getAmbientOcclusionTexture(), 6);
+        Graphics.bindColourTexture(sceneFBO, 7);
+        Graphics.bindCubemap(skybox, 8);
+        Graphics.bindCubemap(irradiance, 9);
+        Graphics.bindCubemap(prefilter, 10);
+        Graphics.bindColourTexture(brdf.getOutputFBO(), 11);
 
         for (int i = 0; i < Settings.shadowSplits; i++)
-            Engine.bind2DTexture(shadows.getPCFShadowMap(i), 12 + i);
+            Graphics.bind2DTexture(shadows.getPCFShadowMap(i), 12 + i);
 
         QuadRenderer.render();
         QuadRenderer.unbind();

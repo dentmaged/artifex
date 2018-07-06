@@ -3,7 +3,7 @@ package org.anchor.game.client.terrainlod;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.Mathf;
@@ -99,12 +99,12 @@ public class Tile {
         GL20.glEnableVertexAttribArray(1);
         GL20.glEnableVertexAttribArray(2);
 
-        Engine.bind2DTexture(0, 0);
-        Engine.bind2DTexture(texture, 1);
-        Engine.bind2DTexture(0, 2);
-        Engine.bind2DTexture(0, 3);
-        Engine.bind2DTexture(0, 4);
-        Engine.bind2DTexture(heightmap, 5);
+        Graphics.bind2DTexture(0, 0);
+        Graphics.bind2DTexture(texture, 1);
+        Graphics.bind2DTexture(0, 2);
+        Graphics.bind2DTexture(0, 3);
+        Graphics.bind2DTexture(0, 4);
+        Graphics.bind2DTexture(heightmap, 5);
 
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glCullFace(GL11.GL_BACK);

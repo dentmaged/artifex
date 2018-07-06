@@ -15,12 +15,12 @@ uniform mat4 toShadowMapSpaces[SHADOW_SPLITS];
 uniform float shadowDistances[SHADOW_SPLITS];
 
 uniform vec4 lightPosition[MAX_LIGHTS];
-uniform vec3 attenuation[MAX_LIGHTS];
 uniform vec3 lightColour[MAX_LIGHTS];
-uniform vec2 lightCutoff[MAX_LIGHTS];
+uniform vec3 attenuation[MAX_LIGHTS];
 uniform vec3 lightDirection[MAX_LIGHTS];
+uniform vec2 lightCutoff[MAX_LIGHTS];
 
-const float transitionDistance = 3;
+const float transitionDistance = 8;
 const int pcfCount = 6;
 const int totalTexels = (pcfCount * 2 + 1) * (pcfCount * 2 + 1);
 const float texelSize = 1.0 / 2048.0;
@@ -62,7 +62,7 @@ float geometrySmith(float NdotV, float NdotL, float roughness) {
 	return ggx1 * ggx2;
 }
 
-vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 albedo, float metallic, float materialSpecular, float roughness, float ao) {
+vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic, float materialSpecular, float roughness, float ao) {
 	if (diffuseOnly)
 		return albedo;
 
@@ -84,7 +84,7 @@ vec3 performLighting(vec3 viewPosition, vec3 worldPosition, vec3 normal, vec3 al
 	mat4 toShadowMapSpace = toShadowMapSpaces[map];
 	float shadowDistance = shadowDistances[map] * 2;
 
-	vec4 shadowCoords = toShadowMapSpace * vec4(worldPosition, 1);
+	vec4 shadowCoords = toShadowMapSpace * vec4(viewPosition, 1);
 	if (map == SHADOW_SPLITS - 1) {
 		float shadowCoordinatesDistance = distance - (shadowDistance - transitionDistance);
 		shadowCoordinatesDistance = shadowCoordinatesDistance / transitionDistance;

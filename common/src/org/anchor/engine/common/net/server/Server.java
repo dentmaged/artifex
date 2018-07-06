@@ -14,13 +14,23 @@ public class Server {
             this.handler = handler;
             this.socket = new ServerSocket(port);
 
-            while (true) {
-                ServerThread runnable = new ServerThread(socket.accept(), handler);
-                Thread thread = new Thread(runnable);
+            new Thread(new Runnable() {
 
-                runnable.setThread(thread);
-                thread.start();
-            }
+                @Override
+                public void run() {
+                    try {
+                        while (true) {
+                            ServerThread runnable = new ServerThread(socket.accept(), handler);
+                            Thread thread = new Thread(runnable);
+
+                            runnable.setThread(thread);
+                            thread.start();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
         } catch (Exception e) {
             e.printStackTrace();
         }

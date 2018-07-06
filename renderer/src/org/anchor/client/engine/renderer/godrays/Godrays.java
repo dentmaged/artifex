@@ -1,6 +1,6 @@
 package org.anchor.client.engine.renderer.godrays;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
@@ -30,9 +30,9 @@ public class Godrays {
         shader.start();
         QuadRenderer.bind();
 
-        Engine.bind2DTexture(scene, 0);
-        Engine.bind2DTexture(godraysTexture, 1);
-        Engine.bind2DTexture(exposureTexture, 2);
+        Graphics.bind2DTexture(scene, 0);
+        Graphics.bind2DTexture(godraysTexture, 1);
+        Graphics.bind2DTexture(exposureTexture, 2);
 
         if (light != null) {
             Vector3f position = light.getPosition();

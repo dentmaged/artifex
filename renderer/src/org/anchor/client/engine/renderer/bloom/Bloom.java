@@ -1,6 +1,6 @@
 package org.anchor.client.engine.renderer.bloom;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.autoexposure.AutoExposure;
 import org.anchor.client.engine.renderer.blur.Blur;
@@ -30,7 +30,7 @@ public class Bloom {
     public void perform(int scene, int bloomTexture) {
         bloomShader.start();
         QuadRenderer.bind();
-        Engine.bind2DTexture(bloomTexture, 0);
+        Graphics.bind2DTexture(bloomTexture, 0);
 
         outputFBO.bindFramebuffer();
         QuadRenderer.render();
@@ -48,11 +48,11 @@ public class Bloom {
         combineShader.start();
         QuadRenderer.bind();
 
-        Engine.bind2DTexture(scene, 0);
-        Engine.bindColourTexture(blurOne.getOutputFBO(), 1);
-        Engine.bindColourTexture(blurTwo.getOutputFBO(), 2);
-        Engine.bindColourTexture(blurThree.getOutputFBO(), 3);
-        Engine.bind2DTexture(autoExposure.getExposureTexture(), 4);
+        Graphics.bind2DTexture(scene, 0);
+        Graphics.bindColourTexture(blurOne.getOutputFBO(), 1);
+        Graphics.bindColourTexture(blurTwo.getOutputFBO(), 2);
+        Graphics.bindColourTexture(blurThree.getOutputFBO(), 3);
+        Graphics.bind2DTexture(autoExposure.getExposureTexture(), 4);
 
         outputFBO.bindFramebuffer();
         QuadRenderer.render();

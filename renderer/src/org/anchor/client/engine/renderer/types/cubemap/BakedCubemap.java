@@ -3,7 +3,7 @@ package org.anchor.client.engine.renderer.types.cubemap;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.utils.CoreMaths;
@@ -43,7 +43,7 @@ public class BakedCubemap {
 
         Renderer.bind(Renderer.getCubeModel());
         GL11.glDisable(GL11.GL_CULL_FACE);
-        Engine.bindCubemap(skybox, 1);
+        Graphics.bindCubemap(skybox, 1);
 
         for (int mip = 0; mip < mipmaps; mip++) {
             cubemap.startMipmapRender(mip);

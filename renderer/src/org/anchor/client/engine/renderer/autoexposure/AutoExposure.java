@@ -3,7 +3,7 @@ package org.anchor.client.engine.renderer.autoexposure;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.gui.GUIShader;
@@ -46,13 +46,13 @@ public class AutoExposure {
         pingpongShader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(), new Vector2f(1, 1), 0, 0));
 
         previous.bindFramebuffer();
-        Engine.bind2DTexture(framebuffers.get(framebuffers.size() - 1).getColourTexture(), 0);
+        Graphics.bind2DTexture(framebuffers.get(framebuffers.size() - 1).getColourTexture(), 0);
         QuadRenderer.render();
 
         for (int i = 0; i < framebuffers.size(); i++) {
             framebuffers.get(i).bindFramebuffer();
 
-            Engine.bind2DTexture(i == 0 ? scene : framebuffers.get(i - 1).getColourTexture(), 0);
+            Graphics.bind2DTexture(i == 0 ? scene : framebuffers.get(i - 1).getColourTexture(), 0);
             QuadRenderer.render();
         }
         pingpongShader.stop();
@@ -61,8 +61,8 @@ public class AutoExposure {
         autoExposureShader.start();
         autoExposureShader.loadInformation();
 
-        Engine.bindColourTexture(framebuffers.get(framebuffers.size() - 1), 0);
-        Engine.bindColourTexture(previous, 1);
+        Graphics.bindColourTexture(framebuffers.get(framebuffers.size() - 1), 0);
+        Graphics.bindColourTexture(previous, 1);
         QuadRenderer.render();
 
         autoExposureShader.stop();

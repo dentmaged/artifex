@@ -31,11 +31,11 @@ public class ShadowShader extends Shader {
 
     @Override
     protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
+        bindFragOutput(0, "out_colour");
 
-        super.bindAttribute(0, "position");
-        super.bindAttribute(1, "textureCoordinates");
-        super.bindAttribute(2, "normal");
+        bindAttribute(0, "position");
+        bindAttribute(1, "textureCoordinates");
+        bindAttribute(2, "normal");
     }
 
     public static ShadowShader getInstance() {

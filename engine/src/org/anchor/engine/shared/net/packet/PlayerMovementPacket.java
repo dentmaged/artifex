@@ -8,18 +8,20 @@ import org.anchor.engine.shared.net.CorePacketManager;
 
 public class PlayerMovementPacket implements IPacket {
 
-    public boolean forwards, left, backwards, right;
+    public boolean forwards, left, backwards, right, jump, walk;
     public float pitch, yaw;
 
     public PlayerMovementPacket() {
 
     }
 
-    public PlayerMovementPacket(boolean forwards, boolean left, boolean backwards, boolean right, float pitch, float yaw) {
+    public PlayerMovementPacket(boolean forwards, boolean left, boolean backwards, boolean right, boolean jump, boolean walk, float pitch, float yaw) {
         this.forwards = forwards;
         this.left = left;
         this.backwards = backwards;
         this.right = right;
+        this.jump = jump;
+        this.walk = walk;
 
         this.pitch = pitch;
         this.yaw = yaw;
@@ -35,6 +37,8 @@ public class PlayerMovementPacket implements IPacket {
         stream.writeBoolean(left);
         stream.writeBoolean(backwards);
         stream.writeBoolean(right);
+        stream.writeBoolean(jump);
+        stream.writeBoolean(walk);
 
         stream.writeFloat(pitch);
         stream.writeFloat(yaw);
@@ -46,6 +50,8 @@ public class PlayerMovementPacket implements IPacket {
         left = stream.readBoolean();
         backwards = stream.readBoolean();
         right = stream.readBoolean();
+        jump = stream.readBoolean();
+        walk = stream.readBoolean();
 
         pitch = stream.readFloat();
         yaw = stream.readFloat();

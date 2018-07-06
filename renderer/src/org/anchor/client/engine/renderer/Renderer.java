@@ -26,12 +26,12 @@ public class Renderer {
         for (int i = 0; i < mesh.getDimensions(); i++)
             GL20.glEnableVertexAttribArray(i);
 
-        Engine.bind2DTexture(texture.getId(), 0);
-        Engine.bind2DTexture(texture.getNormalMap(), 1);
-        Engine.bind2DTexture(texture.getSpecularMap(), 2);
-        Engine.bind2DTexture(texture.getMetallicMap(), 3);
-        Engine.bind2DTexture(texture.getRoughnessMap(), 4);
-        Engine.bind2DTexture(texture.getAmbientOcclusionMap(), 5);
+        Graphics.bind2DTexture(texture.getId(), 0);
+        Graphics.bind2DTexture(texture.getNormalMap(), 1);
+        Graphics.bind2DTexture(texture.getSpecularMap(), 2);
+        Graphics.bind2DTexture(texture.getMetallicMap(), 3);
+        Graphics.bind2DTexture(texture.getRoughnessMap(), 4);
+        Graphics.bind2DTexture(texture.getAmbientOcclusionMap(), 5);
 
         if (texture.isCullingEnabled()) {
             GL11.glEnable(GL11.GL_CULL_FACE);

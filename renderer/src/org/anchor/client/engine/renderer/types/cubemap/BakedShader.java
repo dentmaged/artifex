@@ -11,11 +11,11 @@ public class BakedShader extends Shader {
 
     @Override
     protected void bindAttributes() {
-        super.bindAttribute(0, "position");
-        super.bindAttribute(1, "textureCoordinates");
-        super.bindAttribute(2, "normal");
+        bindAttribute(0, "position");
+        bindAttribute(1, "textureCoordinates");
+        bindAttribute(2, "normal");
 
-        super.bindFragOutput(0, "out_colour");
+        bindFragOutput(0, "out_colour");
     }
 
     public void loadInformation(Matrix4f viewMatrix, Matrix4f transformationMatrix, float mip, int face) {

@@ -2,7 +2,7 @@ package org.anchor.client.engine.renderer.gui;
 
 import java.util.List;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.util.vector.Vector2f;
@@ -16,7 +16,7 @@ public class GUIRenderer {
         QuadRenderer.bind();
 
         for (GUI gui : guis) {
-            Engine.bind2DTexture(gui.getTexture(), 0);
+            Graphics.bind2DTexture(gui.getTexture(), 0);
 
             shader.loadInformation(gui.getTransformationMatrix());
             QuadRenderer.render();
@@ -30,7 +30,7 @@ public class GUIRenderer {
         shader.start();
         QuadRenderer.bind();
 
-        Engine.bind2DTexture(texture, 0);
+        Graphics.bind2DTexture(texture, 0);
         shader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(), new Vector2f(1, 1), 0, 0));
         QuadRenderer.render();
 

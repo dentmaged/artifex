@@ -8,7 +8,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import org.anchor.client.engine.renderer.Engine;
+import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
@@ -114,7 +114,7 @@ public class GameEditor extends Game {
 
     @Override
     public void init() {
-        Engine.init();
+        Graphics.init();
         Audio.init();
         System.out.println("APP INIT");
 
@@ -380,7 +380,7 @@ public class GameEditor extends Game {
         vignette.perform(godrays.getOutputFBO().getColourTexture());
         if (Keyboard.isKeyDown(Keyboard.KEY_M))
             GUIRenderer.perform(GameClient.getShadowMap(0));
-        Engine.frameEnd();
+        Graphics.frameEnd();
     }
 
     @Override

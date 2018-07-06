@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
 import org.anchor.engine.common.utils.EnumUtils;
+import org.anchor.engine.shared.monitoring.cache.CacheInformation;
 import org.anchor.engine.shared.physics.Material;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -73,6 +74,12 @@ public class RawParser {
     }
 
     public void write(DataOutputStream stream, Object value) {
+        if (value instanceof CacheInformation) {
+            write(stream, ((CacheInformation) value).getOriginal());
+
+            return;
+        }
+
         try {
             if (value instanceof Vector3f) {
                 Vector3f v = (Vector3f) value;

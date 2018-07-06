@@ -11,6 +11,8 @@ import org.lwjgl.input.Mouse;
 
 public class ClientInputComponent extends LivingComponent {
 
+    public boolean space;
+
     @Override
     protected void checkInput() {
         if (Mouse.isGrabbed()) {
@@ -23,7 +25,7 @@ public class ClientInputComponent extends LivingComponent {
                 mouseDX = 360 - yaw + mouseDX;
 
             pitch -= mouseDY;
-            pitch = Math.min(89, Math.max(-89, pitch));
+            pitch = Math.min(90, Math.max(-90, pitch));
             yaw += mouseDX;
 
             forwards = 0;
@@ -75,7 +77,8 @@ public class ClientInputComponent extends LivingComponent {
                     entity.getPosition().y -= 0.5f * JUMP_POWER;
                 }
             } else {
-                if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_SPACE) && !isInAir) {
+                space = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_SPACE);
+                if (space && !isInAir) {
                     entity.getVelocity().y += JUMP_POWER;
                     isInAir = true;
                     voluntaryJump = true;

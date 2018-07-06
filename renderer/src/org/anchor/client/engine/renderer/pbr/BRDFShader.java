@@ -12,9 +12,9 @@ public class BRDFShader extends Shader {
 
     @Override
     protected void bindAttributes() {
-        super.bindFragOutput(0, "out_colour");
+        bindFragOutput(0, "out_colour");
 
-        super.bindAttribute(0, "position");
+        bindAttribute(0, "position");
     }
 
     public static BRDFShader getInstance() {

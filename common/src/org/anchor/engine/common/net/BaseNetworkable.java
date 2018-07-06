@@ -43,6 +43,7 @@ public class BaseNetworkable {
             output.writeInt(packet.getId());
             packet.write(output);
         } catch (Exception e) {
+            disconnect();
             e.printStackTrace();
         }
     }
