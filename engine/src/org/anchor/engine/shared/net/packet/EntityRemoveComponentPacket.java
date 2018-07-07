@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.net.CorePacketManager;
+import org.anchor.engine.shared.net.Redirect;
 
 public class EntityRemoveComponentPacket implements IPacket {
 
@@ -28,7 +29,12 @@ public class EntityRemoveComponentPacket implements IPacket {
     @Override
     public void write(DataOutputStream stream) throws Exception {
         stream.writeInt(id);
-        stream.writeUTF(clazz.getCanonicalName());
+
+        Redirect redirect = clazz.getAnnotation(Redirect.class);
+        if (redirect != null)
+            stream.writeUTF(redirect.value());
+        else
+            stream.writeUTF(clazz.getCanonicalName());
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.utils.Sound;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.utils.AssetManager;
 import org.lwjgl.util.vector.Vector3f;
@@ -169,7 +170,41 @@ public class PropertyUIKit {
                     @Override
                     public void update() {
                         try {
-                            setSelectedIndex(AssetManager.getIndex(this, ((Enum<?>) field.get(icomponent)).name()));
+                            Enum<?> value = (Enum<?>) field.get(icomponent);
+                            if (value == null)
+                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue(StringUtils.lowerCaseFirst(field.getType().getSimpleName()))));
+                            else
+                                setSelectedIndex(AssetManager.getIndex(this, value.name()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                };
+                dropdown.update();
+                dropdown.setBounds(x, y, remainingWidth, 23);
+                components.add(dropdown);
+            } else if (field.getType() == Sound.class) {
+                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManager.getModels()) {
+
+                    private static final long serialVersionUID = 3559333278954472616L;
+
+                    @Override
+                    public Object convert(String value) {
+                        entity.setValue("sound", value);
+                        GameEditor.getInstance().getLevelEditor().updateList();
+
+                        return new Sound(value);
+                    }
+
+                    @Override
+                    public void update() {
+                        try {
+                            Model model = (Model) field.get(icomponent);
+                            if (model == null)
+                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue("sound")));
+                            else
+                                setSelectedIndex(AssetManager.getIndex(this, model.getName()));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

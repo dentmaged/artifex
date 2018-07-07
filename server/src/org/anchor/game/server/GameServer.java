@@ -23,6 +23,7 @@ import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
 import org.anchor.engine.shared.physics.PhysicsEngine;
+import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -61,7 +62,9 @@ public class GameServer extends App implements IPacketHandler {
 
     @Override
     public void update() {
+        Profiler.start("Game Update");
         accumulator += AppManager.getFrameTimeSeconds();
+        Profiler.start("Physics");
         while (accumulator >= PhysicsEngine.TICK_DELAY) {
             accumulator -= PhysicsEngine.TICK_DELAY;
 
@@ -92,7 +95,15 @@ public class GameServer extends App implements IPacketHandler {
             if (monitor != null)
                 monitor.check();
         }
-        scene.update();
+        Profiler.end("Physics");
+
+        Profiler.start("Scene Update");
+        if (scene != null)
+            scene.update();
+        Profiler.end("Scene Update");
+        Profiler.end("Game Update");
+
+        Profiler.frameEnd();
     }
 
     @Override

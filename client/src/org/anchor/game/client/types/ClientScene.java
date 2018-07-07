@@ -13,6 +13,7 @@ import org.anchor.client.engine.renderer.shadows.ShadowShader;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.game.client.TerrainRenderer;
 import org.anchor.game.client.components.DecalComponent;
@@ -30,6 +31,7 @@ public class ClientScene extends Scene {
     private static DecalShader shader = DecalShader.getInstance();
 
     public void render() {
+        Profiler.start("Deferred (Geometry)");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
@@ -64,9 +66,11 @@ public class ClientScene extends Scene {
         }
 
         TerrainRenderer.render(this);
+        Profiler.end("Deferred (Geometry)");
     }
 
     public void renderDecals(int depthMap) {
+        Profiler.start("Decals");
         if (!Renderer.getCubeModel().isLoaded())
             return;
 
@@ -96,9 +100,11 @@ public class ClientScene extends Scene {
         shader.stop();
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         Renderer.unbind(Renderer.getCubeModel());
+        Profiler.end("Decals");
     }
 
     public void renderBlending() {
+        Profiler.start("Blending");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
@@ -134,9 +140,11 @@ public class ClientScene extends Scene {
             Renderer.unbind(entry.getKey());
         }
         GL11.glDisable(GL11.GL_BLEND);
+        Profiler.end("Blending");
     }
 
     public void renderReflective() {
+        Profiler.start("Reflective");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
@@ -175,9 +183,11 @@ public class ClientScene extends Scene {
         }
 
         GL11.glDisable(GL11.GL_BLEND);
+        Profiler.end("Reflective");
     }
 
     public void forwardRender() {
+        Profiler.start("Forward");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
@@ -213,9 +223,11 @@ public class ClientScene extends Scene {
         }
         GL11.glDisable(GL11.GL_BLEND);
         shader.stop();
+        Profiler.end("Forward");
     }
 
     public void renderShadows(Shadows shadows) {
+        Profiler.start("Shadows");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
@@ -247,6 +259,7 @@ public class ClientScene extends Scene {
         }
 
         shader.stop();
+        Profiler.end("Shadows");
     }
 
     public boolean isLoaded() {

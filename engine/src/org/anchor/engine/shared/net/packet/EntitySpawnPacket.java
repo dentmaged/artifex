@@ -10,6 +10,7 @@ import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.net.CorePacketManager;
+import org.anchor.engine.shared.net.Redirect;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;
 
@@ -42,12 +43,20 @@ public class EntitySpawnPacket implements IPacket {
         stream.writeInt(entity.getComponents().size());
         for (IComponent component : entity.getComponents()) {
             Class<? extends IComponent> clazz = component.getClass();
-            stream.writeUTF(clazz.getCanonicalName());
+            Redirect redirect = clazz.getAnnotation(Redirect.class);
 
-            for (Field field : clazz.getFields()) {
-                Property property = field.getAnnotation(Property.class);
-                if (property != null)
-                    RawParser.getInstance().write(stream, field.get(component));
+            if (redirect == null) {
+                stream.writeUTF(clazz.getCanonicalName());
+                stream.writeBoolean(true);
+
+                for (Field field : clazz.getFields()) {
+                    Property property = field.getAnnotation(Property.class);
+                    if (property != null)
+                        RawParser.getInstance().write(stream, field.get(component));
+                }
+            } else {
+                stream.writeUTF(redirect.value());
+                stream.writeBoolean(false);
             }
         }
     }
@@ -69,10 +78,12 @@ public class EntitySpawnPacket implements IPacket {
             IComponent component = clazz.newInstance();
             entity.addComponent(component);
 
-            for (Field field : clazz.getFields()) {
-                Property property = field.getAnnotation(Property.class);
-                if (property != null)
-                    field.set(component, RawParser.getInstance().read(stream, field.getType()));
+            if (stream.readBoolean()) {
+                for (Field field : clazz.getFields()) {
+                    Property property = field.getAnnotation(Property.class);
+                    if (property != null)
+                        field.set(component, RawParser.getInstance().read(stream, field.getType()));
+                }
             }
         }
     }

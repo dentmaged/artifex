@@ -42,6 +42,7 @@ import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
 import org.anchor.engine.shared.physics.PhysicsEngine;
+import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.IRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -121,6 +122,9 @@ public class GameClient extends Game implements IPacketHandler {
 
         gun = new Entity(MeshComponent.class);
         gun.setValue("model", "deagle");
+        gun.getPosition().set(0.2f, -0.5f, -0.1f);
+        gun.getRotation().set(0, 0, 0);
+        gun.getScale().set(0.075f, 0.075f, 0.075f);
         gun.spawn();
         gun.getComponent(MeshComponent.class).disableFrustumCulling = true;
         gun.getComponent(MeshComponent.class).shader = ViewmodelShader.getInstance();
@@ -141,6 +145,7 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void update() {
+        Profiler.start("Game Update");
         Requester.perform();
         MouseUtils.update();
         KeyboardUtils.update();
@@ -149,6 +154,7 @@ public class GameClient extends Game implements IPacketHandler {
         if (!Mouse.isGrabbed())
             Mouse.setGrabbed(true);
 
+        Profiler.start("Physics");
         accumulator += AppManager.getFrameTimeSeconds();
         while (accumulator >= PhysicsEngine.TICK_DELAY) {
             accumulator -= PhysicsEngine.TICK_DELAY;
@@ -194,14 +200,14 @@ public class GameClient extends Game implements IPacketHandler {
         }
 
         checkForInteractions();
+        Profiler.end("Physics");
 
-        gun.getPosition().set(0.2f, -0.5f, -0.1f);
-        gun.getRotation().set(0, 0, 0);
-        gun.getScale().set(0.075f, 0.075f, 0.075f);
+        Profiler.start("Scene Update");
         player.update();
         gun.update();
         if (scene != null)
             scene.update();
+        Profiler.end("Scene Update");
 
         gpuTime.setText(String.format("GPU: %.02f", AppManager.gpuTime) + " ms");
         cpuTime.setText(String.format("CPU: %.02f", AppManager.cpuTime) + " ms");
@@ -214,6 +220,7 @@ public class GameClient extends Game implements IPacketHandler {
         Settings.wireframe = false;
         if (Mouse.isButtonDown(2))
             Settings.wireframe = true;
+        Profiler.end("Game Update");
     }
 
     @Override
@@ -221,10 +228,13 @@ public class GameClient extends Game implements IPacketHandler {
         if (scene == null)
             return;
 
+        Profiler.start("Scene");
+        Profiler.start("Shadows (Full)");
         if (shadows != null && shadows.start(livingComponent.getInverseViewMatrix(), livingComponent.getEyePosition(), livingComponent.pitch, livingComponent.yaw)) {
             scene.renderShadows(shadows);
             shadows.stop();
         }
+        Profiler.end("Shadows (Full)");
 
         deferred.start();
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
@@ -242,27 +252,26 @@ public class GameClient extends Game implements IPacketHandler {
         deferred.decals();
         scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+
+        Profiler.start("Deferred (Lighting)");
         deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
+        Profiler.end("Deferred (Lighting)");
 
         if (Settings.wireframe)
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.renderBlending();
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-
         deferred.reflective();
-
-        if (Settings.wireframe)
-            GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
-
         scene.renderReflective();
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
 
         deferred.output();
+        Profiler.end("Scene");
         sceneFBO.bindFramebuffer();
         GUIRenderer.perform(deferred.getOutputFBO().getColourTexture());
         sceneFBO.unbindFramebuffer();
 
+        Profiler.start("Post processing");
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         fxaa.perform(deferred.getOutputFBO().getColourTexture());
         bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
         godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
@@ -270,8 +279,14 @@ public class GameClient extends Game implements IPacketHandler {
 
         if (!loaded)
             GUIRenderer.perform(0);
+        Profiler.end("Post processing");
+
+        Profiler.start("GUI");
         GUIRenderer.render(guis);
         FontRenderer.render(texts);
+        Profiler.end("GUI");
+
+        Profiler.frameEnd();
         Graphics.frameEnd();
     }
 

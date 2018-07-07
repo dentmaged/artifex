@@ -24,7 +24,7 @@ public class Audio {
     }
 
     public static int load(String path) {
-        return load(FileHelper.newGameFile(RES_LOC, "audio" + File.separator + path + ".wav"));
+        return load(FileHelper.newGameFile(RES_LOC, path + ".wav"));
     }
 
     public static int load(File file) {

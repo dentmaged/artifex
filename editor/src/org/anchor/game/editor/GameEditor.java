@@ -24,11 +24,14 @@ import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
+import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.Scheduler;
+import org.anchor.engine.shared.utils.Side;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
@@ -114,6 +117,7 @@ public class GameEditor extends Game {
 
     @Override
     public void init() {
+        Engine.init(Side.CLIENT);
         Graphics.init();
         Audio.init();
         System.out.println("APP INIT");
@@ -155,6 +159,7 @@ public class GameEditor extends Game {
 
     @Override
     public void update() {
+        Profiler.start("Game Update");
         Requester.perform();
         MouseUtils.update();
         KeyboardUtils.update();
@@ -242,6 +247,7 @@ public class GameEditor extends Game {
             }
         }
 
+        Profiler.start("Physics");
         accumulator += AppManager.getFrameTimeSeconds();
         while (accumulator >= PhysicsEngine.TICK_DELAY) {
             accumulator -= PhysicsEngine.TICK_DELAY;
@@ -258,10 +264,14 @@ public class GameEditor extends Game {
 
             FrustumCull.update();
         }
+        Profiler.end("Physics");
 
+        Profiler.start("Scene Update");
         player.update();
         scene.update();
+        Profiler.end("Scene Update");
 
+        Profiler.start("Editor");
         if (!game) {
             ray = picker.getRay(Mouse.getX(), Mouse.getY());
             TerrainRaycast terrainRaycast = picker.getTerrain(ray);
@@ -328,14 +338,19 @@ public class GameEditor extends Game {
         } else {
             checkForInteractions();
         }
+        Profiler.end("Editor");
+        Profiler.end("Game Update");
     }
 
     @Override
     public void render() {
+        Profiler.start("Scene");
+        Profiler.start("Shadows (Full)");
         if (shadows.start(livingComponent.getInverseViewMatrix(), livingComponent.getEyePosition(), livingComponent.pitch, livingComponent.yaw)) {
             scene.renderShadows(shadows);
             shadows.stop();
         }
+        Profiler.end("Shadows (Full)");
 
         deferred.start();
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
@@ -349,13 +364,15 @@ public class GameEditor extends Game {
         deferred.decals();
         scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+
+        Profiler.start("Deferred (Lighting)");
         deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
+        Profiler.end("Deferred (Lighting)");
 
         if (Settings.wireframe)
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.renderBlending();
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         deferred.reflective();
         scene.renderReflective();
 
@@ -370,16 +387,20 @@ public class GameEditor extends Game {
         }
 
         deferred.output();
+        Profiler.end("Scene");
         sceneFBO.bindFramebuffer();
         GUIRenderer.perform(deferred.getOutputFBO().getColourTexture());
         sceneFBO.unbindFramebuffer();
 
+        Profiler.start("Post processing");
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         fxaa.perform(deferred.getOutputFBO().getColourTexture());
         bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
         godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
         vignette.perform(godrays.getOutputFBO().getColourTexture());
-        if (Keyboard.isKeyDown(Keyboard.KEY_M))
-            GUIRenderer.perform(GameClient.getShadowMap(0));
+        Profiler.end("Post processing");
+
+        Profiler.frameEnd();
         Graphics.frameEnd();
     }
 
