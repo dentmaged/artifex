@@ -50,6 +50,9 @@ public class ClientInputComponent extends LivingComponent {
                 sideways *= 0.15f;
             }
 
+            fire = Mouse.isButtonDown(0);
+            reload = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R);
+
             if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInWater) {
                 entity.getVelocity().x += (Math.sin(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
                 entity.getVelocity().z -= (Math.cos(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);

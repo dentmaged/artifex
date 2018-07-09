@@ -29,6 +29,11 @@ public class PhysicsEngine {
             PhysicsComponent primary = result.getOne().getComponent(PhysicsComponent.class);
             PhysicsComponent secondary = result.getTwo().getComponent(PhysicsComponent.class);
 
+            for (PhysicsTouchListener listener : primary.listeners)
+                listener.touch(result.getOne(), result.getTwo());
+            for (PhysicsTouchListener listener : secondary.listeners)
+                listener.touch(result.getOne(), result.getTwo());
+
             Vector3f relative = Vector3f.sub(primary.velocity, secondary.velocity, null);
             float dot = Vector3f.dot(relative, result.getNormal());
             if (dot > 0) {

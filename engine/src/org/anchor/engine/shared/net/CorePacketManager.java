@@ -1,6 +1,7 @@
 package org.anchor.engine.shared.net;
 
 import org.anchor.engine.common.net.packet.PacketManager;
+import org.anchor.engine.shared.net.packet.AuthenticationPacket;
 import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
 import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
 import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
@@ -14,6 +15,7 @@ import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
 
 public class CorePacketManager {
 
+    public static int AUTHENTICATION_PACKET = 0; // To Server
     public static int LEVEL_CHANGE_PACKET = 1; // To Client
 
     public static int PLAYER_MOVEMENT_PACKET = 2; // To Server
@@ -29,6 +31,7 @@ public class CorePacketManager {
 
     public static void register() {
         PacketManager.clearPackets();
+        PacketManager.registerPacket(AUTHENTICATION_PACKET, AuthenticationPacket.class);
         PacketManager.registerPacket(LEVEL_CHANGE_PACKET, LevelChangePacket.class);
         PacketManager.registerPacket(PLAYER_MOVEMENT_PACKET, PlayerMovementPacket.class);
         PacketManager.registerPacket(PLAYER_POSITION_PACKET, PlayerPositionPacket.class);

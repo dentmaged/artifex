@@ -7,22 +7,22 @@ import org.lwjgl.util.vector.Vector4f;
 public class Text {
 
     private Vector2f position;
-    private String text;
+    private String text = "";
     private Font font;
     private float size, length;
     private Vector4f colour;
-    private boolean centered;
+    private Alignment alignment;
 
     public Text(Vector2f position, String text, Font font, float size) {
-        this(position, text, font, size, new Vector3f(), false);
+        this(position, text, font, size, new Vector3f(), Alignment.LEFT);
     }
 
-    public Text(Vector2f position, String text, Font font, float size, Vector3f colour, boolean centered) {
+    public Text(Vector2f position, String text, Font font, float size, Vector3f colour, Alignment alignment) {
         this.position = position;
         this.font = font;
         this.size = size;
         this.colour = new Vector4f(colour.x, colour.y, colour.z, 1);
-        this.centered = centered;
+        this.alignment = alignment;
 
         setText(text);
     }
@@ -36,8 +36,12 @@ public class Text {
     }
 
     public void setText(String text) {
+        if (this.text.equals(text))
+            return;
+
         this.text = text;
 
+        length = 0;
         for (char c : text.toCharArray()) {
             if (c == ' ')
                 length += (font.getSpaceWidth() + FontRenderer.advance) * size;
@@ -58,8 +62,8 @@ public class Text {
         return colour;
     }
 
-    public boolean isCentered() {
-        return centered;
+    public Alignment getAlignment() {
+        return alignment;
     }
 
     public float getLength() {

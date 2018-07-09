@@ -51,6 +51,9 @@ public class ServerInputComponent extends LivingComponent {
                 entity.getVelocity().z = Mathf.clamp(entity.getVelocity().z, -velocityClamp, velocityClamp);
             }
 
+            fire = playerMovementPacket.fire;
+            reload = playerMovementPacket.reload;
+
             if (!gravity) {
                 if (playerMovementPacket.jump) {
                     entity.getPosition().y += 2 * JUMP_POWER;

@@ -1,5 +1,6 @@
 package org.anchor.engine.shared.components;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -9,12 +10,16 @@ import org.anchor.engine.common.utils.Plane;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
+import org.anchor.engine.shared.physics.PhysicsTouchListener;
 import org.anchor.engine.shared.physics.collision.PlayerCollisionPacket;
 import org.anchor.engine.shared.physics.collision.broadphase.Broadphase;
 import org.anchor.engine.shared.physics.collision.broadphase.BroadphaseCollisionResult;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Maths;
+import org.anchor.engine.shared.weapon.Gun;
+import org.anchor.engine.shared.weapon.Weapon;
+import org.anchor.engine.shared.weapon.implementation.CrossbowData;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -24,10 +29,17 @@ public class LivingComponent implements IComponent {
 
     public float forwards, sideways, fallingDistance, pitch, yaw, roll, noPhysicsSpeed = 50;
 
+    public List<PhysicsTouchListener> listeners = new ArrayList<PhysicsTouchListener>();
+
     @Property("Health")
     public float health = 100;
-    public boolean voluntaryJump, gravity = true, isInAir, isInWater, damageable = true;
+    public boolean gravity = true, isInAir, isInWater, damageable = true, fire, reload;
     public Entity standingOn;
+
+    public Weapon[] weapons;
+    public int selectedIndex;
+
+    protected boolean voluntaryJump, gravityStep;
 
     protected Entity entity;
     protected Matrix4f viewMatrix = new Matrix4f();
@@ -47,6 +59,19 @@ public class LivingComponent implements IComponent {
     @Override
     public void spawn(Entity entity) {
         this.entity = entity;
+
+        weapons = new Weapon[] {
+                new Gun(entity, new CrossbowData())
+        };
+        listeners.add(new PhysicsTouchListener() {
+            
+            @Override
+            public void touch(Entity primary, Entity secondary) {
+                if (gravityStep)
+                    standingOn = secondary;
+            }
+
+        });
     }
 
     public void move(Scene scene, Terrain terrain) {
@@ -117,6 +142,11 @@ public class LivingComponent implements IComponent {
             isInAir = true;
             fallingDistance = position.y - terrainHeight;
         }
+
+        if (fire)
+            getSelectedWeapon().attack();
+        else if (reload && getSelectedWeapon() instanceof Gun)
+            ((Gun) getSelectedWeapon()).reload();
 
         Maths.createViewMatrix(viewMatrix, entity, this);
         Matrix4f.invert(viewMatrix, inverseViewMatrix);
@@ -195,6 +225,14 @@ public class LivingComponent implements IComponent {
         return new LivingComponent();
     }
 
+    public Weapon getSelectedWeapon() {
+        return weapons[selectedIndex];
+    }
+
+    public int getSelectedIndex() {
+        return selectedIndex;
+    }
+
     public Matrix4f getNormalMatrix(Entity entity) {
         return getNormalMatrix(entity.getPosition(), entity.getRotation());
     }
@@ -220,18 +258,18 @@ public class LivingComponent implements IComponent {
         eSpacePosition.y += 0.5f;
         Vector3f finalPosition = collideWithWorld(packet, eSpacePosition, eSpaceVelocity, 0);
 
+        gravityStep = true;
         packet.R3Position = VectorUtils.mul(finalPosition, packet.eRadius);
         packet.R3Velocity = gravity;
 
         eSpaceVelocity = VectorUtils.div(gravity, packet.eRadius);
         finalPosition = collideWithWorld(packet, finalPosition, eSpaceVelocity, 0);
+        gravityStep = false;
 
         finalPosition.y -= 0.5f;
         Vector3f dest = VectorUtils.mul(finalPosition, packet.eRadius);
         Vector3f.sub(dest, position, velocity);
         position.set(dest);
-
-        standingOn = packet.collide;
     }
 
     private Vector3f collideWithWorld(PlayerCollisionPacket packet, Vector3f position, Vector3f velocity, int recursion) {
@@ -281,9 +319,10 @@ public class LivingComponent implements IComponent {
 
     private void checkCollision(PlayerCollisionPacket packet) {
         List<BroadphaseCollisionResult> results = Broadphase.collisions(entity, packet.scene.getEntitiesWithComponent(PhysicsComponent.class));
-        Entity other = null;
         for (BroadphaseCollisionResult result : results) {
-            other = result.getOther(entity);
+            packet.foundCollision = false;
+
+            Entity other = result.getOther(entity);
             PhysicsComponent secondary = other.getComponent(PhysicsComponent.class);
 
             for (int mesh = 0; mesh < secondary.getMeshCount(); mesh++) {
@@ -298,10 +337,15 @@ public class LivingComponent implements IComponent {
                     checkTriangle(packet, VectorUtils.div(p1, packet.eRadius), VectorUtils.div(p2, packet.eRadius), VectorUtils.div(p3, packet.eRadius));
                 }
             }
-        }
 
-        if (packet.foundCollision)
-            packet.collide = other;
+            if (packet.foundCollision) {
+                for (PhysicsTouchListener listener : listeners)
+                    listener.touch(entity, other);
+                for (PhysicsTouchListener listener : secondary.listeners)
+                    listener.touch(entity, other);
+                packet.collide = other;
+            }
+        }
     }
 
     private void checkTriangle(PlayerCollisionPacket packet, Vector3f p1, Vector3f p2, Vector3f p3) {

@@ -10,6 +10,7 @@ import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.font.Alignment;
 import org.anchor.client.engine.renderer.font.Font;
 import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
@@ -31,6 +32,7 @@ import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.net.CorePacketManager;
+import org.anchor.engine.shared.net.packet.AuthenticationPacket;
 import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
 import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
 import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
@@ -47,6 +49,8 @@ import org.anchor.engine.shared.scheduler.IRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Side;
+import org.anchor.engine.shared.weapon.Gun;
+import org.anchor.engine.shared.weapon.Weapon;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
@@ -90,7 +94,7 @@ public class GameClient extends Game implements IPacketHandler {
     protected List<GUI> guis;
     protected Vector3f spawn;
 
-    protected Text gpuTime, cpuTime, yetAnother, crosshair;
+    protected Text gpuTime, cpuTime, yetAnother, crosshair, ammo, reserveAmmo;
     protected boolean loaded;
 
     protected Client client;
@@ -133,8 +137,11 @@ public class GameClient extends Game implements IPacketHandler {
         font = new Font("trebuchet");
         texts.add(gpuTime = new Text(new Vector2f(-0.985f, -0.92f), "GPU: 0 ms", font, 1));
         texts.add(cpuTime = new Text(new Vector2f(-0.985f, -0.97f), "CPU: 0 ms", font, 1));
-        yetAnother = new Text(new Vector2f(), "YET ANOTHER", font, 6, new Vector3f(1, 1, 1), true);
-        texts.add(crosshair = new Text(new Vector2f(), "+", font, 1.3f, new Vector3f(), true));
+        yetAnother = new Text(new Vector2f(), "YET ANOTHER", font, 6, new Vector3f(1, 1, 1), Alignment.CENTER);
+        texts.add(crosshair = new Text(new Vector2f(), "+", font, 1.3f, new Vector3f(), Alignment.CENTER));
+
+        texts.add(ammo = new Text(new Vector2f(0.945f, -0.9265f), "", font, 2, new Vector3f(0, 0, 0), Alignment.RIGHT));
+        texts.add(reserveAmmo = new Text(new Vector2f(0.995f, -0.9375f), "", font, 1.5f, new Vector3f(0, 0, 0), Alignment.RIGHT));
 
         guis = new ArrayList<GUI>();
 
@@ -154,6 +161,7 @@ public class GameClient extends Game implements IPacketHandler {
         if (!Mouse.isGrabbed())
             Mouse.setGrabbed(true);
 
+        boolean interacting = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_E);
         Profiler.start("Physics");
         accumulator += AppManager.getFrameTimeSeconds();
         while (accumulator >= PhysicsEngine.TICK_DELAY) {
@@ -170,7 +178,7 @@ public class GameClient extends Game implements IPacketHandler {
             Scheduler.tick();
 
             FrustumCull.update();
-            client.sendPacket(new PlayerMovementPacket(KeyboardUtils.isKeyDown(Keyboard.KEY_W), KeyboardUtils.isKeyDown(Keyboard.KEY_A), KeyboardUtils.isKeyDown(Keyboard.KEY_S), KeyboardUtils.isKeyDown(Keyboard.KEY_D), player.getComponent(ClientInputComponent.class).space, KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT), livingComponent.pitch, livingComponent.yaw));
+            client.sendPacket(new PlayerMovementPacket(KeyboardUtils.isKeyDown(Keyboard.KEY_W), KeyboardUtils.isKeyDown(Keyboard.KEY_A), KeyboardUtils.isKeyDown(Keyboard.KEY_S), KeyboardUtils.isKeyDown(Keyboard.KEY_D), player.getComponent(ClientInputComponent.class).space, KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT), interacting, livingComponent.fire, livingComponent.reload, livingComponent.getSelectedIndex(), livingComponent.pitch, livingComponent.yaw));
 
             if (player.getPosition().y < -15)
                 livingComponent.health = 0;
@@ -199,7 +207,7 @@ public class GameClient extends Game implements IPacketHandler {
             }
         }
 
-        checkForInteractions();
+        checkForInteractions(interacting);
         Profiler.end("Physics");
 
         Profiler.start("Scene Update");
@@ -211,6 +219,18 @@ public class GameClient extends Game implements IPacketHandler {
 
         gpuTime.setText(String.format("GPU: %.02f", AppManager.gpuTime) + " ms");
         cpuTime.setText(String.format("CPU: %.02f", AppManager.cpuTime) + " ms");
+
+        Weapon weapon = livingComponent.getSelectedWeapon();
+        if (weapon instanceof Gun) {
+            Gun gun = (Gun) weapon;
+
+            ammo.setText(gun.getAmmo() + "");
+            reserveAmmo.setText(gun.getReserveAmmo() + "");
+        } else {
+            ammo.setText("");
+            reserveAmmo.setText("");
+        }
+
         if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_ESCAPE)) {
             shutdown();
             System.exit(0);
@@ -326,16 +346,14 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void connect(BaseNetworkable net) {
-
+        net.sendPacket(new AuthenticationPacket(Engine.PROTOCOL_VERSION));
     }
 
     @Override
     public void handlePacket(BaseNetworkable net, IPacket receivedPacket) {
-        System.out.println(receivedPacket);
         if (receivedPacket.getId() == CorePacketManager.LEVEL_CHANGE_PACKET) {
             loadMap(FileHelper.newGameFile("maps", ((LevelChangePacket) receivedPacket).level + ".asg"));
         } else if (receivedPacket.getId() == CorePacketManager.PLAYER_POSITION_PACKET) {
-            System.out.println("PLAYER POSITION " + ((PlayerPositionPacket) receivedPacket).position);
             player.getPosition().set(((PlayerPositionPacket) receivedPacket).position);
         }
 

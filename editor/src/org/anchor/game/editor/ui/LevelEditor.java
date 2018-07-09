@@ -226,7 +226,7 @@ public class LevelEditor extends JPanel {
         panel.add(lblSpeed);
 
         speedField = new JTextField();
-        speedField.setText("10");
+        speedField.setText("2");
         addTextFieldListener(speedField, new Runnable() {
 
             @Override
@@ -239,8 +239,20 @@ public class LevelEditor extends JPanel {
         speedField.setBounds(519, 2, 38, 20);
         panel.add(speedField);
 
-        JButton btnSpeed2 = new JButton("2");
+        JButton btnSpeed2 = new JButton("0.4");
         btnSpeed2.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                speedField.setText("0.4");
+            }
+
+        });
+        btnSpeed2.setBounds(557, 2, 38, 21);
+        panel.add(btnSpeed2);
+
+        JButton btnSpeed10 = new JButton("2");
+        btnSpeed10.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -248,27 +260,15 @@ public class LevelEditor extends JPanel {
             }
 
         });
-        btnSpeed2.setBounds(557, 2, 38, 21);
-        panel.add(btnSpeed2);
-
-        JButton btnSpeed10 = new JButton("10");
-        btnSpeed10.addMouseListener(new MouseAdapter() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                speedField.setText("10");
-            }
-
-        });
         btnSpeed10.setBounds(595, 2, 38, 21);
         panel.add(btnSpeed10);
 
-        JButton btnSpeed25 = new JButton("25");
+        JButton btnSpeed25 = new JButton("5");
         btnSpeed25.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                speedField.setText("25");
+                speedField.setText("5");
             }
 
         });

@@ -11,6 +11,8 @@ public class Engine {
     private static Side side;
     private static Engine instance;
 
+    public static int PROTOCOL_VERSION = 1;
+
     public static void init(Side side) {
         init(side, new Engine());
     }

@@ -164,7 +164,7 @@ public class PropertyUIKit {
                         entity.setValue(StringUtils.lowerCaseFirst(field.getType().getSimpleName()), value);
                         GameEditor.getInstance().getLevelEditor().updateList();
 
-                        return EnumUtils.getEnumValue(field.getType().getEnumConstants(), name);
+                        return EnumUtils.getEnumValue(field.getType().getEnumConstants(), value);
                     }
 
                     @Override

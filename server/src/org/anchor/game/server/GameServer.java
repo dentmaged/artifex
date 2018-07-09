@@ -18,6 +18,7 @@ import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.monitoring.SceneMonitor;
 import org.anchor.engine.shared.net.CorePacketManager;
+import org.anchor.engine.shared.net.packet.AuthenticationPacket;
 import org.anchor.engine.shared.net.packet.EntityLinkPacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
@@ -123,23 +124,30 @@ public class GameServer extends App implements IPacketHandler {
 
     @Override
     public void connect(BaseNetworkable net) {
-        ServerThread thread = (ServerThread) net;
-        Entity player = new Entity(ServerInputComponent.class, ServerThreadComponent.class);
-        player.setValue("collisionMesh", "player");
-        player.getComponent(ServerThreadComponent.class).net = thread;
-        player.spawn();
 
-        clients.put(thread, player);
-        net.sendPacket(new LevelChangePacket(level));
-
-        for (Entity entity : scene.getEntities())
-            new AllPlayersFilter().sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
     }
 
     @Override
     public void handlePacket(BaseNetworkable net, IPacket packet) {
-        if (packet.getId() == CorePacketManager.PLAYER_MOVEMENT_PACKET)
+        if (packet.getId() == CorePacketManager.AUTHENTICATION_PACKET) {
+            if (((AuthenticationPacket) packet).protocolVersion == Engine.PROTOCOL_VERSION) {
+                ServerThread thread = (ServerThread) net;
+                Entity player = new Entity(ServerInputComponent.class, ServerThreadComponent.class);
+                player.setValue("collisionMesh", "player");
+                player.getComponent(ServerThreadComponent.class).net = thread;
+                player.spawn();
+
+                clients.put(thread, player);
+                net.sendPacket(new LevelChangePacket(level));
+
+                for (Entity entity : scene.getEntities())
+                    new AllPlayersFilter().sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
+            } else {
+                net.disconnect();
+            }
+        } else if (packet.getId() == CorePacketManager.PLAYER_MOVEMENT_PACKET) {
             clients.get(net).getComponent(ServerInputComponent.class).playerMovementPacket = (PlayerMovementPacket) packet;
+        }
     }
 
     @Override

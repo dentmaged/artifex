@@ -23,32 +23,32 @@ public class Client extends BaseNetworkable {
             socket = new Socket(ip, port);
             input = new DataInputStream(socket.getInputStream());
             output = new DataOutputStream(socket.getOutputStream());
+
+            thread = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        System.out.println("Connected to " + ip + ":" + port);
+                        handler.connect(Client.this);
+                        while (isConnected()) {
+                            int id = input.readInt();
+                            IPacket packet = PacketManager.getPacketByID(id);
+                            packet.read(input);
+
+                            packets.offer(packet);
+                        }
+                        handler.disconnect(Client.this);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            });
+            thread.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        thread = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    System.out.println("Connected to " + ip + ":" + port);
-                    handler.connect(Client.this);
-                    while (isConnected()) {
-                        int id = input.readInt();
-                        IPacket packet = PacketManager.getPacketByID(id);
-                        packet.read(input);
-
-                        packets.offer(packet);
-                    }
-                    handler.disconnect(Client.this);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-
-        });
-        thread.start();
     }
 
     public void handle() {

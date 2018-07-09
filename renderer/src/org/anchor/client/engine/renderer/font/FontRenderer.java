@@ -26,7 +26,7 @@ public class FontRenderer {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             Graphics.bind2DTexture(font.getAtlas(), 0);
 
-            float x = text.isCentered() ? text.getLength() * -0.5f : 0;
+            float x = text.getAlignment().getAlignment(text.getLength());
             for (char c : text.getText().toCharArray()) {
                 if (c == ' ') {
                     x += (font.getSpaceWidth() + advance) * size;

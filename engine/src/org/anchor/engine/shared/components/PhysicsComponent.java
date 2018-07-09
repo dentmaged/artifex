@@ -8,6 +8,7 @@ import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.CollisionMesh;
 import org.anchor.engine.shared.physics.Material;
+import org.anchor.engine.shared.physics.PhysicsTouchListener;
 import org.anchor.engine.shared.utils.CollisionMeshLoader;
 import org.anchor.engine.shared.utils.Property;
 import org.lwjgl.util.vector.Matrix4f;
@@ -16,6 +17,8 @@ import org.lwjgl.util.vector.Vector3f;
 public class PhysicsComponent implements IComponent {
 
     public List<CollisionMesh> meshes = new ArrayList<CollisionMesh>();
+
+    public List<PhysicsTouchListener> listeners = new ArrayList<PhysicsTouchListener>();
 
     @Property("Velocity")
     public Vector3f velocity = new Vector3f();

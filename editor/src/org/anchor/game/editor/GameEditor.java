@@ -134,6 +134,7 @@ public class GameEditor extends Game {
         player = new Entity(EditorInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
+        livingComponent.noPhysicsSpeed = 2;
         livingComponent.gravity = false;
         player.spawn();
 
@@ -336,7 +337,7 @@ public class GameEditor extends Game {
                     mode = 3;
             }
         } else {
-            checkForInteractions();
+            checkForInteractions(KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_E));
         }
         Profiler.end("Editor");
         Profiler.end("Game Update");

@@ -45,8 +45,8 @@ public abstract class Game extends App {
         return lights;
     }
 
-    public void checkForInteractions() {
-        if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_E)) {
+    public void checkForInteractions(boolean interacting) {
+        if (interacting) {
             for (Entity entity : scene.getEntities()) {
                 IInteractable interactable = entity.getComponent(IInteractable.class);
                 if (interactable == null)
