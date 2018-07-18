@@ -61,6 +61,7 @@ public class ShadowFrustum {
         minY = Float.MAX_VALUE;
         minZ = Float.MAX_VALUE;
 
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
         maxX = -Float.MAX_VALUE;
         maxY = -Float.MAX_VALUE;
         maxZ = -Float.MAX_VALUE;

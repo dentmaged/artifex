@@ -50,11 +50,17 @@ public class Entity {
     }
 
     public void spawn() {
+        Engine.getInstance().onEntityPreSpawn(this);
         for (IComponent component : components)
             component.spawn(this);
 
         spawned = true;
         Engine.getInstance().onEntitySpawn(this);
+    }
+
+    public void destroy() {
+        Engine.getEntities().remove(this);
+        Engine.getInstance().onEntityDestroy(this);
     }
 
     public int getId() {
@@ -138,6 +144,10 @@ public class Entity {
             return true;
 
         return component.inverseMass == 0;
+    }
+
+    public boolean hasSpawned() {
+        return spawned;
     }
 
     public <T extends IComponent> T getComponent(Class<T> clazz) {
@@ -251,6 +261,27 @@ public class Entity {
 
     public List<Entity> getChildren() {
         return children;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder("Entity[");
+        builder.append("memid=").append(super.toString().split("@")[1]).append(", ");
+        builder.append("id=").append(id).append(", ");
+        builder.append("components=[");
+        for (int i = 0; i < components.size(); i++)
+            builder.append(components.get(i).getClass().getName()).append(i < components.size() - 1 ? ", " : "");
+        builder.append("], ").append("data=[");
+        
+        int i = 0;
+        for (Entry<String, String> entry : data.entrySet()) {
+            builder.append(entry.getKey()).append("=").append(entry.getValue()).append(i < data.size() - 1 ? ", " : "");
+
+            i++;
+        }
+        builder.append("]").append("]");
+        
+        return builder.toString();
     }
 
 }

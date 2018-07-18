@@ -11,9 +11,9 @@ import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.font.Alignment;
-import org.anchor.client.engine.renderer.font.Font;
 import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
+import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.gui.GUI;
@@ -30,16 +30,18 @@ import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
+import org.anchor.engine.shared.console.GameVariableManager;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.net.CorePacketManager;
 import org.anchor.engine.shared.net.packet.AuthenticationPacket;
 import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
 import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
+import org.anchor.engine.shared.net.packet.EntityDestroyPacket;
 import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
 import org.anchor.engine.shared.net.packet.EntityLinkPacket;
 import org.anchor.engine.shared.net.packet.EntityRemoveComponentPacket;
-import org.anchor.engine.shared.net.packet.EntityRemovePacket;
 import org.anchor.engine.shared.net.packet.EntitySpawnPacket;
+import org.anchor.engine.shared.net.packet.GameVariablePacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
@@ -56,7 +58,6 @@ import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.audio.Audio;
 import org.anchor.game.client.components.ClientInputComponent;
-import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
@@ -74,7 +75,6 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 public class GameClient extends Game implements IPacketHandler {
@@ -92,17 +92,14 @@ public class GameClient extends Game implements IPacketHandler {
 
     protected List<Text> texts;
     protected List<GUI> guis;
-    protected Vector3f spawn;
+    protected Vector3f spawn = new Vector3f();
 
-    protected Text gpuTime, cpuTime, yetAnother, crosshair, ammo, reserveAmmo;
+    protected Text gpuTime, cpuTime, yetAnother, crosshair, health, ammo, reserveAmmo;
     protected boolean loaded;
-
-    protected Client client;
-    protected Font font;
 
     @Override
     public void init() {
-        Engine.init(Side.CLIENT);
+        Engine.init(Side.CLIENT, new ClientEngine());
         Graphics.init();
         Audio.init();
         System.out.println("APP INIT");
@@ -121,7 +118,6 @@ public class GameClient extends Game implements IPacketHandler {
         player = new Entity(ClientInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
-        player.getPosition().set(450, 0, 450);
         player.spawn();
 
         gun = new Entity(MeshComponent.class);
@@ -134,14 +130,16 @@ public class GameClient extends Game implements IPacketHandler {
         gun.getComponent(MeshComponent.class).shader = ViewmodelShader.getInstance();
 
         texts = new ArrayList<Text>();
-        font = new Font("trebuchet");
-        texts.add(gpuTime = new Text(new Vector2f(-0.985f, -0.92f), "GPU: 0 ms", font, 1));
-        texts.add(cpuTime = new Text(new Vector2f(-0.985f, -0.97f), "CPU: 0 ms", font, 1));
-        yetAnother = new Text(new Vector2f(), "YET ANOTHER", font, 6, new Vector3f(1, 1, 1), Alignment.CENTER);
-        texts.add(crosshair = new Text(new Vector2f(), "+", font, 1.3f, new Vector3f(), Alignment.CENTER));
 
-        texts.add(ammo = new Text(new Vector2f(0.945f, -0.9265f), "", font, 2, new Vector3f(0, 0, 0), Alignment.RIGHT));
-        texts.add(reserveAmmo = new Text(new Vector2f(0.995f, -0.9375f), "", font, 1.5f, new Vector3f(0, 0, 0), Alignment.RIGHT));
+        texts.add(gpuTime = new TextBuilder().position(0.985f, 0.97f).align(Alignment.RIGHT).build());
+        texts.add(cpuTime = new TextBuilder().position(0.985f, 0.92f).align(Alignment.RIGHT).build());
+
+        yetAnother = new TextBuilder().text("YET ANOTHER").size(6).colour(1, 1, 1).align(Alignment.CENTER).build();
+        texts.add(crosshair = new TextBuilder().text("+").size(1.3f).align(Alignment.CENTER).build());
+
+        texts.add(health = new TextBuilder().position(-0.97f, -0.9265f).size(2).colour(0.75f, 0, 0).align(Alignment.LEFT).build());
+        texts.add(ammo = new TextBuilder().position(0.945f, -0.9265f).size(2).colour(0.75f, 0, 0).align(Alignment.RIGHT).build());
+        texts.add(reserveAmmo = new TextBuilder().position(0.995f, -0.9375f).size(1.5f).colour(0.75f, 0, 0).align(Alignment.RIGHT).build());
 
         guis = new ArrayList<GUI>();
 
@@ -185,8 +183,10 @@ public class GameClient extends Game implements IPacketHandler {
 
             if (livingComponent.health <= 0) {
                 livingComponent.health = 100;
+
                 player.getVelocity().set(0, 0, 0);
                 player.getPosition().set(spawn);
+
                 texts.add(yetAnother);
                 texts.remove(crosshair);
 
@@ -207,6 +207,12 @@ public class GameClient extends Game implements IPacketHandler {
             }
         }
 
+        if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_1)) {
+            livingComponent.selectedIndex = 0;
+        } else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_2)) {
+            livingComponent.selectedIndex = 1;
+        }
+
         checkForInteractions(interacting);
         Profiler.end("Physics");
 
@@ -220,6 +226,7 @@ public class GameClient extends Game implements IPacketHandler {
         gpuTime.setText(String.format("GPU: %.02f", AppManager.gpuTime) + " ms");
         cpuTime.setText(String.format("CPU: %.02f", AppManager.cpuTime) + " ms");
 
+        health.setText((int) livingComponent.health + "");
         Weapon weapon = livingComponent.getSelectedWeapon();
         if (weapon instanceof Gun) {
             Gun gun = (Gun) weapon;
@@ -371,7 +378,7 @@ public class GameClient extends Game implements IPacketHandler {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_REMOVE_PACKET) {
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_REMOVE_COMPONENT_PACKET) {
             EntityRemoveComponentPacket packet = (EntityRemoveComponentPacket) receivedPacket;
 
             getNetworkedEntityFromId(packet.id).removeComponent(packet.clazz);
@@ -379,8 +386,8 @@ public class GameClient extends Game implements IPacketHandler {
             EntityKeyValuePacket packet = (EntityKeyValuePacket) receivedPacket;
 
             getNetworkedEntityFromId(packet.id).setValue(packet.key, packet.value);
-        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_REMOVE_PACKET) {
-            scene.getEntities().remove(getNetworkedEntityFromId(((EntityRemovePacket) receivedPacket).id));
+        } else if (receivedPacket.getId() == CorePacketManager.ENTITY_DESTROY_PACKET) {
+            scene.getEntities().remove(getNetworkedEntityFromId(((EntityDestroyPacket) receivedPacket).id));
         } else if (receivedPacket.getId() == CorePacketManager.ENTITY_LINK_PACKET) {
             EntityLinkPacket packet = (EntityLinkPacket) receivedPacket;
 
@@ -390,6 +397,10 @@ public class GameClient extends Game implements IPacketHandler {
                     break;
                 }
             }
+        } else if (receivedPacket.getId() == CorePacketManager.GAME_VARIABLE_PACKET) {
+            GameVariablePacket packet = (GameVariablePacket) receivedPacket;
+
+            GameVariableManager.getByName(packet.name).setValue(packet.value);
         }
     }
 
@@ -447,6 +458,10 @@ public class GameClient extends Game implements IPacketHandler {
         return ((Game) AppManager.getInstance()).shadows.getExtents(map);
     }
 
+    public static Client getClient() {
+        return ((Game) AppManager.getInstance()).client;
+    }
+
     public static Terrain getTerrainByPoint(Vector3f point) {
         ClientScene scene = ((Game) AppManager.getInstance()).scene;
         if (scene == null)
@@ -472,28 +487,22 @@ public class GameClient extends Game implements IPacketHandler {
         }
 
         scene = new GameMap(map).getScene();
-        for (Entity entity : scene.getEntitiesWithComponent(SunComponent.class)) {
-            List<Entity> skies = scene.getEntitiesWithComponent(SkyComponent.class);
-            if (skies.size() > 0) {
-                this.sky = skies.get(0).getComponent(SkyComponent.class);
-                this.sky.setLight(entity);
-            }
+        Engine.scene = scene;
 
+        for (Entity entity : scene.getEntitiesWithComponent(SkyComponent.class))
+            sky = entity.getComponent(SkyComponent.class);
+
+        for (Entity entity : scene.getEntitiesWithComponent(SunComponent.class)) {
+            if (sky != null)
+                sky.setLight(entity);
             lightComponent = entity.getComponent(LightComponent.class);
             shadows = new Shadows(lightComponent);
         }
 
         for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
-            spawn = entity.getPosition();
+            spawn.set(entity.getPosition());
         player.getPosition().set(spawn);
         loaded = false;
-
-        Entity decal = new Entity(DecalComponent.class);
-        decal.setValue("texture", "editor/cube_diffuse_3");
-        decal.getPosition().set(4.5f, 7, 16f);
-        decal.getScale().set(2, 2, 2);
-        decal.spawn();
-        scene.getEntities().add(decal);
     }
 
     public static void main(String[] args) {

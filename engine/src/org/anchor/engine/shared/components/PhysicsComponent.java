@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.VectorUtils;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.CollisionMesh;
 import org.anchor.engine.shared.physics.Material;
@@ -42,7 +43,7 @@ public class PhysicsComponent implements IComponent {
         this.entity = entity;
 
         if (meshes.size() == 0 && entity.containsKey("collisionMesh"))
-            meshes.addAll(CollisionMeshLoader.loadCollisionMesh(entity.getValue("collisionMesh")));
+            meshes.addAll(CollisionMeshLoader.loadCollisionMeshes(entity.getValue("collisionMesh")));
     }
 
     @Override
@@ -62,6 +63,9 @@ public class PhysicsComponent implements IComponent {
     }
 
     public boolean canCollideWith(Entity other) {
+        if (Engine.isClientSide())
+            return !other.hasComponent(PlayerComponent.class);
+
         return true;
     }
 
@@ -105,6 +109,7 @@ public class PhysicsComponent implements IComponent {
         float minY = Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE;
 
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
         float maxX = -Float.MAX_VALUE;
         float maxY = -Float.MAX_VALUE;
         float maxZ = -Float.MAX_VALUE;
@@ -126,6 +131,14 @@ public class PhysicsComponent implements IComponent {
     }
 
     public Vector3f raycast(Vector3f origin, Vector3f ray) {
+        float distance = raycastDistance(origin, ray);
+        if (distance == -1)
+            return null;
+
+        return Vector3f.add(origin, VectorUtils.mul(ray, distance), null);
+    }
+
+    public float raycastDistance(Vector3f origin, Vector3f ray) {
         float closest = Float.MAX_VALUE;
         for (CollisionMesh mesh : meshes) {
             float current = mesh.raycastDistance(entity.getTransformationMatrix(), origin, ray);
@@ -136,9 +149,9 @@ public class PhysicsComponent implements IComponent {
         }
 
         if (closest == Float.MAX_VALUE)
-            return null;
+            return -1;
 
-        return Vector3f.add(origin, VectorUtils.mul(ray, closest), null);
+        return closest;
     }
 
     @Override

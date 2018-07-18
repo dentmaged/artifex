@@ -1,10 +1,10 @@
-package org.anchor.engine.common.console;
+package org.anchor.engine.shared.console;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.anchor.engine.common.net.User;
+import org.anchor.engine.shared.net.IUser;
 
 public class GameCommandManager {
 
@@ -22,7 +22,7 @@ public class GameCommandManager {
         return null;
     }
 
-    public static void run(User user, String command) {
+    public static void run(IUser user, String command) {
         String[] split = command.split(" ");
         GameCommand cmd = getByName(split[0]);
         if (cmd == null) {

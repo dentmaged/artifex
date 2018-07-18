@@ -24,7 +24,7 @@ public class EditorInputComponent extends LivingComponent {
                 mouseDX = 360 - yaw + mouseDX;
 
             pitch -= mouseDY;
-            pitch = Math.min(89, Math.max(-89, pitch));
+            pitch = Math.min(90, Math.max(-90, pitch));
             yaw += mouseDX;
 
             forwards = 0;

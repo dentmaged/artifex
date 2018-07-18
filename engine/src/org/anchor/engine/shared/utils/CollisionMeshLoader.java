@@ -12,11 +12,11 @@ public class CollisionMeshLoader {
 
     private static final String RES_LOC = "res";
 
-    public static List<CollisionMesh> loadCollisionMesh(String mesh) {
-        return loadCollisionMesh(FileHelper.newGameFile(RES_LOC, mesh + ".pcl"));
+    public static List<CollisionMesh> loadCollisionMeshes(String mesh) {
+        return loadCollisionMeshes(FileHelper.newGameFile(RES_LOC, mesh + ".pcl"));
     }
 
-    public static List<CollisionMesh> loadCollisionMesh(File meshFile) {
+    public static List<CollisionMesh> loadCollisionMeshes(File meshFile) {
         String[] lines = FileHelper.read(meshFile).split("\n");
 
         List<Vector3f> vertices = new ArrayList<Vector3f>();

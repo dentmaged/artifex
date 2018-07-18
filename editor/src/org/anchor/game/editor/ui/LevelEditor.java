@@ -86,8 +86,8 @@ import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
-import org.anchor.game.client.components.SoundComponent;
 import org.anchor.game.client.components.SlidingDoorComponent;
+import org.anchor.game.client.components.SoundComponent;
 import org.anchor.game.client.components.WaterComponent;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.storage.PrefabReader;
@@ -1501,7 +1501,7 @@ public class LevelEditor extends JPanel {
                 selectedTerrain.reloadHeights();
             }
         } else if (paint) {
-            
+
         }
     }
 

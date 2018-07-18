@@ -162,6 +162,7 @@ public class AABB {
         float minY = Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE;
 
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
         float maxX = -Float.MAX_VALUE;
         float maxY = -Float.MAX_VALUE;
         float maxZ = -Float.MAX_VALUE;
@@ -184,6 +185,7 @@ public class AABB {
         float minY = Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE;
 
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
         float maxX = -Float.MAX_VALUE;
         float maxY = -Float.MAX_VALUE;
         float maxZ = -Float.MAX_VALUE;
@@ -221,6 +223,7 @@ public class AABB {
         float minY = Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE;
 
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
         float maxX = -Float.MAX_VALUE;
         float maxY = -Float.MAX_VALUE;
         float maxZ = -Float.MAX_VALUE;

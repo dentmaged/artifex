@@ -14,12 +14,19 @@ import org.anchor.engine.common.net.server.ServerThread;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
+import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
+import org.anchor.engine.shared.components.redirections.EngineMeshComponent;
+import org.anchor.engine.shared.console.GameVariable;
+import org.anchor.engine.shared.console.GameVariableManager;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.monitoring.EntityMonitor;
 import org.anchor.engine.shared.monitoring.SceneMonitor;
 import org.anchor.engine.shared.net.CorePacketManager;
 import org.anchor.engine.shared.net.packet.AuthenticationPacket;
 import org.anchor.engine.shared.net.packet.EntityLinkPacket;
+import org.anchor.engine.shared.net.packet.EntitySpawnPacket;
+import org.anchor.engine.shared.net.packet.GameVariablePacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
@@ -31,16 +38,16 @@ import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.game.server.components.ServerInputComponent;
 import org.anchor.game.server.components.ServerThreadComponent;
-import org.anchor.game.server.filter.AllPlayersFilter;
 import org.lwjgl.util.vector.Vector3f;
 
 public class GameServer extends App implements IPacketHandler {
 
     protected Server server;
-    protected String level = "level0";
+    protected String level = "test";
 
     protected Scene scene;
     protected SceneMonitor monitor;
+    protected Map<Entity, EntityMonitor> clientMonitors = new HashMap<Entity, EntityMonitor>();
     protected Vector3f spawn = new Vector3f();
 
     protected float accumulator;
@@ -55,8 +62,10 @@ public class GameServer extends App implements IPacketHandler {
         server = new Server(this, 24964);
 
         scene = new GameMap(FileHelper.newGameFile("maps", level + ".asg")).getScene();
+        Engine.scene = scene;
         for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
             spawn.set(entity.getPosition());
+
         physics = new PhysicsEngine();
         monitor = new SceneMonitor(scene);
     }
@@ -80,7 +89,6 @@ public class GameServer extends App implements IPacketHandler {
 
             for (Entity player : clients.values()) {
                 player.getComponent(LivingComponent.class).move(scene, getTerrainByPoint(player.getPosition()));
-                player.getComponent(ServerThreadComponent.class).net.sendPacket(new PlayerPositionPacket(player.getPosition()));
                 LivingComponent livingComponent = player.getComponent(LivingComponent.class);
 
                 if (player.getPosition().y < -15)
@@ -88,13 +96,19 @@ public class GameServer extends App implements IPacketHandler {
 
                 if (livingComponent.health <= 0) {
                     livingComponent.health = 100;
+
                     player.getVelocity().set(0, 0, 0);
                     player.getPosition().set(spawn);
                 }
+
+                player.getComponent(ServerThreadComponent.class).net.sendPacket(new PlayerPositionPacket(player.getPosition()));
             }
 
             if (monitor != null)
                 monitor.check();
+
+            for (EntityMonitor entityMonitor : clientMonitors.values())
+                entityMonitor.check();
         }
         Profiler.end("Physics");
 
@@ -128,32 +142,55 @@ public class GameServer extends App implements IPacketHandler {
     }
 
     @Override
-    public void handlePacket(BaseNetworkable net, IPacket packet) {
-        if (packet.getId() == CorePacketManager.AUTHENTICATION_PACKET) {
-            if (((AuthenticationPacket) packet).protocolVersion == Engine.PROTOCOL_VERSION) {
+    public void handlePacket(BaseNetworkable net, IPacket receivedPacket) {
+        if (receivedPacket.getId() == CorePacketManager.AUTHENTICATION_PACKET) {
+            if (((AuthenticationPacket) receivedPacket).protocolVersion == Engine.PROTOCOL_VERSION) {
                 ServerThread thread = (ServerThread) net;
-                Entity player = new Entity(ServerInputComponent.class, ServerThreadComponent.class);
+                Entity player = new Entity(ServerInputComponent.class, ServerThreadComponent.class, EngineMeshComponent.class);
                 player.setValue("collisionMesh", "player");
+                player.setValue("model", "player");
+
                 player.getComponent(ServerThreadComponent.class).net = thread;
+                player.getComponent(ServerThreadComponent.class).user = new ServerUser("", thread);
+
+                player.getComponent(PhysicsComponent.class).gravity = false;
+
                 player.spawn();
 
-                clients.put(thread, player);
                 net.sendPacket(new LevelChangePacket(level));
 
                 for (Entity entity : scene.getEntities())
-                    new AllPlayersFilter().sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
+                    if (entity.getLineIndex() == -1)
+                        net.sendPacket(new EntitySpawnPacket(entity));
+                    else
+                        net.sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
+                for (Entity entity : clients.values()) {
+                    System.out.println("SENDING CLIENT INFO");
+
+                    net.sendPacket(new EntitySpawnPacket(entity));
+                    entity.getComponent(ServerThreadComponent.class).net.sendPacket(new EntitySpawnPacket(player));
+                }
+
+                clients.put(thread, player);
+                clientMonitors.put(player, new EntityMonitor(player));
             } else {
                 net.disconnect();
             }
-        } else if (packet.getId() == CorePacketManager.PLAYER_MOVEMENT_PACKET) {
-            clients.get(net).getComponent(ServerInputComponent.class).playerMovementPacket = (PlayerMovementPacket) packet;
+        } else if (receivedPacket.getId() == CorePacketManager.PLAYER_MOVEMENT_PACKET) {
+            clients.get(net).getComponent(ServerInputComponent.class).playerMovementPacket = (PlayerMovementPacket) receivedPacket;
+        } else if (receivedPacket.getId() == CorePacketManager.GAME_VARIABLE_PACKET) {
+            GameVariablePacket packet = (GameVariablePacket) receivedPacket;
+            GameVariable var = GameVariableManager.getByName(packet.name);
+
+            if (clients.get(net).getComponent(ServerThreadComponent.class).user.canSetVariable(var))
+                var.setValue(packet.value);
         }
     }
 
     @Override
     public void disconnect(BaseNetworkable net) {
         clients.remove(net);
-        net.disconnect();
+        clientMonitors.remove(clients.get(net));
     }
 
     @Override

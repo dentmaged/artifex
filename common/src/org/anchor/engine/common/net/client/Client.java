@@ -31,13 +31,16 @@ public class Client extends BaseNetworkable {
                     try {
                         System.out.println("Connected to " + ip + ":" + port);
                         handler.connect(Client.this);
+
                         while (isConnected()) {
                             int id = input.readInt();
                             IPacket packet = PacketManager.getPacketByID(id);
-                            packet.read(input);
-
-                            packets.offer(packet);
+                            if (packet != null) {
+                                packet.read(input);
+                                packets.offer(packet);
+                            }
                         }
+
                         handler.disconnect(Client.this);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -45,6 +48,7 @@ public class Client extends BaseNetworkable {
                 }
 
             });
+
             thread.start();
         } catch (Exception e) {
             e.printStackTrace();

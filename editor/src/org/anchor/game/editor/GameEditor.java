@@ -31,7 +31,9 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.Scheduler;
+import org.anchor.engine.shared.utils.EntityRaycast;
 import org.anchor.engine.shared.utils.Side;
+import org.anchor.engine.shared.utils.TerrainRaycast;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
@@ -51,12 +53,10 @@ import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.client.types.TerrainTexture;
-import org.anchor.game.client.utils.EntityRaycast;
 import org.anchor.game.client.utils.FrustumCull;
 import org.anchor.game.client.utils.KeyboardUtils;
 import org.anchor.game.client.utils.MousePicker;
 import org.anchor.game.client.utils.MouseUtils;
-import org.anchor.game.client.utils.TerrainRaycast;
 import org.anchor.game.editor.components.EditorInputComponent;
 import org.anchor.game.editor.gizmo.GizmoRenderer;
 import org.anchor.game.editor.ui.LevelEditor;
@@ -466,6 +466,7 @@ public class GameEditor extends Game {
         this.level = map;
 
         scene = new GameMap(map).getScene();
+        Engine.scene = scene;
         for (Entity entity : scene.getEntitiesWithComponent(SkyComponent.class))
             sky = entity.getComponent(SkyComponent.class);
 

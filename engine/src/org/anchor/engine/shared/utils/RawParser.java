@@ -143,7 +143,7 @@ public class RawParser {
                 return stream.readInt();
 
             if (type == boolean.class)
-                stream.readBoolean();
+                return stream.readBoolean();
 
             if (type == String.class)
                 return stream.readUTF();

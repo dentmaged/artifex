@@ -12,16 +12,17 @@ import javax.imageio.stream.FileImageInputStream;
 import javax.imageio.stream.ImageInputStream;
 
 import org.anchor.engine.common.TextureType;
-import org.anchor.engine.common.launcher.Launcher;
 
 public class FileHelper {
 
-    public static File newGameFile(String parent, String child) {
-        return new File(new File(Launcher.game, parent), child);
-    }
+    public static String game;
 
     public static File newGameFile(String path) {
-        return new File(Launcher.game, path);
+        return new File(game, path);
+    }
+
+    public static File newGameFile(String parent, String child) {
+        return new File(new File(game, parent), child);
     }
 
     public static File newGameFile(String parent, TextureType type, String child) {
@@ -29,7 +30,7 @@ public class FileHelper {
     }
 
     public static File newGameFile(String parent, String child, String grandchild) {
-        return new File(new File(new File(Launcher.game, parent), child), grandchild);
+        return new File(new File(game, parent), child + File.separator + grandchild);
     }
 
     public static String read(File file) {
@@ -37,11 +38,10 @@ public class FileHelper {
             StringBuilder builder = new StringBuilder();
             Scanner scanner = new Scanner(file);
 
-            while (scanner.hasNextLine()) {
+            while (scanner.hasNextLine())
                 builder.append(scanner.nextLine()).append("\n");
-            }
-
             scanner.close();
+
             return builder.toString();
         } catch (Exception e) {
             e.printStackTrace();
@@ -64,13 +64,13 @@ public class FileHelper {
     public static File getAppData(String program) {
         String workingDirectory = "";
         String os = (System.getProperty("os.name")).toLowerCase();
-        if (os.contains("win")) {
+
+        if (os.contains("win"))
             workingDirectory = System.getenv("AppData") + File.separator + program;
-        } else if (os.contains("mac")) {
+        else if (os.contains("mac"))
             workingDirectory = System.getProperty("user.home") + File.separator + "Library" + File.separator + "Application Support" + File.separator + program;
-        } else if (os.contains("nux")) {
+        else if (os.contains("nux"))
             workingDirectory = System.getProperty("user.dir") + File.separator + "." + program;
-        }
 
         return new File(workingDirectory);
     }
@@ -91,6 +91,7 @@ public class FileHelper {
         int pos = imgFile.getName().lastIndexOf(".");
         if (pos == -1)
             throw new IllegalArgumentException("No extension for file: " + imgFile.getAbsolutePath());
+
         String suffix = imgFile.getName().substring(pos + 1);
         Iterator<ImageReader> iter = ImageIO.getImageReadersBySuffix(suffix);
         while (iter.hasNext()) {

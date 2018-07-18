@@ -40,11 +40,18 @@ public class EntitySpawnPacket implements IPacket {
             stream.writeUTF(entry.getValue());
         }
 
-        stream.writeInt(entity.getComponents().size());
+        int skip = 0;
+        for (IComponent component : entity.getComponents())
+            if (component.getClass().getName().startsWith("org.anchor.game.server"))
+                skip++;
+
+        stream.writeInt(entity.getComponents().size() - skip);
         for (IComponent component : entity.getComponents()) {
             Class<? extends IComponent> clazz = component.getClass();
-            Redirect redirect = clazz.getAnnotation(Redirect.class);
+            if (clazz.getName().startsWith("org.anchor.game.server"))
+                continue;
 
+            Redirect redirect = clazz.getAnnotation(Redirect.class);
             if (redirect == null) {
                 stream.writeUTF(clazz.getCanonicalName());
                 stream.writeBoolean(true);
@@ -66,7 +73,6 @@ public class EntitySpawnPacket implements IPacket {
         entity = new Entity();
         entity.removeComponent(TransformComponent.class);
         entity.setId(stream.readInt());
-        System.out.println(entity.getId());
 
         int count = stream.readInt();
         for (int i = 0; i < count; i++)
@@ -86,6 +92,7 @@ public class EntitySpawnPacket implements IPacket {
                 }
             }
         }
+        entity.spawn();
     }
 
 }

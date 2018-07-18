@@ -1,4 +1,4 @@
-package org.anchor.engine.common.console;
+package org.anchor.engine.shared.console;
 
 public enum GameVariableType {
 

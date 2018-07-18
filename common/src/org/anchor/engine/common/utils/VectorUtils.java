@@ -47,7 +47,7 @@ public class VectorUtils {
         return new Vector3f(Mathf.floor(v.x), Mathf.floor(v.y), Mathf.floor(v.z));
     }
 
-    public static boolean hasZero(Vector3f v) {
+    public static boolean anyZero(Vector3f v) {
         return v.x == 0 || v.y == 0 || v.z == 0;
     }
 

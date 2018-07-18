@@ -54,11 +54,11 @@ public class ClientInputComponent extends LivingComponent {
             reload = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R);
 
             if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInWater) {
-                entity.getVelocity().x += (Math.sin(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
-                entity.getVelocity().z -= (Math.cos(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
+                entity.getVelocity().x += Mathf.sinD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
+                entity.getVelocity().z -= Mathf.cosD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
 
-                entity.getVelocity().x += (Math.sin((yaw - 90) / 180 * pi)) * (sideways * PhysicsEngine.TICK_DELAY);
-                entity.getVelocity().z -= (Math.cos((yaw - 90) / 180 * pi)) * (sideways * PhysicsEngine.TICK_DELAY);
+                entity.getVelocity().x += Mathf.sinD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
+                entity.getVelocity().z -= Mathf.cosD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
 
                 float velocityClamp = 50 * PhysicsEngine.TICK_DELAY;
                 entity.getVelocity().x = Mathf.clamp(entity.getVelocity().x, -velocityClamp, velocityClamp);

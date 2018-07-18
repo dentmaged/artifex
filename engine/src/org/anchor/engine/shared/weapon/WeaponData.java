@@ -43,6 +43,6 @@ public abstract class WeaponData {
         return attackDuration;
     }
 
-    public abstract void perform(Entity owner);
+    public abstract void perform(Weapon weapon, Entity owner);
 
 }

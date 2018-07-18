@@ -17,4 +17,8 @@ public class Weapon {
         return true;
     }
 
+    public WeaponData getData() {
+        return data;
+    }
+
 }

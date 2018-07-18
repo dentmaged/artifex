@@ -27,7 +27,9 @@ public class Settings {
     public static String skybox = "skybox/partly-cloudy-day/";
 
     public static final int shadowSplits = 3;
-    public static final int[] shadowExtents = { 30, 100, 200 };
+    public static final int[] shadowExtents = {
+            30, 100, 200
+    };
     public static final float shadowDistance = 50;
     public static final int shadowResolution = 2048;
 

@@ -1,23 +1,20 @@
-package org.anchor.game.server.components;
+package org.anchor.engine.shared.components.redirections;
 
-import org.anchor.engine.common.net.server.ServerThread;
 import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
-import org.anchor.engine.shared.net.IUser;
+import org.anchor.engine.shared.net.Redirect;
 
-public class ServerThreadComponent implements IComponent {
-
-    public ServerThread net;
-    public IUser user;
+@Redirect("org.anchor.game.client.components.MeshComponent")
+public class EngineMeshComponent implements IComponent {
 
     @Override
     public void spawn(Entity entity) {
-
+        
     }
 
     @Override
     public void setValue(String key, String value) {
-
+        
     }
 
     @Override

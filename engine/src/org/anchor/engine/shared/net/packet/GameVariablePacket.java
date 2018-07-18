@@ -6,30 +6,34 @@ import java.io.DataOutputStream;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.shared.net.CorePacketManager;
 
-public class EntityRemovePacket implements IPacket {
+public class GameVariablePacket implements IPacket {
 
-    public int id;
+    public String name, value;
 
-    public EntityRemovePacket() {
+    public GameVariablePacket() {
 
     }
 
-    public EntityRemovePacket(int id) {
-        this.id = id;
+    public GameVariablePacket(String name, String value) {
+        this.name = name;
+        this.value = value;
     }
 
+    @Override
     public int getId() {
-        return CorePacketManager.ENTITY_REMOVE_PACKET;
+        return CorePacketManager.GAME_VARIABLE_PACKET;
     }
 
     @Override
     public void write(DataOutputStream stream) throws Exception {
-        stream.writeInt(id);
+        stream.writeUTF(name);
+        stream.writeUTF(value);
     }
 
     @Override
     public void read(DataInputStream stream) throws Exception {
-        id = stream.readInt();
+        name = stream.readUTF();
+        value = stream.readUTF();
     }
 
 }

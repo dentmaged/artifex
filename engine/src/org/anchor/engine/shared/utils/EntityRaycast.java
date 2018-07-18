@@ -1,4 +1,4 @@
-package org.anchor.game.client.utils;
+package org.anchor.engine.shared.utils;
 
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;

@@ -1,4 +1,7 @@
-package org.anchor.engine.common.console;
+package org.anchor.engine.shared.console;
+
+import org.anchor.engine.shared.Engine;
+import org.anchor.engine.shared.net.packet.GameVariablePacket;
 
 public class GameVariable {
 
@@ -20,11 +23,23 @@ public class GameVariable {
     }
 
     public int getValueAsInt() {
-        return Integer.valueOf(value);
+        try {
+            return Integer.valueOf(value);
+        } catch (NumberFormatException e) {
+
+        }
+
+        return 0;
     }
 
     public float getValueAsFloat() {
-        return Float.valueOf(value);
+        try {
+            return Float.valueOf(value);
+        } catch (NumberFormatException e) {
+
+        }
+
+        return 0;
     }
 
     public boolean getValueAsBool() {
@@ -32,19 +47,30 @@ public class GameVariable {
     }
 
     public void setValue(String value) {
+        if (type == GameVariableType.CHEAT && !GameVariableManager.getByName("sv_cheats").getValueAsBool())
+            return;
+        if (Engine.isClientSide() && type == GameVariableType.GAMEMODE) {
+            Engine.getInstance().broadcast(new GameVariablePacket(name, value));
+
+            return;
+        }
+
         this.value = value;
+
+        if (Engine.isServerSide())
+            Engine.getInstance().broadcast(new GameVariablePacket(value, value));
     }
 
     public void setValue(int value) {
-        this.value = value + "";
+        setValue(value + "");
     }
 
     public void setValue(float value) {
-        this.value = value + "";
+        setValue(value + "");
     }
 
     public void setValue(boolean value) {
-        this.value = value ? "1" : "0";
+        setValue(value ? "1" : "0");
     }
 
     public String getName() {

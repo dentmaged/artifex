@@ -140,7 +140,7 @@ public class MeshComponent implements IComponent {
             entity.addComponent(component = new PhysicsComponent());
 
         entity.setValue("collisionMesh", "aabb");
-        component.meshes = CollisionMeshLoader.loadCollisionMesh("aabb");
+        component.meshes = CollisionMeshLoader.loadCollisionMeshes("aabb");
     }
 
     @Property("Set collision mesh (model)")
@@ -153,7 +153,7 @@ public class MeshComponent implements IComponent {
             entity.addComponent(component = new PhysicsComponent());
 
         entity.setValue("collisionMesh", entity.getValue("model"));
-        component.meshes = CollisionMeshLoader.loadCollisionMesh(entity.getValue("collisionMesh"));
+        component.meshes = CollisionMeshLoader.loadCollisionMeshes(entity.getValue("collisionMesh"));
     }
 
 }

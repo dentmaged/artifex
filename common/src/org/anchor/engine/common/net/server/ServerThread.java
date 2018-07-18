@@ -44,4 +44,8 @@ public class ServerThread extends BaseNetworkable implements Runnable {
         this.thread = thread;
     }
 
+    public String getHostname() {
+        return socket.getInetAddress().getHostAddress();
+    }
+
 }

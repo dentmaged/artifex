@@ -1,6 +1,6 @@
-package org.anchor.engine.common.console;
+package org.anchor.engine.shared.console;
 
-import org.anchor.engine.common.net.User;
+import org.anchor.engine.shared.net.IUser;
 
 public abstract class GameCommand {
 
@@ -33,6 +33,6 @@ public abstract class GameCommand {
         System.out.println(description);
     }
 
-    public abstract void run(User sender, String[] args);
+    public abstract void run(IUser sender, String[] args);
 
 }

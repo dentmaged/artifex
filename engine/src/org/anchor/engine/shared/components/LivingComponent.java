@@ -20,6 +20,7 @@ import org.anchor.engine.shared.utils.Maths;
 import org.anchor.engine.shared.weapon.Gun;
 import org.anchor.engine.shared.weapon.Weapon;
 import org.anchor.engine.shared.weapon.implementation.CrossbowData;
+import org.anchor.engine.shared.weapon.implementation.ShotgunData;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -61,10 +62,12 @@ public class LivingComponent implements IComponent {
         this.entity = entity;
 
         weapons = new Weapon[] {
-                new Gun(entity, new CrossbowData())
+                new Gun(entity, new CrossbowData()),
+                new Gun(entity, new ShotgunData()),
         };
+
         listeners.add(new PhysicsTouchListener() {
-            
+
             @Override
             public void touch(Entity primary, Entity secondary) {
                 if (gravityStep)
@@ -106,13 +109,13 @@ public class LivingComponent implements IComponent {
 
             reducingFactor = (90 - reducingFactor) / 90;
 
-            dx += Math.sin(yaw / 180 * pi) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
-            dz -= Math.cos(yaw / 180 * pi) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
+            dx += Mathf.sinD(yaw) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
+            dz -= Mathf.cosD(yaw) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
 
-            dy -= (Math.sin(pitch / 180 * pi)) * forwards * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
+            dy -= (Mathf.sinD(pitch)) * forwards * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
 
-            dx += Math.sin((yaw - 90) / 180 * pi) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
-            dz -= Math.cos((yaw - 90) / 180 * pi) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
+            dx += Mathf.sinD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
+            dz -= Mathf.cosD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
         }
 
         position.x += dx;
@@ -213,6 +216,8 @@ public class LivingComponent implements IComponent {
             return;
 
         health -= amount;
+        if (health <= 0)
+            entity.destroy();
     }
 
     @Override
@@ -343,6 +348,7 @@ public class LivingComponent implements IComponent {
                     listener.touch(entity, other);
                 for (PhysicsTouchListener listener : secondary.listeners)
                     listener.touch(entity, other);
+
                 packet.collide = other;
             }
         }

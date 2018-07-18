@@ -27,7 +27,7 @@ public class SceneMonitor {
             monitor.check();
         }
 
-        for (Entity entity : scene.getEntities())
+        for (Entity entity : monitors.keySet())
             if (!scene.getEntities().contains(entity))
                 monitors.remove(entity);
     }

@@ -2,12 +2,13 @@ package org.anchor.engine.shared.net;
 
 import org.anchor.engine.common.net.packet.PacketManager;
 import org.anchor.engine.shared.net.packet.AuthenticationPacket;
+import org.anchor.engine.shared.net.packet.GameVariablePacket;
 import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
 import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
 import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
 import org.anchor.engine.shared.net.packet.EntityLinkPacket;
 import org.anchor.engine.shared.net.packet.EntityRemoveComponentPacket;
-import org.anchor.engine.shared.net.packet.EntityRemovePacket;
+import org.anchor.engine.shared.net.packet.EntityDestroyPacket;
 import org.anchor.engine.shared.net.packet.EntitySpawnPacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
@@ -26,8 +27,9 @@ public class CorePacketManager {
     public static int ENTITY_COMPONENT_VARIABLE_CHANGE_PACKET = 6; // To Client
     public static int ENTITY_REMOVE_COMPONENT_PACKET = 7; // To Client
     public static int ENTITY_KEY_VALUE_PACKET = 8; // To Client
-    public static int ENTITY_REMOVE_PACKET = 9; // To Client
+    public static int ENTITY_DESTROY_PACKET = 9; // To Client
     public static int ENTITY_LINK_PACKET = 10; // To Client
+    public static int GAME_VARIABLE_PACKET = 11; // Both
 
     public static void register() {
         PacketManager.clearPackets();
@@ -40,8 +42,9 @@ public class CorePacketManager {
         PacketManager.registerPacket(ENTITY_COMPONENT_VARIABLE_CHANGE_PACKET, EntityComponentVariableChangePacket.class);
         PacketManager.registerPacket(ENTITY_REMOVE_COMPONENT_PACKET, EntityRemoveComponentPacket.class);
         PacketManager.registerPacket(ENTITY_KEY_VALUE_PACKET, EntityKeyValuePacket.class);
-        PacketManager.registerPacket(ENTITY_REMOVE_PACKET, EntityRemovePacket.class);
+        PacketManager.registerPacket(ENTITY_DESTROY_PACKET, EntityDestroyPacket.class);
         PacketManager.registerPacket(ENTITY_LINK_PACKET, EntityLinkPacket.class);
+        PacketManager.registerPacket(GAME_VARIABLE_PACKET, GameVariablePacket.class);
     }
 
 }

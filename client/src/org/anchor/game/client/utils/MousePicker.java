@@ -1,8 +1,5 @@
 package org.anchor.game.client.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.VectorUtils;
@@ -10,6 +7,8 @@ import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.EntityRaycast;
+import org.anchor.engine.shared.utils.TerrainRaycast;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.components.MeshComponent;
 import org.lwjgl.opengl.Display;
@@ -49,8 +48,8 @@ public class MousePicker {
         Entity intersection = null;
         Vector3f dirfrac = new Vector3f(1f / ray.x, 1f / ray.y, 1f / ray.z);
 
-        List<Entity> entities = new ArrayList<Entity>(scene.getEntities());
-        for (Entity entity : entities) {
+        for (int i = 0; i < scene.getEntities().size(); i++) {
+            Entity entity = scene.getEntities().get(i);
             if (entity.isHidden())
                 continue;
 

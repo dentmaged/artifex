@@ -18,10 +18,24 @@ public class Text {
     }
 
     public Text(Vector2f position, String text, Font font, float size, Vector3f colour, Alignment alignment) {
+        this(position, text, font, size, colour, alignment, 1);
+    }
+
+    public Text(Vector2f position, String text, Font font, float size, Vector3f colour, Alignment alignment, float alpha) {
         this.position = position;
         this.font = font;
         this.size = size;
-        this.colour = new Vector4f(colour.x, colour.y, colour.z, 1);
+        this.colour = new Vector4f(colour.x, colour.y, colour.z, alpha);
+        this.alignment = alignment;
+
+        setText(text);
+    }
+
+    public Text(Vector2f position, String text, Font font, float size, Vector4f colour, Alignment alignment) {
+        this.position = position;
+        this.font = font;
+        this.size = size;
+        this.colour = colour;
         this.alignment = alignment;
 
         setText(text);

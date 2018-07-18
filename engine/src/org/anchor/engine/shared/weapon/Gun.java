@@ -4,7 +4,6 @@ import org.anchor.engine.shared.entity.Entity;
 
 public class Gun extends Weapon {
 
-    protected Entity owner;
     protected int ammo, reserveAmmo;
     protected long reloadStartTime;
 
@@ -33,7 +32,7 @@ public class Gun extends Weapon {
         ammo--;
         lastAttackTime = time;
 
-        data.perform(owner);
+        data.perform(this, owner);
 
         if (ammo == 0)
             reload();

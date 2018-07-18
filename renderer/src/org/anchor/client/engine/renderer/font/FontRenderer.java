@@ -11,6 +11,7 @@ import org.lwjgl.util.vector.Vector2f;
 public class FontRenderer {
 
     protected static FontShader shader = FontShader.getInstance();
+    public static Font defaultFont = new Font("trebuchet");
 
     public static final float advance = 0.008f;
 

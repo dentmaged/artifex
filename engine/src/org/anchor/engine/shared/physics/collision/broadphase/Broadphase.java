@@ -14,19 +14,21 @@ public class Broadphase {
         List<BroadphaseCollisionResult> results = new ArrayList<BroadphaseCollisionResult>();
         List<BroadphaseCheck> checks = new ArrayList<BroadphaseCheck>();
 
-        outer: for (Entity one : entities) {
-            if (VectorUtils.hasZero(one.getScale()))
+        outer: for (int i = 0; i < entities.size(); i++) {
+            Entity one = entities.get(i);
+            if (VectorUtils.anyZero(one.getScale()))
                 continue;
 
             PhysicsComponent primary = one.getComponent(PhysicsComponent.class);
             if (!primary.isCollidable())
                 continue outer;
 
-            inner: for (Entity two : entities) {
+            inner: for (int j = i; j < entities.size(); j++) {
+                Entity two = entities.get(j);
                 if (one == two)
                     continue inner;
 
-                if (VectorUtils.hasZero(two.getScale()))
+                if (VectorUtils.anyZero(two.getScale()))
                     continue;
 
                 PhysicsComponent secondary = two.getComponent(PhysicsComponent.class);
@@ -47,13 +49,13 @@ public class Broadphase {
                     int x = -1;
                     int y = -1;
 
-                    meshCheckOuter: for (int i = 0; i < primary.getMeshCount(); i++) {
-                        AABB a = primary.getAABB(i);
+                    meshCheckOuter: for (int k = 0; k < primary.getMeshCount(); k++) {
+                        AABB a = primary.getAABB(k);
 
-                        for (int j = 0; j < secondary.getMeshCount(); j++) {
-                            if (a.collides(secondary.getAABB(j))) {
-                                x = i;
-                                y = j;
+                        for (int l = 0; l < secondary.getMeshCount(); l++) {
+                            if (a.collides(secondary.getAABB(l))) {
+                                x = k;
+                                y = l;
 
                                 break meshCheckOuter;
                             }
@@ -71,7 +73,7 @@ public class Broadphase {
 
     public static List<BroadphaseCollisionResult> collisions(Entity one, List<Entity> entities) {
         List<BroadphaseCollisionResult> results = new ArrayList<BroadphaseCollisionResult>();
-        if (VectorUtils.hasZero(one.getScale()))
+        if (VectorUtils.anyZero(one.getScale()))
             return results;
 
         PhysicsComponent primary = one.getComponent(PhysicsComponent.class);
@@ -83,7 +85,7 @@ public class Broadphase {
             if (one == two)
                 continue;
 
-            if (VectorUtils.hasZero(two.getScale()))
+            if (VectorUtils.anyZero(two.getScale()))
                 continue;
 
             PhysicsComponent secondary = two.getComponent(PhysicsComponent.class);

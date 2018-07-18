@@ -1,4 +1,4 @@
-package org.anchor.engine.common.launcher;
+package org.anchor.engine.shared.launcher;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -9,11 +9,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.anchor.engine.common.app.App;
-import org.anchor.engine.common.console.GameVariableManager;
+import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.shared.console.GameVariableManager;
 
 public class Launcher {
 
-    public static String game;
     private static URLClassLoader child;
 
     public static void main(String[] arguments) {
@@ -29,26 +29,30 @@ public class Launcher {
             }
         }
 
-        game = args.get("game");
+        FileHelper.game = args.get("game");
         for (Entry<String, String> entry : args.entrySet()) {
             System.out.println(entry.getKey() + " = " + entry.getValue());
         }
 
-        System.out.println("Loading " + new File(new File(game, "bin"), "game.jar").getAbsolutePath() + "...");
-        loadJar(new File(new File(game, "bin"), "game.jar"), "org.anchor.game.GameStart", "GameVarInit");
+        String file = "client.jar";
+        if (args.containsKey("server") && args.get("server").equals("1"))
+            file = "server.jar";
+
+        System.out.println("Loading " + new File(new File(FileHelper.game, "bin"), file).getAbsolutePath() + "...");
+        loadJar(new File(new File(FileHelper.game, "bin"), file), "org.anchor.game.GameStart", "gameVarInit");
 
         for (int i = 0; i < arguments.length; i++) {
             String next = getNextArg(arguments, i);
 
             if (arguments[i].startsWith("+")) {
-                if (next.startsWith("-"))
+                if (next == null || next.startsWith("-"))
                     next = "1";
 
                 GameVariableManager.getByName(arguments[i].substring(1)).setValue(next);
             }
         }
 
-        runMethod("org.anchor.game.GameStart", "GameInit");
+        runMethod("org.anchor.game.GameStart", "gameInit");
     }
 
     private static String getNextArg(String[] args, int i) {

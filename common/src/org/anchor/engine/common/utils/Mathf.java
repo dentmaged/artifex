@@ -35,43 +35,55 @@ public class Mathf {
     }
 
     public static float asin(float f) {
-        return (float) Math.asin((float) f);
+        return (float) Math.asin(f);
     }
 
     public static float sin(float f) {
-        return (float) Math.sin((float) f);
+        return (float) Math.sin(f);
+    }
+
+    public static float sinD(float f) {
+        return (float) Math.sin(toRadians(f));
     }
 
     public static float acos(float f) {
-        return (float) Math.acos((float) f);
+        return (float) Math.acos(f);
     }
 
     public static float cos(float f) {
-        return (float) Math.cos((float) f);
+        return (float) Math.cos(f);
+    }
+
+    public static float cosD(float f) {
+        return (float) Math.cos(toRadians(f));
     }
 
     public static float atan(float f) {
-        return (float) Math.atan((float) f);
+        return (float) Math.atan(f);
     }
 
     public static float tan(float f) {
-        return (float) Math.tan((float) f);
+        return (float) Math.tan(f);
+    }
+
+    public static float tanD(float f) {
+        return (float) Math.tan((toRadians(f)));
     }
 
     public static float arcsin(float f) {
-        return (float) Math.asin((float) f);
+        return (float) Math.asin(f);
     }
 
     public static float arccos(float f) {
-        return (float) Math.acos((float) f);
+        return (float) Math.acos(f);
     }
 
     public static float arctan(float f) {
-        return (float) Math.atan((float) f);
+        return (float) Math.atan(f);
     }
 
     public static float pow(float a, float b) {
-        return (float) Math.pow((float) a, (float) b);
+        return (float) Math.pow(a, b);
     }
 
     public static float clamp(float a, float b, float c) {

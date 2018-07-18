@@ -254,7 +254,7 @@ public class Window {
 
         JComboBox<TransformationMode> transformationModeDropdown = new JComboBox<TransformationMode>();
         transformationModeDropdown.addActionListener(new ActionListener() {
-            
+
             @Override
             public void actionPerformed(ActionEvent e) {
                 GameEditor.getInstance().setTransformationMode((TransformationMode) transformationModeDropdown.getSelectedItem());
