@@ -6,8 +6,7 @@ in vec2 tc;
 FS_OUT(diffuse)
 FS_OUT(other)
 FS_OUT(normal)
-FS_OUT(bloom)
-FS_OUT(godrays)
+FS_OUT(albedo)
 
 tex albedo;
 tex normal;
@@ -31,5 +30,5 @@ void main(void) {
 	float ao = usesAOMap ? texture2D(ao, tc).r : 1;
 
 	vec3 mappedNormal = texture2D(normal, tc).xyz * 2 - 1;
-	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), normalize(tbn * mappedNormal), texture2D(specular, tc).r * diffuse.xyz, metallic, roughness, ao);
+	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), normalize(tbn * mappedNormal), texture2D(specular, tc).r, metallic, roughness, ao);
 }

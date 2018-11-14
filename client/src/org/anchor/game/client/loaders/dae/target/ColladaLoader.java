@@ -6,35 +6,21 @@ import org.anchor.engine.common.xml.XMLNode;
 import org.anchor.engine.common.xml.XMLParser;
 import org.anchor.game.client.loaders.dae.types.AnimatedModelData;
 import org.anchor.game.client.loaders.dae.types.AnimationData;
-import org.anchor.game.client.loaders.dae.types.MeshData;
-import org.anchor.game.client.loaders.dae.types.SkeletonData;
 import org.anchor.game.client.loaders.dae.types.SkinningData;
 
 public class ColladaLoader {
 
-    public static AnimatedModelData loadColladaModel(File colladaFile, int maxWeights) {
-        XMLNode node = XMLParser.loadXMLFile(colladaFile);
+    public static AnimatedModelData loadColladaModel(File colladaFile) {
+        XMLNode root = XMLParser.loadXMLFile(colladaFile);
+        SkinningData skinningData = new SkinLoader(root.getChild("library_controllers")).extractSkinData();
 
-        SkinLoader skinLoader = new SkinLoader(node.getChild("library_controllers"), maxWeights);
-        SkinningData skinningData = skinLoader.extractSkinData();
-
-        SkeletonLoader jointsLoader = new SkeletonLoader(node.getChild("library_visual_scenes"), skinningData.getJointOrder());
-        SkeletonData jointsData = jointsLoader.extractBoneData();
-
-        GeometryLoader g = new GeometryLoader(node.getChild("library_geometries"), skinningData.getVerticesSkinData());
-        MeshData meshData = g.extractModelData();
-
-        return new AnimatedModelData(meshData, jointsData);
+        return new AnimatedModelData(new GeometryLoader(root.getChild("library_geometries"), skinningData.getVerticesSkinData()).extractModelData(), new SkeletonLoader(root.getChild("library_visual_scenes"), skinningData.getJointOrder()).extractBoneData());
     }
 
     public static AnimationData loadColladaAnimation(File colladaFile) {
-        XMLNode node = XMLParser.loadXMLFile(colladaFile);
-        XMLNode animNode = node.getChild("library_animations");
-        XMLNode jointsNode = node.getChild("library_visual_scenes");
-        AnimationLoader loader = new AnimationLoader(animNode, jointsNode);
-        AnimationData animData = loader.extractAnimation();
+        XMLNode root = XMLParser.loadXMLFile(colladaFile);
 
-        return animData;
+        return new AnimationLoader(root.getChild("library_animations"), root.getChild("library_visual_scenes")).extractAnimation();
     }
 
 }

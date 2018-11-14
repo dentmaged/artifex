@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,20 +14,25 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.anchor.client.engine.renderer.types.Material;
 import org.anchor.client.engine.renderer.types.Model;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
 import org.anchor.engine.common.utils.EnumUtils;
+import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.Pointer;
 import org.anchor.engine.common.utils.StringUtils;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.particles.ParticleTexture;
 import org.anchor.game.client.utils.Sound;
 import org.anchor.game.editor.GameEditor;
+import org.anchor.game.editor.ui.AssetPicker;
 import org.anchor.game.editor.utils.AssetManager;
+import org.anchor.game.editor.utils.FileCallback;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 public class PropertyUIKit {
 
@@ -68,7 +74,9 @@ public class PropertyUIKit {
                 });
                 button.setBounds(10, y, WIDTH - 20, 23);
                 panel.add(button);
-                y += 28;
+
+                last = height.get() + 5;
+                y += last;
             }
         }
 
@@ -91,65 +99,59 @@ public class PropertyUIKit {
 
         try {
             if (field.getType() == Model.class) {
-                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManager.getModels()) {
-
-                    private static final long serialVersionUID = 5436389935838674534L;
+                JButton button = AssetPicker.create(entity.getValue("model"), "obj", new FileCallback() {
 
                     @Override
-                    public Object convert(String value) {
-                        entity.setValue("model", value);
-                        GameEditor.getInstance().getLevelEditor().updateList();
+                    public void run(File file) {
+                        String path = FileHelper.removeFileExtension(FileHelper.localFileName(file));
+                        entity.setValue("model", path);
 
-                        return AssetLoader.loadModel(value);
-                    }
-
-                    @Override
-                    public void update() {
                         try {
-                            Model model = (Model) field.get(icomponent);
-                            if (model == null)
-                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue("model")));
-                            else
-                                setSelectedIndex(AssetManager.getIndex(this, model.getName()));
+                            field.set(icomponent, AssetLoader.loadModel(path));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
 
-                };
-                dropdown.update();
-                dropdown.setBounds(x, y, remainingWidth, 23);
-                components.add(dropdown);
-            } else if (field.getType() == ModelTexture.class) {
-                PropertyDropdown dropdown = new PropertyDropdown(entity, field, icomponent, AssetManager.getTextures()) {
-
-                    private static final long serialVersionUID = -842084660378969213L;
+                });
+                button.setBounds(x, y, remainingWidth, 24);
+                components.add(button);
+            } else if (field.getType() == Material.class) {
+                JButton button = AssetPicker.create(entity.getValue("material"), "aem", new FileCallback() {
 
                     @Override
-                    public Object convert(String value) {
-                        entity.setValue("texture", value);
-                        GameEditor.getInstance().getLevelEditor().updateList();
+                    public void run(File file) {
+                        String path = FileHelper.removeFileExtension(FileHelper.localFileName(file));
+                        entity.setValue("material", path);
 
-                        return AssetLoader.loadDecalTexture(value);
-                    }
-
-                    @Override
-                    public void update() {
                         try {
-                            ModelTexture modelTexture = (ModelTexture) field.get(icomponent);
-                            if (modelTexture == null)
-                                setSelectedIndex(AssetManager.getIndex(this, entity.getValue("texture")));
-                            else
-                                setSelectedIndex(AssetManager.getIndex(this, modelTexture.getName()));
+                            field.set(icomponent, AssetLoader.loadMaterial(path));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
 
-                };
-                dropdown.update();
-                dropdown.setBounds(x, y, remainingWidth, 23);
-                components.add(dropdown);
+                });
+                button.setBounds(x, y, remainingWidth, 24);
+                components.add(button);
+            } else if (field.getType() == ParticleTexture.class) {
+                JButton button = AssetPicker.create(entity.getValue("particleTexture"), "aep", new FileCallback() {
+
+                    @Override
+                    public void run(File file) {
+                        String path = FileHelper.removeFileExtension(FileHelper.localFileName(file));
+                        entity.setValue("particleTexture", path);
+
+                        try {
+                            field.set(icomponent, AssetLoader.loadParticle(path));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                });
+                button.setBounds(x, y, remainingWidth, 24);
+                components.add(button);
             } else if (field.getType().isEnum()) {
                 List<String> names = new ArrayList<String>();
                 for (Object object : field.getType().getEnumConstants())
@@ -225,6 +227,28 @@ public class PropertyUIKit {
                     PropertyTextField textField = new PropertyTextField(Vector3f.class.getField(names[i]), vector) {
 
                         private static final long serialVersionUID = -253402699823299470L;
+
+                        @Override
+                        public Object convert(String value) {
+                            return parseFloat(value);
+                        }
+
+                    };
+                    textField.setBounds(x, y, remainingComponentWidth - 5, 23);
+                    x += remainingComponentWidth;
+                    components.add(textField);
+                }
+            } else if (field.getType() == Vector4f.class) {
+                int remainingComponentWidth = remainingWidth / 4;
+                Vector4f vector = (Vector4f) field.get(icomponent);
+                String[] names = {
+                        "x", "y", "z", "w"
+                };
+
+                for (int i = 0; i < 4; i++) {
+                    PropertyTextField textField = new PropertyTextField(Vector4f.class.getField(names[i]), vector) {
+
+                        private static final long serialVersionUID = -795014457507193137L;
 
                         @Override
                         public Object convert(String value) {

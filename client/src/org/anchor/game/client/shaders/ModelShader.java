@@ -25,14 +25,14 @@ public class ModelShader extends ClientShader {
 
     @Override
     public void loadEntitySpecificInformation(Entity entity) {
-        loadMatrix("projectionViewTransformationMatrix", Matrix4f.mul(Matrix4f.mul(Renderer.getProjectionMatrix(), GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix(), null), entity.getTransformationMatrix(), null));
+        loadMatrix("projectionViewTransformationMatrix", Matrix4f.mul(Renderer.getProjectionMatrix(), Matrix4f.mul(GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix(), entity.getTransformationMatrix(), null), null));
         loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(entity));
 
         MeshComponent render = entity.getComponent(MeshComponent.class);
         if (render == null)
             return;
 
-        loadFloat("numberOfRows", render.model.getTexture().getNumberOfRows());
+        loadFloat("numberOfRows", render.material.getNumberOfRows());
         loadVector("textureOffset", render.getTextureOffset());
         loadVector("colour", render.colour);
     }
@@ -47,12 +47,12 @@ public class ModelShader extends ClientShader {
         bindFragOutput(0, "out_diffuse");
         bindFragOutput(1, "out_other");
         bindFragOutput(2, "out_normal");
-        bindFragOutput(3, "out_bloom");
-        bindFragOutput(4, "out_godrays");
+        bindFragOutput(3, "out_albedo");
 
         bindAttribute(0, "position");
         bindAttribute(1, "textureCoordinates");
         bindAttribute(2, "normal");
+        bindAttribute(3, "tangent");
     }
 
 }

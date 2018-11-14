@@ -4,10 +4,10 @@ import org.anchor.engine.shared.physics.PhysicsEngine;
 
 public class ScheduledEvent {
 
-    private IRunnable runnable;
+    private ScheduledRunnable runnable;
     private float time, duration;
 
-    public ScheduledEvent(IRunnable runnable, float time) {
+    public ScheduledEvent(ScheduledRunnable runnable, float time) {
         this.runnable = runnable;
         this.time = time;
         this.duration = time;

@@ -1,0 +1,13 @@
+model:skysphereorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:5.0@0.0@-5.0Rotation:0.0@0.0@0.0Scale:6666.6665@6666.6665@6666.6665Model:Texture Index:0
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:41.02178@12162.396@-15876.852Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:0.5@0.5@0.5Attenuation:1.0@0.0@0.0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@0.0@0.0Rotation:0.0@0.0@0.0Scale:30.0@1.0@30.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@42.0@-17.5Rotation:0.0@0.0@0.0Scale:30.0@1.0@65.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:-15.5@21.0@-17.0Rotation:0.0@0.0@0.0Scale:1.0@41.0@63.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@21.0@15.5Rotation:0.0@0.0@0.0Scale:30.5@41.0@1.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@6.5@-15.0Rotation:0.0@0.0@0.0Scale:30.5@12.0@1.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:15.5@21.0@-17.0Rotation:0.0@0.0@0.0Scale:1.0@41.0@64.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@12.5@-31.5Rotation:0.0@0.0@0.0Scale:30.0@1.0@34.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@21.0@-49.0Rotation:0.0@0.0@0.0Scale:30.5@41.0@1.0Model:Texture Index:0
+model:cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.WaterComponentPosition:0.0@13.0@0.0Rotation:0.0@0.0@0.0Scale:30.0@0.0@30.0Model:Texture Index:0Wave Speed:0.03Wave Strength:0.1Colour:0.0@0.3@0.5@0.0
+
+

@@ -1,7 +1,7 @@
 package org.anchor.game.client.components;
 
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.audio.Source;
 import org.anchor.game.client.utils.Sound;

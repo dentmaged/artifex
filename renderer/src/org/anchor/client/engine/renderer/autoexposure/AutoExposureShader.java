@@ -27,8 +27,9 @@ public class AutoExposureShader extends Shader {
         bindAttribute(0, "position");
     }
 
-    public void loadInformation() {
+    public void loadInformation(float mip) {
         loadFloat("exposureSpeed", Settings.exposureSpeed * Window.getFrameTimeSeconds());
+        loadFloat("mip", mip);
     }
 
     public static AutoExposureShader getInstance() {

@@ -3,8 +3,8 @@ package org.anchor.engine.shared.scene;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
 
 public class Scene {
@@ -21,31 +21,31 @@ public class Scene {
     }
 
     public void update() {
-        for (Entity entity : entities)
-            entity.update();
+        for (int i = 0; i < entities.size(); i++)
+            entities.get(i).update();
 
-        for (Terrain terrain : terrains)
-            terrain.update();
+        for (int i = 0; i < terrains.size(); i++)
+            terrains.get(i).update();
     }
 
     public void updateFixed() {
-        for (Entity entity : entities)
-            entity.updateFixed();
+        for (int i = 0; i < entities.size(); i++)
+            entities.get(i).updateFixed();
     }
 
     public <T extends IComponent> List<Entity> getEntitiesWithComponent(Class<T> clazz) {
         List<Entity> has = new ArrayList<Entity>();
-        for (Entity entity : entities)
-            if (entity.hasComponent(clazz))
-                has.add(entity);
+        for (int i = 0; i < entities.size(); i++)
+            if (entities.get(i).hasComponent(clazz))
+                has.add(entities.get(i));
 
         return has;
     }
 
-    public <T extends IComponent> List<IComponent> getComponents(Class<T> clazz) {
-        List<IComponent> components = new ArrayList<IComponent>();
-        for (Entity entity : entities) {
-            T component = entity.getComponent(clazz);
+    public <T extends IComponent> List<T> getComponents(Class<T> clazz) {
+        List<T> components = new ArrayList<T>();
+        for (int i = 0; i < entities.size(); i++) {
+            T component = entities.get(i).getComponent(clazz);
             if (component != null)
                 components.add(component);
         }

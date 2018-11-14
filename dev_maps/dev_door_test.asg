@@ -1,0 +1,8 @@
+hidden:truebackface:falsemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:-0.47715533@2.3663027@8.120505Rotation:0.0@0.0@0.0Scale:3333.3333@3333.3333@3333.3333Model:Texture Index:0Disable Frustum Culling:true
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:-0.39073113@0.8703545@0.29968703Rotation:109.0@23.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:1.0@1.0@1.0Attenuation:1.0@0.0@0.0Directional:true
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@0.0@3.5Rotation:0.0@0.0@0.0Scale:2.0@1.0@8.0Model:Texture Index:0Disable Frustum Culling:false
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SlidingDoorComponentPosition:-4.4703484E-8@2.0@0.0Rotation:0.0@0.0@0.0Scale:2.0@3.0@1.0Model:Texture Index:0Disable Frustum Culling:false
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:1.5@2.0@3.5Rotation:0.0@0.0@0.0Scale:1.0@3.0@8.0Model:Texture Index:0Disable Frustum Culling:false
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:-1.5@2.0@3.5Rotation:0.0@0.0@0.0Scale:1.0@3.0@8.0Model:Texture Index:0Disable Frustum Culling:false
+
+

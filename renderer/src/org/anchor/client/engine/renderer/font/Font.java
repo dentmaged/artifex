@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.anchor.client.engine.renderer.Loader;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.opengl.Display;
 
@@ -42,8 +43,8 @@ public class Font {
 
     private static List<Font> instances = new ArrayList<Font>();
 
-    public Font(String file) {
-        this(FileHelper.newGameFile("res", "font", file + ".fnt"));
+    public Font(String name) {
+        this(FileHelper.newGameFile("res", "font", name + ".fnt"));
     }
 
     public Font(File file) {
@@ -75,7 +76,7 @@ public class Font {
             reader.close();
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Couldn't read font meta file!");
+            Log.error("Couldn't read font meta file!");
         }
     }
 
@@ -163,6 +164,10 @@ public class Font {
 
     public int getAtlas() {
         return atlas;
+    }
+
+    public File getFile() {
+        return file;
     }
 
     public static float getLineHeight() {

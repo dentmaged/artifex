@@ -31,7 +31,7 @@ public class QuadtreeShader extends ModelShader {
         loadFloat("size", quadtree.getSize());
         loadVector("location", quadtree.getLocation());
         loadMatrix("transformationMatrix", CoreMaths.createTransformationMatrix(quadtree.getPosition(), new Vector3f(), new Vector3f(quadtree.getSize(), 1, quadtree.getSize())));
-        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(quadtree.getPosition(), new Vector3f()));
+        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(new Vector3f()));
     }
 
     public void loadTerrainInformation(Tile tile) {
@@ -39,7 +39,7 @@ public class QuadtreeShader extends ModelShader {
         loadFloat("morph", tile.getMorph());
         loadVector("location", tile.getLocation());
         loadMatrix("transformationMatrix", CoreMaths.createTransformationMatrix(tile.getPosition(), new Vector3f(), new Vector3f(tile.getSize(), 1, tile.getSize())));
-        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(tile.getPosition(), new Vector3f()));
+        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(new Vector3f()));
     }
 
     public static QuadtreeShader getInstance() {

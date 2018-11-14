@@ -9,6 +9,7 @@ import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.Plane;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.physics.PhysicsTouchListener;
 import org.anchor.engine.shared.physics.collision.PlayerCollisionPacket;
@@ -28,13 +29,17 @@ import com.oracle.webservices.internal.api.message.PropertySet.Property;
 
 public class LivingComponent implements IComponent {
 
-    public float forwards, sideways, fallingDistance, pitch, yaw, roll, noPhysicsSpeed = 50;
+    public float forwards, sideways, fallingDistance, pitch, yaw, roll, noclipSpeed = 2;
 
     public List<PhysicsTouchListener> listeners = new ArrayList<PhysicsTouchListener>();
 
     @Property("Health")
     public float health = 100;
-    public boolean gravity = true, isInAir, isInWater, damageable = true, fire, reload;
+
+    @Property("Gravity Enabled")
+    public boolean gravity = true;
+
+    public boolean isInAir, isInLiquid, damageable = true, fire, reload;
     public Entity standingOn;
 
     public Weapon[] weapons;
@@ -47,13 +52,20 @@ public class LivingComponent implements IComponent {
     protected Matrix4f inverseViewMatrix = new Matrix4f();
 
     public static final float GRAVITY = -0.02f;
+
+    protected static final float FRICTION_GROUND = 0.65f;
+    protected static final float FRICTION_AIR = 0;
+
+    protected static final float MAX_SPEED_GROUND = 1;
+    protected static final float MAX_SPEED_AIR = 1.3f;
+    protected static final float ACCELERATE_GROUND = 10.5f;
+    protected static final float ACCELERATE_AIR = 4.5f;
+
     protected static final float JUMP_POWER = 0.3f;
     protected static final float INVERSE_MASS = 1;
     protected static final float SQRT2 = Mathf.sqrt(2);
     protected static final float constant = 1f / SQRT2;
     protected static final float pi = 3.14159265358979f;
-
-    private static boolean edgeCheck = true;
 
     public float selectedSpeed = 15;
 
@@ -62,8 +74,7 @@ public class LivingComponent implements IComponent {
         this.entity = entity;
 
         weapons = new Weapon[] {
-                new Gun(entity, new CrossbowData()),
-                new Gun(entity, new ShotgunData()),
+                new Gun(entity, new CrossbowData()), new Gun(entity, new ShotgunData()),
         };
 
         listeners.add(new PhysicsTouchListener() {
@@ -81,12 +92,18 @@ public class LivingComponent implements IComponent {
         Vector3f velocity = entity.getVelocity();
         Vector3f position = entity.getPosition();
 
-        float friction = 0.65f;
+        float friction = FRICTION_GROUND;
         if (isInAir)
-            friction = 1;
+            friction = FRICTION_AIR;
 
-        velocity.x *= friction;
-        velocity.z *= friction;
+        float speed = velocity.length();
+        if (speed != 0) {
+            float percentage = Math.max(speed - (speed * friction), 0) / speed;
+
+            velocity.x *= percentage;
+            velocity.y *= percentage;
+            velocity.z *= percentage;
+        }
 
         checkInput();
 
@@ -109,13 +126,19 @@ public class LivingComponent implements IComponent {
 
             reducingFactor = (90 - reducingFactor) / 90;
 
-            dx += Mathf.sinD(yaw) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
-            dz -= Mathf.cosD(yaw) * forwards * PhysicsEngine.TICK_DELAY * reducingFactor * noPhysicsSpeed;
+            dx += Mathf.sinDegrees(yaw) * forwards * reducingFactor * noclipSpeed * PhysicsEngine.TICK_DELAY;
+            dz -= Mathf.cosDegrees(yaw) * forwards * reducingFactor * noclipSpeed * PhysicsEngine.TICK_DELAY;
 
-            dy -= (Mathf.sinD(pitch)) * forwards * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
+            dy -= Mathf.sinDegrees(pitch) * forwards * noclipSpeed * PhysicsEngine.TICK_DELAY;
 
-            dx += Mathf.sinD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
-            dz -= Mathf.cosD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY * noPhysicsSpeed;
+            dx += Mathf.sinDegrees(yaw - 90) * sideways * noclipSpeed * PhysicsEngine.TICK_DELAY;
+            dz -= Mathf.cosDegrees(yaw - 90) * sideways * noclipSpeed * PhysicsEngine.TICK_DELAY;
+        }
+
+        if (standingOn != null) {
+            isInAir = false;
+            voluntaryJump = false;
+            fallingDistance = 0;
         }
 
         position.x += dx;
@@ -123,12 +146,6 @@ public class LivingComponent implements IComponent {
         position.z += dz;
 
         setSoundData();
-
-        if (standingOn != null) {
-            isInAir = false;
-            voluntaryJump = false;
-            fallingDistance = 0;
-        }
 
         float terrainHeight = -Terrain.MAX_HEIGHT;
         if (terrain != null)
@@ -151,12 +168,16 @@ public class LivingComponent implements IComponent {
         else if (reload && getSelectedWeapon() instanceof Gun)
             ((Gun) getSelectedWeapon()).reload();
 
-        Maths.createViewMatrix(viewMatrix, entity, this);
-        Matrix4f.invert(viewMatrix, inverseViewMatrix);
+        updateViewMatrix();
     }
 
     protected void checkInput() {
 
+    }
+
+    public void updateViewMatrix() {
+        Maths.createViewMatrix(viewMatrix, entity, this);
+        Matrix4f.invert(viewMatrix, inverseViewMatrix);
     }
 
     public Vector3f getEyePosition() {
@@ -164,7 +185,7 @@ public class LivingComponent implements IComponent {
     }
 
     public void setEyePosition(Vector3f position) {
-        entity.getPosition().set(Vector3f.sub(entity.getPosition(), new Vector3f(0, 1.68f, 0), null));
+        entity.getPosition().set(Vector3f.sub(position, new Vector3f(0, 1.68f, 0), null));
     }
 
     public Matrix4f getViewMatrix() {
@@ -239,11 +260,11 @@ public class LivingComponent implements IComponent {
     }
 
     public Matrix4f getNormalMatrix(Entity entity) {
-        return getNormalMatrix(entity.getPosition(), entity.getRotation());
+        return getNormalMatrix(entity.getRotation());
     }
 
-    public Matrix4f getNormalMatrix(Vector3f position, Vector3f rotation) {
-        Matrix4f inverted = Matrix4f.invert(Matrix4f.mul(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, new Vector3f(1, 1, 1)), null), null);
+    public Matrix4f getNormalMatrix(Vector3f rotation) {
+        Matrix4f inverted = Matrix4f.invert(Matrix4f.mul(viewMatrix, CoreMaths.createTransformationMatrix(new Vector3f(), rotation, new Vector3f(1, 1, 1)), null), null);
         if (inverted == null)
             return new Matrix4f();
 
@@ -260,7 +281,7 @@ public class LivingComponent implements IComponent {
 
         Vector3f eSpacePosition = VectorUtils.div(packet.R3Position, packet.eRadius);
         Vector3f eSpaceVelocity = VectorUtils.div(packet.R3Velocity, packet.eRadius);
-        eSpacePosition.y += 0.5f;
+        eSpacePosition.y += 1f; // player position is at their feet. Add 1 to the y as the ellipsis is transformed into a unit sphere.
         Vector3f finalPosition = collideWithWorld(packet, eSpacePosition, eSpaceVelocity, 0);
 
         gravityStep = true;
@@ -271,7 +292,7 @@ public class LivingComponent implements IComponent {
         finalPosition = collideWithWorld(packet, finalPosition, eSpaceVelocity, 0);
         gravityStep = false;
 
-        finalPosition.y -= 0.5f;
+        finalPosition.y -= 1f;
         Vector3f dest = VectorUtils.mul(finalPosition, packet.eRadius);
         Vector3f.sub(dest, position, velocity);
         position.set(dest);
@@ -325,8 +346,7 @@ public class LivingComponent implements IComponent {
     private void checkCollision(PlayerCollisionPacket packet) {
         List<BroadphaseCollisionResult> results = Broadphase.collisions(entity, packet.scene.getEntitiesWithComponent(PhysicsComponent.class));
         for (BroadphaseCollisionResult result : results) {
-            packet.foundCollision = false;
-
+            packet.foundCollisionWith = false;
             Entity other = result.getOther(entity);
             PhysicsComponent secondary = other.getComponent(PhysicsComponent.class);
 
@@ -343,13 +363,11 @@ public class LivingComponent implements IComponent {
                 }
             }
 
-            if (packet.foundCollision) {
+            if (packet.foundCollisionWith) {
                 for (PhysicsTouchListener listener : listeners)
                     listener.touch(entity, other);
                 for (PhysicsTouchListener listener : secondary.listeners)
                     listener.touch(entity, other);
-
-                packet.collide = other;
             }
         }
     }
@@ -441,68 +459,66 @@ public class LivingComponent implements IComponent {
                     collisionPoint = p3;
                 }
 
-                if (edgeCheck) {
-                    Vector3f edge = Vector3f.sub(p2, p1, null);
-                    Vector3f baseToVertex = Vector3f.sub(p1, base, null);
+                Vector3f edge = Vector3f.sub(p2, p1, null);
+                Vector3f baseToVertex = Vector3f.sub(p1, base, null);
 
-                    float edgeSquaredLength = edge.lengthSquared();
-                    float edgeDotVelocity = Vector3f.dot(edge, velocity);
-                    float edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
+                float edgeSquaredLength = edge.lengthSquared();
+                float edgeDotVelocity = Vector3f.dot(edge, velocity);
+                float edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
 
-                    a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
-                    b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
-                    c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
+                a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
+                b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
+                c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
 
-                    if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
-                        float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
+                if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
+                    float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
 
-                        if (f >= 0 && f <= 1) {
-                            found = true;
-                            t = newT;
-                            collisionPoint = Vector3f.add(p1, VectorUtils.mul(edge, f), null);
-                        }
+                    if (f >= 0 && f <= 1) {
+                        found = true;
+                        t = newT;
+                        collisionPoint = Vector3f.add(p1, VectorUtils.mul(edge, f), null);
                     }
+                }
 
-                    edge = Vector3f.sub(p3, p2, null);
-                    baseToVertex = Vector3f.sub(p2, base, null);
+                edge = Vector3f.sub(p3, p2, null);
+                baseToVertex = Vector3f.sub(p2, base, null);
 
-                    edgeSquaredLength = edge.lengthSquared();
-                    edgeDotVelocity = Vector3f.dot(edge, velocity);
-                    edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
+                edgeSquaredLength = edge.lengthSquared();
+                edgeDotVelocity = Vector3f.dot(edge, velocity);
+                edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
 
-                    a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
-                    b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
-                    c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
+                a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
+                b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
+                c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
 
-                    if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
-                        float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
+                if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
+                    float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
 
-                        if (f >= 0 && f <= 1) {
-                            found = true;
-                            t = newT;
-                            collisionPoint = Vector3f.add(p2, VectorUtils.mul(edge, f), null);
-                        }
+                    if (f >= 0 && f <= 1) {
+                        found = true;
+                        t = newT;
+                        collisionPoint = Vector3f.add(p2, VectorUtils.mul(edge, f), null);
                     }
+                }
 
-                    edge = Vector3f.sub(p1, p3, null);
-                    baseToVertex = Vector3f.sub(p3, base, null);
+                edge = Vector3f.sub(p1, p3, null);
+                baseToVertex = Vector3f.sub(p3, base, null);
 
-                    edgeSquaredLength = edge.lengthSquared();
-                    edgeDotVelocity = Vector3f.dot(edge, velocity);
-                    edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
+                edgeSquaredLength = edge.lengthSquared();
+                edgeDotVelocity = Vector3f.dot(edge, velocity);
+                edgeDotBaseToVertex = Vector3f.dot(edge, baseToVertex);
 
-                    a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
-                    b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
-                    c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
+                a = edgeSquaredLength * -velocitySquaredLength + edgeDotVelocity * edgeDotVelocity;
+                b = edgeSquaredLength * (2 * Vector3f.dot(velocity, baseToVertex)) - 2 * edgeDotVelocity * edgeDotBaseToVertex;
+                c = edgeSquaredLength * (1 - baseToVertex.lengthSquared()) + edgeDotBaseToVertex * edgeDotBaseToVertex;
 
-                    if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
-                        float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
+                if ((newT = getLowestRoot(a, b, c, t)) >= 0) {
+                    float f = (edgeDotVelocity * newT - edgeDotBaseToVertex) / edgeSquaredLength;
 
-                        if (f >= 0 && f <= 1) {
-                            found = true;
-                            t = newT;
-                            collisionPoint = Vector3f.add(p3, VectorUtils.mul(edge, f), null);
-                        }
+                    if (f >= 0 && f <= 1) {
+                        found = true;
+                        t = newT;
+                        collisionPoint = Vector3f.add(p3, VectorUtils.mul(edge, f), null);
                     }
                 }
             }
@@ -514,6 +530,7 @@ public class LivingComponent implements IComponent {
                     packet.nearestDistance = distToCollision;
                     packet.intersectionPoint = collisionPoint;
                     packet.foundCollision = true;
+                    packet.foundCollisionWith = true;
                     packet.normal = trianglePlane.getNormal();
                 }
             }

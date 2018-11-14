@@ -66,7 +66,7 @@ public class BakedCubemap {
         Renderer.refreshProjectionMatrix();
     }
 
-    public int getCubemap() {
+    public int getTexture() {
         return cubemap.getTexture();
     }
 
@@ -75,6 +75,10 @@ public class BakedCubemap {
             shaders.put(shader, new BakedShader(shader));
 
         return shaders.get(shader);
+    }
+
+    public void shutdown() {
+        cubemap.shutdown();
     }
 
 }

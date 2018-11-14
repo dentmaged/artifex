@@ -1,6 +1,7 @@
 package org.anchor.engine.shared.components;
 
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 
 public class SpawnComponent implements IComponent {
 

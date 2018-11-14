@@ -111,4 +111,22 @@ public class FileHelper {
         throw new IllegalArgumentException("Not a known image file: " + imgFile.getAbsolutePath());
     }
 
+    public static String localFileName(File file) {
+        return localFileName(file, newGameFile("res"));
+    }
+
+    public static String localFileName(File file, File base) {
+        if (file == null)
+            return null;
+
+        return file.getAbsolutePath().substring(base.getAbsolutePath().length() + 1).replace(File.separatorChar, '/');
+    }
+
+    public static String removeFileExtension(String input) {
+        if (input == null)
+            return null;
+
+        return input.substring(0, input.lastIndexOf('.'));
+    }
+
 }

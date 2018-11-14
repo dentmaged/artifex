@@ -2,6 +2,7 @@ package org.anchor.client.engine.renderer.pbr;
 
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
 
 public class BRDF {
 
@@ -9,7 +10,7 @@ public class BRDF {
     protected static BRDFShader shader;
 
     public BRDF() {
-        outputFBO = new Framebuffer(512, 512, Framebuffer.NONE, true);
+        outputFBO = new Framebuffer(512, 512, Framebuffer.NONE, ImageFormat.RG16F);
         shader = BRDFShader.getInstance();
     }
 

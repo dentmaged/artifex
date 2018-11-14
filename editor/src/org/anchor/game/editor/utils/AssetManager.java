@@ -17,29 +17,36 @@ public class AssetManager {
         return recursiveGet(FileHelper.newGameFile("res"), new Filter() {
 
             @Override
-            public boolean allow(File file, String tmp) {
-                return file.getName().endsWith("obj") && new File(tmp + "_diffuse.png").exists();
+            public boolean allow(File file) {
+                return file.getName().endsWith("obj");
             }
 
         });
     }
 
     public static List<String> getTextures() {
-        return recursiveGet(FileHelper.newGameFile("res"), new Filter() {
+        return getTextures(false);
+    }
+
+    public static List<String> getTextures(boolean includeBlank) {
+        List<String> result = recursiveGet(FileHelper.newGameFile("res"), new Filter() {
 
             @Override
-            public boolean allow(File file, String tmp) {
+            public boolean allow(File file) {
                 return file.getName().endsWith("png");
             }
 
         });
+        result.add(0, "");
+
+        return result;
     }
 
     public static List<String> getPrefabs() {
         return recursiveGet(FileHelper.newGameFile("res"), new Filter() {
 
             @Override
-            public boolean allow(File file, String tmp) {
+            public boolean allow(File file) {
                 return file.getName().endsWith("pfb");
             }
 
@@ -60,7 +67,7 @@ public class AssetManager {
             String tmp = file.getAbsolutePath();
             tmp = tmp.substring(0, tmp.length() - 4);
 
-            if (filter.allow(file, tmp))
+            if (filter.allow(file))
                 files.add(tmp.replace(trueParent.getAbsolutePath() + File.separator, "").replace(File.separatorChar, '/'));
         }
 

@@ -2,6 +2,8 @@ package org.anchor.engine.common.utils;
 
 public class Mathf {
 
+    public static final float LOG_2 = Mathf.log(2);
+
     public static float floor(float f) {
         return (float) Math.floor(f);
     }
@@ -42,7 +44,7 @@ public class Mathf {
         return (float) Math.sin(f);
     }
 
-    public static float sinD(float f) {
+    public static float sinDegrees(float f) {
         return (float) Math.sin(toRadians(f));
     }
 
@@ -54,7 +56,7 @@ public class Mathf {
         return (float) Math.cos(f);
     }
 
-    public static float cosD(float f) {
+    public static float cosDegrees(float f) {
         return (float) Math.cos(toRadians(f));
     }
 
@@ -86,13 +88,17 @@ public class Mathf {
         return (float) Math.pow(a, b);
     }
 
-    public static float clamp(float a, float b, float c) {
-        if (b > a)
-            return b;
-        if (c < a)
-            return c;
+    public static float log(float f) {
+        return (float) Math.log(f);
+    }
 
-        return a;
+    public static float clamp(float x, float min, float max) {
+        if (min > x)
+            return min;
+        if (max < x)
+            return max;
+
+        return x;
     }
 
 }

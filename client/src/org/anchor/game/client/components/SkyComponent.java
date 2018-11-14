@@ -28,18 +28,15 @@ package org.anchor.game.client.components;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
 import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
-import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.shaders.SkyShader;
-import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 public class SkyComponent implements IComponent {
 
@@ -94,20 +91,21 @@ public class SkyComponent implements IComponent {
             updateSky();
 
         if (!loaded && skybox != null && skybox.isLoaded()) {
-            irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
-            prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 9);
             loaded = true;
+
+            irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
+            prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 8);
+
             irradiance.perform(skybox.getTexture());
             prefilter.perform(skybox.getTexture());
         }
     }
 
     protected void updateSky() {
-        direction = new Vector3f(Matrix4f.transform(CoreMaths.createTransformationMatrix(new Vector3f(), light.getRotation(), new Vector3f(1, 1, 1)), new Vector4f(0, 0, -1, 0), null));
-
+        if (light != null)
+            direction = lightComponent.getDirection();
         azimuth = Mathf.asin(direction.x);
         altitude = Mathf.asin(direction.y);
-        direction.normalise();
 
         float max_altitude = calculatedAltitude - ALTITUDE_MARGIN;
         float min_altitude = calculatedAltitude + ALTITUDE_MARGIN;
@@ -139,8 +137,6 @@ public class SkyComponent implements IComponent {
         }
 
         if (light != null) {
-            lightComponent.getDirection().set(direction);
-
             if (sunColour.equals(NIGHT_SUN))
                 lightComponent.colour.set(0, 0, 0);
             else
@@ -157,14 +153,14 @@ public class SkyComponent implements IComponent {
 
     public int getIrradiance() {
         if (loaded)
-            return irradiance.getCubemap();
+            return irradiance.getTexture();
 
         return 0;
     }
 
     public int getPrefilter() {
         if (loaded)
-            return prefilter.getCubemap();
+            return prefilter.getTexture();
 
         return 0;
     }

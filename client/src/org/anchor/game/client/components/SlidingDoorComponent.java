@@ -1,11 +1,11 @@
 package org.anchor.game.client.components;
 
 import org.anchor.engine.common.utils.VectorUtils;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.IInteractable;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
-import org.anchor.engine.shared.scheduler.IRunnable;
+import org.anchor.engine.shared.scheduler.ScheduledRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.utils.Property;
 import org.lwjgl.util.vector.Vector3f;
@@ -38,7 +38,7 @@ public class SlidingDoorComponent implements IInteractable {
     public void interact() {
         Vector3f distancePerTick = VectorUtils.mul(direction, moveDistance * PhysicsEngine.TICK_DELAY / duration);
 
-        Scheduler.schedule(new IRunnable() {
+        Scheduler.schedule(new ScheduledRunnable() {
 
             @Override
             public void tick(float time, float percentage) {

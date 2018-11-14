@@ -21,6 +21,7 @@ public class BloomShader extends Shader {
         super.start();
 
         loadInt("scene", 0);
+        loadInt("bloom", 1);
     }
 
     public static BloomShader getInstance() {

@@ -8,6 +8,8 @@ public interface IPacketHandler {
 
     public void handlePacket(BaseNetworkable net, IPacket packet);
 
+    public void handleException(Exception e);
+
     public void disconnect(BaseNetworkable net);
 
 }

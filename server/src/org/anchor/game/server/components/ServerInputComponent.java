@@ -5,6 +5,7 @@ import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.physics.PhysicsEngine;
+import org.lwjgl.util.vector.Vector3f;
 
 public class ServerInputComponent extends LivingComponent {
 
@@ -33,27 +34,26 @@ public class ServerInputComponent extends LivingComponent {
                 sideways *= constant;
             }
 
-            if (isInAir) {
-                forwards *= 0.15f;
-                sideways *= 0.15f;
-            }
-
-            if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInWater) {
-                entity.getVelocity().x += Mathf.sinD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().z -= Mathf.cosD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
-
-                entity.getVelocity().x += Mathf.sinD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().z -= Mathf.cosD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
-
-                float velocityClamp = 50 * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().x = Mathf.clamp(entity.getVelocity().x, -velocityClamp, velocityClamp);
-                entity.getVelocity().y = Mathf.clamp(entity.getVelocity().y, -velocityClamp, velocityClamp);
-                entity.getVelocity().z = Mathf.clamp(entity.getVelocity().z, -velocityClamp, velocityClamp);
-            }
-
             fire = playerMovementPacket.fire;
             reload = playerMovementPacket.reload;
             selectedIndex = playerMovementPacket.selectedWeapon;
+
+            if (!isInLiquid) {
+                Vector3f accelerateDirection = new Vector3f(Mathf.sinDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY + Mathf.sinDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY, 0, -Mathf.cosDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY - Mathf.cosDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY);
+
+                if (accelerateDirection.lengthSquared() != 0) {
+                    accelerateDirection.normalise();
+
+                    float projectedVelocity = Vector3f.dot(entity.getVelocity(), accelerateDirection);
+                    float maximumVelocity = selectedSpeed * PhysicsEngine.TICK_DELAY / (isInAir ? MAX_SPEED_AIR : MAX_SPEED_GROUND);
+                    float accelerateVelocity = PhysicsEngine.TICK_DELAY * (isInAir ? ACCELERATE_AIR : ACCELERATE_GROUND);
+
+                    if (projectedVelocity + accelerateVelocity > maximumVelocity)
+                        accelerateVelocity = maximumVelocity - projectedVelocity;
+
+                    Vector3f.add(entity.getVelocity(), VectorUtils.mul(accelerateDirection, accelerateVelocity), entity.getVelocity());
+                }
+            }
 
             if (!gravity) {
                 if (playerMovementPacket.jump) {
@@ -62,7 +62,7 @@ public class ServerInputComponent extends LivingComponent {
                 } else if (playerMovementPacket.walk) {
                     entity.getPosition().y -= 2 * JUMP_POWER;
                 }
-            } else if (isInWater) {
+            } else if (isInLiquid) {
                 if (playerMovementPacket.jump) {
                     entity.getPosition().y += 0.5f * JUMP_POWER;
                 } else if (playerMovementPacket.walk) {

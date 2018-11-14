@@ -3,8 +3,8 @@ package org.anchor.engine.shared.monitoring;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 
 public class EntityMonitor {
 

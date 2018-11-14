@@ -19,7 +19,8 @@ void main(void) {
 
 	vec3 normal = normalize(mat3(normalMatrix) * normal);
 	vec3 tangent = normalize(mat3(normalMatrix) * tangent);
-	vec3 bitangent = normalize(mat3(normalMatrix) * cross(normal, tangent));
+	tangent = normalize(tangent - dot(tangent, normal) * normal);
+	vec3 bitangent = normalize(cross(normal, tangent));
 	tbn = mat3(tangent, bitangent, normal);
 
 	tc = (textureCoordinates / numberOfRows) + offset;

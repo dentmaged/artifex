@@ -11,6 +11,18 @@ public class GUIRenderer {
 
     protected static GUIShader shader = GUIShader.getInstance();
 
+    public static void render(GUI gui) {
+        shader.start();
+        QuadRenderer.bind();
+
+        Graphics.bind2DTexture(gui.getTexture(), 0);
+        shader.loadInformation(gui.getTransformationMatrix(), 0);
+        QuadRenderer.render();
+
+        QuadRenderer.unbind();
+        shader.stop();
+    }
+
     public static void render(List<GUI> guis) {
         shader.start();
         QuadRenderer.bind();
@@ -18,7 +30,7 @@ public class GUIRenderer {
         for (GUI gui : guis) {
             Graphics.bind2DTexture(gui.getTexture(), 0);
 
-            shader.loadInformation(gui.getTransformationMatrix());
+            shader.loadInformation(gui.getTransformationMatrix(), 0);
             QuadRenderer.render();
         }
 
@@ -27,11 +39,15 @@ public class GUIRenderer {
     }
 
     public static void perform(int texture) {
+        perform(texture, 0);
+    }
+
+    public static void perform(int texture, float mip) {
         shader.start();
         QuadRenderer.bind();
 
         Graphics.bind2DTexture(texture, 0);
-        shader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(), new Vector2f(1, 1), 0, 0));
+        shader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(), new Vector2f(1, 1), 0, 0), mip);
         QuadRenderer.render();
 
         QuadRenderer.unbind();

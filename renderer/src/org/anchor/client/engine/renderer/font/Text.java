@@ -1,5 +1,7 @@
 package org.anchor.client.engine.renderer.font;
 
+import org.anchor.engine.common.Log;
+import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -56,12 +58,25 @@ public class Text {
         this.text = text;
 
         length = 0;
+        float longestLength = 0;
         for (char c : text.toCharArray()) {
-            if (c == ' ')
-                length += (font.getSpaceWidth() + FontRenderer.advance) * size;
-            else
-                length += (font.getCharacter((int) c).getXAdvance() + FontRenderer.advance) * size;
+            if (c == ' ' || c == '\t') {
+                length += (font.getSpaceWidth() * (c == '\t' ? FontRenderer.TAB_SIZE : 1) + FontRenderer.HORIZONTAL_PADDING) * size;
+            } else if (c == '\n') {
+                longestLength = Math.max(longestLength, length);
+                length = 0;
+            } else {
+                Character character = font.getCharacter((int) c);
+                if (character == null) {
+                    Log.showPopup("Font", "Missing character \"" + c + "\" (" + (int) c + ") in " + FileHelper.localFileName(font.getFile()));
+
+                    continue;
+                }
+
+                length += (character.getXAdvance() + FontRenderer.HORIZONTAL_PADDING) * size;
+            }
         }
+        length = Math.max(longestLength, length);
     }
 
     public Font getFont() {
@@ -86,6 +101,10 @@ public class Text {
 
     public void setAlpha(float alpha) {
         this.colour.w = alpha;
+    }
+
+    public void setAlignment(Alignment alignment) {
+        this.alignment = alignment;
     }
 
 }

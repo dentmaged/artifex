@@ -24,7 +24,7 @@ void main() {
 
 	for (int i = 0; i < numSamples; i++) {
 		textCoord -= deltaTextCoord;
-		vec3 sample = texture2D(godrays, textCoord).xyz;
+		vec3 sample = texture2D(scene, textCoord).xyz * texture2D(godrays, textCoord).w;
 		sample *= illuminationDecay * weight;
 
 		colour += sample;
@@ -32,10 +32,12 @@ void main() {
 	}
 
 	vec2 dc = smoothstep(0.215, 0.615, abs(vec2(0.5) - lightPositionOnScreen));
-	float screenEdgeFactor = clamp(1 - (dc.x + dc.y), 0, 1);
+	float screenEdgeFactor = clamp(1 - dot(dc, dc), 0, 1);
 	colour.xyz *= screenEdgeFactor;
 
 	out_colour = texture2D(scene, tc);
 	out_colour.xyz = pow(out_colour.xyz, vec3(1.0 / GAMMA));
-	out_colour.xyz += colour * texture2D(exposure, vec2(0.5)).x;
+	out_colour.xyz += colour * texture2D(exposure, vec2(0.5)).x * 2;
+
+	out_colour = TO_V4(pow(vec3(texture2D(scene, tc).xyz), vec3(1.0 / GAMMA)));
 }

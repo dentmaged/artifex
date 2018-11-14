@@ -33,7 +33,9 @@ public class BaseNetworkable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         socket = null;
+        thread = null;
     }
 
     public void sendPacket(IPacket packet) {
@@ -43,6 +45,7 @@ public class BaseNetworkable {
         try {
             output.writeInt(packet.getId());
             packet.write(output);
+            output.flush();
         } catch (Exception e) {
             disconnect();
             e.printStackTrace();

@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.client.engine.renderer.types.texture.Texture;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.BufferUtils;
@@ -155,7 +156,7 @@ public class Loader {
         Texture texture = null;
         File file = FileHelper.newGameFile(RES_LOC, fileName.replace(RES_LOC + "/", "").replace(RES_LOC, "") + ".png");
         if (!file.exists()) {
-            System.err.println(file.getName() + " does not exist! Falling back on default texture.");
+            Log.warning(file.getName() + " does not exist! Falling back on default texture.");
             file = FileHelper.newGameFile(RES_LOC, "missing_texture.png");
         }
 
@@ -163,7 +164,7 @@ public class Loader {
             texture = new Texture(file);
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Error whilst loading texture " + fileName + ".png!");
+            Log.error("Error whilst loading texture " + fileName + ".png!");
             System.exit(-1);
         }
         textures.add(texture.getTextureId());
@@ -175,22 +176,22 @@ public class Loader {
         return loadColour(red, green, blue, 1);
     }
 
-    public int loadColour(int red, int green, int blue) {
-        return loadColour(red, green, blue, 1);
+    public int loadColourI(int red, int green, int blue) {
+        return loadColourI(red, green, blue, 1);
     }
 
     public int loadColour(float red, float green, float blue, float alpha) {
         if (red < 0 || red > 1 || green < 0 || green > 1 || blue < 0 || blue > 1 || alpha < 0 || alpha > 1) {
-            System.err.println("Colour is out of range! " + red + " " + green + " " + blue);
+            Log.warning("Colour is out of range (0 - 1)! " + red + " " + green + " " + blue);
             return -1;
         }
 
-        return loadColour((int) (255 * red), (int) (255 * green), (int) (255 * blue), (int) (255 * alpha));
+        return loadColourI((int) (255 * red), (int) (255 * green), (int) (255 * blue), (int) (255 * alpha));
     }
 
-    public int loadColour(int red, int green, int blue, int alpha) {
+    public int loadColourI(int red, int green, int blue, int alpha) {
         if (red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255 || alpha < 0 || alpha > 255) {
-            System.err.println("Colour is out of range! " + red + " " + green + " " + blue);
+            Log.warning("Colour is out of range (0 - 255)! " + red + " " + green + " " + blue);
             return -1;
         }
 
@@ -210,12 +211,11 @@ public class Loader {
                 float amount = Math.min(4, GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT));
                 GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, amount);
             } else {
-                System.err.println("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
+                Log.warning("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Tried to create texture, didn't work");
-            System.exit(-1);
+            Log.error("Failed to create texture");
         }
         textures.add(texture.getTextureId());
 

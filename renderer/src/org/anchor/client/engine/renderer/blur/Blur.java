@@ -3,6 +3,7 @@ package org.anchor.client.engine.renderer.blur;
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
 import org.lwjgl.opengl.Display;
 
 public class Blur {
@@ -15,9 +16,17 @@ public class Blur {
         this(Display.getWidth() / 4, Display.getHeight() / 4);
     }
 
+    public Blur(ImageFormat format) {
+        this(Display.getWidth() / 4, Display.getHeight() / 4, format);
+    }
+
     public Blur(int width, int height) {
-        horizontal = new Framebuffer(width, height, Framebuffer.NONE);
-        vertical = new Framebuffer(width, height, Framebuffer.NONE);
+        this(width, height, ImageFormat.RGBA);
+    }
+
+    public Blur(int width, int height, ImageFormat format) {
+        horizontal = new Framebuffer(width, height, Framebuffer.NONE, format);
+        vertical = new Framebuffer(width, height, Framebuffer.NONE, format);
         shader = BlurShader.getInstance();
 
         this.width = width;

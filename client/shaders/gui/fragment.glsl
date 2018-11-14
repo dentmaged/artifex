@@ -2,10 +2,12 @@
 
 in vec2 tc;
 
-FS_OUT(colour)
+out vec4 out_colour;
 
-tex a;
+uniform sampler2D a;
+
+uniform float mip;
 
 void main(void) {
-	out_colour = texture2D(a, tc);
+	out_colour = texture2D(a, tc, mip);
 }

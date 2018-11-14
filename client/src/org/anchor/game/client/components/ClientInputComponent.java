@@ -1,13 +1,14 @@
 package org.anchor.game.client.components;
 
+import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.game.client.audio.Audio;
-import org.anchor.game.client.utils.KeyboardUtils;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.util.vector.Vector3f;
 
 public class ClientInputComponent extends LivingComponent {
 
@@ -45,25 +46,24 @@ public class ClientInputComponent extends LivingComponent {
                 sideways *= constant;
             }
 
-            if (isInAir) {
-                forwards *= 0.15f;
-                sideways *= 0.15f;
-            }
-
             fire = Mouse.isButtonDown(0);
             reload = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R);
 
-            if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInWater) {
-                entity.getVelocity().x += Mathf.sinD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().z -= Mathf.cosD(yaw) * forwards * PhysicsEngine.TICK_DELAY;
+            if (!isInLiquid) {
+                Vector3f accelerateDirection = new Vector3f(Mathf.sinDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY + Mathf.sinDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY, 0, -Mathf.cosDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY - Mathf.cosDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY);
 
-                entity.getVelocity().x += Mathf.sinD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().z -= Mathf.cosD(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY;
+                if (accelerateDirection.lengthSquared() != 0) {
+                    accelerateDirection.normalise();
 
-                float velocityClamp = 50 * PhysicsEngine.TICK_DELAY;
-                entity.getVelocity().x = Mathf.clamp(entity.getVelocity().x, -velocityClamp, velocityClamp);
-                entity.getVelocity().y = Mathf.clamp(entity.getVelocity().y, -velocityClamp, velocityClamp);
-                entity.getVelocity().z = Mathf.clamp(entity.getVelocity().z, -velocityClamp, velocityClamp);
+                    float projectedVelocity = Vector3f.dot(entity.getVelocity(), accelerateDirection);
+                    float maximumVelocity = selectedSpeed * PhysicsEngine.TICK_DELAY / (isInAir ? MAX_SPEED_AIR : MAX_SPEED_GROUND);
+                    float accelerateVelocity = PhysicsEngine.TICK_DELAY * (isInAir ? ACCELERATE_AIR : ACCELERATE_GROUND);
+
+                    if (projectedVelocity + accelerateVelocity > maximumVelocity)
+                        accelerateVelocity = maximumVelocity - projectedVelocity;
+
+                    Vector3f.add(entity.getVelocity(), VectorUtils.mul(accelerateDirection, accelerateVelocity), entity.getVelocity());
+                }
             }
 
             if (!gravity) {
@@ -73,7 +73,7 @@ public class ClientInputComponent extends LivingComponent {
                 } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
                     entity.getPosition().y -= 2 * JUMP_POWER;
                 }
-            } else if (isInWater) {
+            } else if (isInLiquid) {
                 if (KeyboardUtils.isKeyDown(Keyboard.KEY_SPACE)) {
                     entity.getPosition().y += 0.5f * JUMP_POWER;
                 } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {

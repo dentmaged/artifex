@@ -16,7 +16,15 @@ public class RotateGizmo extends Gizmo {
     private static float[] vertices;
 
     static {
-        generateCircle();
+        vertices = new float[CIRCLE_VERTICES * 3];
+
+        for (int i = 0; i < CIRCLE_VERTICES; i++) {
+            double angle = ((double) i / (double) CIRCLE_VERTICES) * Math.PI * 2;
+
+            vertices[i * 3] = (float) Math.cos(angle);
+            vertices[i * 3 + 1] = 0;
+            vertices[i * 3 + 2] = (float) Math.sin(angle);
+        }
     }
 
     public RotateGizmo() {
@@ -34,18 +42,6 @@ public class RotateGizmo extends Gizmo {
             return new Vector3f();
 
         return null;
-    }
-
-    private static void generateCircle() {
-        vertices = new float[CIRCLE_VERTICES * 3];
-
-        for (int i = 0; i < CIRCLE_VERTICES; i++) {
-            double angle = ((double) i / (double) CIRCLE_VERTICES) * Math.PI * 2;
-
-            vertices[i * 3] = (float) Math.cos(angle);
-            vertices[i * 3 + 1] = 0;
-            vertices[i * 3 + 2] = (float) Math.sin(angle);
-        }
     }
 
     @Override

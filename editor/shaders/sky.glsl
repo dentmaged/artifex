@@ -34,8 +34,8 @@ uniform bool proceduralSky;
 
 struct Colour {
 	vec4 diffuse;
-	vec4 bloom;
-	vec4 godrays;
+	float emissive;
+	float godrays;
 };
 
 Colour getSkyProcedural(vec3 direction) {
@@ -49,8 +49,8 @@ Colour getSkyProcedural(vec3 direction) {
 	vec3 sun = sunStrength * sunColour * sunColour;
 
 	col.diffuse = vec4(pow(diffuse.xyz, vec3(GAMMA)) + sun, 1);
-	col.bloom = vec4(sun, sunPostProcess * 0.25);
-	col.godrays = vec4(sunColour, 1) * sunPostProcess;
+	col.emissive = sunPostProcess * 0.25;
+	col.godrays = sunPostProcess;
 
 	return col;
 }
@@ -59,8 +59,8 @@ Colour getSkySample(vec3 direction) {
 	Colour col;
 
 	col.diffuse = vec4(pow(texture(skybox, direction).xyz, vec3(GAMMA)), 1);
-	col.bloom = vec4(0, 0, 0, 1);
-	col.godrays = vec4(0, 0, 0, 1);
+	col.emissive = 0;
+	col.godrays = 0;
 
 	return col;
 }

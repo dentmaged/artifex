@@ -22,7 +22,7 @@ uniform float bias;
 
 void main(void) {
 	vec3 position = getPosition(tc);
-	vec3 normal = normalize(texture2D(normal, tc).xyz);
+	vec3 normal = texture2D(normal, tc).xyz;
 	vec3 random = normalize(texture2D(noise, tc * noiseTextureScale).xyz);
 
 	vec3 tangent = normalize(random - normal * dot(random, normal));
@@ -38,7 +38,7 @@ void main(void) {
 		offset.xy /= offset.w;
 		offset.xy = offset.xy * 0.5 + 0.5;
 
-		float sampleDepth = texture2D(depthMap, offset.xy).r;
+		float sampleDepth = getPosition(depthMap, offset.xy).z;
 		float rangeCheck = smoothstep(0, 1, radius / abs(position.z - sampleDepth));
 		occlusion += (sampleDepth >= sample.z + bias ? rangeCheck : 0);
 	}

@@ -2,7 +2,6 @@ package org.anchor.client.engine.renderer;
 
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
 import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
@@ -20,25 +19,10 @@ public class Renderer {
 
     public static void bind(Model model) {
         Mesh mesh = model.getMesh();
-        ModelTexture texture = model.getTexture();
 
         GL30.glBindVertexArray(mesh.getVAO());
         for (int i = 0; i < mesh.getDimensions(); i++)
             GL20.glEnableVertexAttribArray(i);
-
-        Graphics.bind2DTexture(texture.getId(), 0);
-        Graphics.bind2DTexture(texture.getNormalMap(), 1);
-        Graphics.bind2DTexture(texture.getSpecularMap(), 2);
-        Graphics.bind2DTexture(texture.getMetallicMap(), 3);
-        Graphics.bind2DTexture(texture.getRoughnessMap(), 4);
-        Graphics.bind2DTexture(texture.getAmbientOcclusionMap(), 5);
-
-        if (texture.isCullingEnabled()) {
-            GL11.glEnable(GL11.GL_CULL_FACE);
-            GL11.glCullFace(GL11.GL_BACK);
-        } else {
-            GL11.glDisable(GL11.GL_CULL_FACE);
-        }
     }
 
     public static void render(Model model) {
@@ -80,6 +64,11 @@ public class Renderer {
             shader.loadMatrix("inverseProjectionMatrix", Renderer.getInverseProjectionMatrix());
             shader.stop();
         }
+    }
+
+    public static void reloadShaders() {
+        for (Shader shader : Shader.getShaders())
+            shader.reload();
     }
 
     public static void setCubeModel(Model cube) {

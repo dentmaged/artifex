@@ -25,8 +25,9 @@ public class GUIShader extends Shader {
         bindAttribute(0, "position");
     }
 
-    public void loadInformation(Matrix4f transformationMatrix) {
+    public void loadInformation(Matrix4f transformationMatrix, float mip) {
         loadMatrix("transformationMatrix", transformationMatrix);
+        loadFloat("mip", mip);
     }
 
     public static GUIShader getInstance() {

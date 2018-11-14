@@ -9,34 +9,37 @@ import org.anchor.client.engine.renderer.pbr.BRDF;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.ssao.SSAO;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
 import org.anchor.client.engine.renderer.types.light.Light;
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.IGameVariable;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector3f;
 
 public class DeferredShading {
 
-    protected Framebuffer multisampleFBO, diffuseFBO, otherFBO, normalFBO, bloomFBO, godraysFBO;
+    protected Framebuffer multisampleFBO, diffuseFBO, otherFBO, normalFBO, albedoFBO;
     protected SSAO ssao;
     protected BRDF brdf;
     protected DeferredShader shader;
 
-    public DeferredShading() {
-        multisampleFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), true);
-        diffuseFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.DEPTH_TEXTURE, true);
-        otherFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, true);
-        normalFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, true);
+    private IGameVariable r_performLighting;
 
-        bloomFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
-        godraysFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
+    public DeferredShading() {
+        multisampleFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), ImageFormat.RGBA16F);
+        diffuseFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.DEPTH_TEXTURE, ImageFormat.RGBA16F, true);
+        otherFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, ImageFormat.RGBA16F);
+        normalFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, ImageFormat.RGBA16F);
+        albedoFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
 
         ssao = new SSAO();
         brdf = new BRDF();
         brdf.perform();
         shader = DeferredShader.getInstance();
+
+        r_performLighting = CoreGameVariableManager.getByName("r_performLighting");
     }
 
     public void start() {
@@ -44,41 +47,39 @@ public class DeferredShading {
         GL11.glDisable(GL11.GL_BLEND);
     }
 
-    public void stop(Framebuffer sceneFBO, Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Vector3f baseColour, Vector3f topColour, int skybox, int irradiance, int prefilter, Shadows shadows) {
-        if (!Settings.performLighting)
+    public void stop(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Shadows shadows) {
+        if (!r_performLighting.getValueAsBool())
             return;
 
-        resolve(diffuseFBO, otherFBO, normalFBO, bloomFBO, godraysFBO);
-        ssao.perform(inverseViewMatrix, diffuseFBO.getDepthTexture(), normalFBO.getColourTexture());
+        GL30.glColorMaski(3, false, false, false, false);
+        resolve(diffuseFBO, otherFBO, normalFBO);
         multisampleFBO.bindFramebuffer();
 
         GL11.glDepthMask(false);
 
         shader.start();
-        shader.loadInformation(viewMatrix, inverseViewMatrix, lights, baseColour, topColour, shadows);
+        shader.loadInformation(viewMatrix, inverseViewMatrix, lights, shadows);
         QuadRenderer.bind();
 
+        // Deferred
         Graphics.bindColourTexture(diffuseFBO, 0);
         Graphics.bindColourTexture(otherFBO, 1);
         Graphics.bindColourTexture(normalFBO, 2);
-        Graphics.bindColourTexture(bloomFBO, 3);
-        Graphics.bindColourTexture(godraysFBO, 4);
-        Graphics.bindDepthTexture(diffuseFBO, 5);
-        Graphics.bind2DTexture(ssao.getAmbientOcclusionTexture(), 6);
-        Graphics.bindColourTexture(sceneFBO, 7);
-        Graphics.bindCubemap(skybox, 8);
-        Graphics.bindCubemap(irradiance, 9);
-        Graphics.bindCubemap(prefilter, 10);
-        Graphics.bindColourTexture(brdf.getOutputFBO(), 11);
+        Graphics.bindDepthMap(diffuseFBO, 3);
 
         for (int i = 0; i < Settings.shadowSplits; i++)
-            Graphics.bind2DTexture(shadows.getPCFShadowMap(i), 12 + i);
+            Graphics.bind2DTexture(shadows.getShadowMap(i), 13 + i);
 
         QuadRenderer.render();
         QuadRenderer.unbind();
         shader.stop();
 
         GL11.glDepthMask(true);
+        GL30.glColorMaski(3, true, true, true, true);
+    }
+
+    public void performSSAO(Matrix4f inverseViewMatrix) {
+        ssao.perform(inverseViewMatrix, diffuseFBO.getDepthTexture(), normalFBO.getColourTexture());
     }
 
     public void resolve(Framebuffer... fbos) {
@@ -87,13 +88,7 @@ public class DeferredShading {
     }
 
     public void resolve(int attachment, Framebuffer fbo) {
-        if (attachment == GL30.GL_COLOR_ATTACHMENT0)
-            GL11.glEnable(GL13.GL_MULTISAMPLE);
-
         multisampleFBO.resolveToFBO(attachment, fbo);
-
-        if (attachment == GL30.GL_COLOR_ATTACHMENT0)
-            GL11.glDisable(GL13.GL_MULTISAMPLE);
     }
 
     public void shutdown() {
@@ -103,8 +98,7 @@ public class DeferredShading {
         diffuseFBO.shutdown();
         otherFBO.shutdown();
         normalFBO.shutdown();
-        bloomFBO.shutdown();
-        godraysFBO.shutdown();
+        albedoFBO.shutdown();
     }
 
     public void decals() {
@@ -112,31 +106,29 @@ public class DeferredShading {
         multisampleFBO.bindFramebuffer();
     }
 
-    public void reflective() {
-        resolve(GL30.GL_COLOR_ATTACHMENT0, diffuseFBO);
+    public void ibl() {
+        resolve(diffuseFBO, otherFBO, normalFBO, albedoFBO);
         multisampleFBO.bindFramebuffer();
     }
 
     public void output() {
         resolve(GL30.GL_COLOR_ATTACHMENT0, diffuseFBO);
-        resolve(GL30.GL_COLOR_ATTACHMENT3, bloomFBO);
-        resolve(GL30.GL_COLOR_ATTACHMENT4, godraysFBO);
     }
 
     public Framebuffer getOutputFBO() {
         return diffuseFBO;
     }
 
-    public Framebuffer getPositionFBO() {
+    public Framebuffer getOtherFBO() {
         return otherFBO;
     }
 
-    public Framebuffer getBloomFBO() {
-        return bloomFBO;
+    public Framebuffer getAlbedoFBO() {
+        return albedoFBO;
     }
 
-    public Framebuffer getGodraysFBO() {
-        return godraysFBO;
+    public Framebuffer getNormalFBO() {
+        return normalFBO;
     }
 
     public int getAmbientOcclusionTexture() {

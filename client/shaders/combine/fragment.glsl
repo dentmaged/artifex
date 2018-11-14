@@ -30,6 +30,5 @@ void main(void) {
 	float exposure = texture2D(exposure, vec2(0.5)).x;
 	vec3 curr = Uncharted2Tonemap(2 * exposure * hdrColour);
 	vec3 whiteScale = vec3(1.0) / Uncharted2Tonemap(W);
-	vec3 color = curr * whiteScale;
-	out_colour = vec4(color, 1.0);
+	out_colour = vec4(curr * whiteScale, 1.0);
 }

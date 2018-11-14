@@ -8,6 +8,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -42,12 +43,17 @@ public class Window {
         try {
             UIManager.setLookAndFeel(new SubstanceGraphiteLookAndFeel());
             UIManager.setLookAndFeel("org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel");
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
-            ex.printStackTrace();
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
         }
 
         instance = new Window();
         instance.frmEditor.setVisible(true);
+        try {
+            instance.frmEditor.setIconImage(ImageIO.read(Window.class.getResourceAsStream("/icon.png")));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -61,7 +67,7 @@ public class Window {
      * Initialize the contents of the frame.
      */
     private void initialize() {
-        frmEditor = new JFrame("Anchor Editor");
+        frmEditor = new JFrame("Anchor Engine Editor");
         frmEditor.setSize(1934, 1056);
         frmEditor.setLocation(-7, 0);
         frmEditor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

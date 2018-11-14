@@ -8,7 +8,7 @@ public class StaticShader extends ModelShader {
     private static StaticShader instance = new StaticShader();
 
     protected StaticShader() {
-        super("entity");
+        super("static");
     }
 
     @Override
@@ -25,7 +25,7 @@ public class StaticShader extends ModelShader {
     public void loadEntitySpecificInformation(Entity entity) {
         super.loadEntitySpecificInformation(entity);
 
-        loadBoolean("useAOMap", entity.getComponent(MeshComponent.class).model.getTexture().getAmbientOcclusionMap() != -1);
+        loadBoolean("useAOMap", entity.getComponent(MeshComponent.class).material.hasAmbientOcclusionMap());
     }
 
     public static StaticShader getInstance() {

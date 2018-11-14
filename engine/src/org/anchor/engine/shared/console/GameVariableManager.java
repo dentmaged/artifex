@@ -1,24 +1,35 @@
 package org.anchor.engine.shared.console;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.GameVariableType;
+import org.anchor.engine.common.console.IGameVariable;
 
 public class GameVariableManager {
 
-    private static List<GameVariable> variables = new ArrayList<GameVariable>();
+    public static final GameVariable sv_cheats = new GameVariable("sv_cheats", "0", "Enables game cheats", GameVariableType.GAMEMODE) {
 
-    public static final GameVariable cheats = new GameVariable("sv_cheats", "0", "Enables game cheats", GameVariableType.GAMEMODE);
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
 
-    public static void register(GameVariable var) {
-        variables.add(var);
-    }
+            if (!getValueAsBool())
+                for (IGameVariable variable : CoreGameVariableManager.getVariables())
+                    if (variable != this)
+                        variable.setValue(variable.getDefaultValue());
+        }
+
+    };
 
     public static GameVariable getByName(String name) {
-        for (GameVariable var : variables)
-            if (var.getName().equalsIgnoreCase(name))
-                return var;
+        return (GameVariable) CoreGameVariableManager.getByName(name);
+    }
 
-        return null;
+    public static GameVariable get(String name, String defaultValue, String description, GameVariableType type) {
+        GameVariable value = getByName(name);
+        if (value != null)
+            return value;
+
+        return new GameVariable(name, defaultValue, description, type);
     }
 
 }

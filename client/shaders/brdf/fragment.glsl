@@ -4,7 +4,6 @@ in vec2 tc;
 
 FS_OUT(colour)
 
-const float pi = 3.141592653589793238;
 const uint sampleCount = 1024u;
 
 float distributionGGX(vec3 N, vec3 H, float roughness) {

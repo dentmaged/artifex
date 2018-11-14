@@ -17,6 +17,8 @@ import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.components.redirections.EngineMeshComponent;
+import org.anchor.engine.shared.console.EngineGameCommands;
+import org.anchor.engine.shared.console.GameCommandManager;
 import org.anchor.engine.shared.console.GameVariable;
 import org.anchor.engine.shared.console.GameVariableManager;
 import org.anchor.engine.shared.entity.Entity;
@@ -30,6 +32,7 @@ import org.anchor.engine.shared.net.packet.GameVariablePacket;
 import org.anchor.engine.shared.net.packet.LevelChangePacket;
 import org.anchor.engine.shared.net.packet.PlayerMovementPacket;
 import org.anchor.engine.shared.net.packet.PlayerPositionPacket;
+import org.anchor.engine.shared.net.packet.RunCommandPacket;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scene.Scene;
@@ -60,6 +63,8 @@ public class GameServer extends App implements IPacketHandler {
         Engine.init(Side.SERVER, new ServerEngine());
         CorePacketManager.register();
         server = new Server(this, 24964);
+
+        EngineGameCommands.init();
 
         scene = new GameMap(FileHelper.newGameFile("maps", level + ".asg")).getScene();
         Engine.scene = scene;
@@ -107,8 +112,8 @@ public class GameServer extends App implements IPacketHandler {
             if (monitor != null)
                 monitor.check();
 
-            for (EntityMonitor entityMonitor : clientMonitors.values())
-                entityMonitor.check();
+            for (EntityMonitor clientMonitor : clientMonitors.values())
+                clientMonitor.check();
         }
         Profiler.end("Physics");
 
@@ -151,12 +156,14 @@ public class GameServer extends App implements IPacketHandler {
                 player.setValue("model", "player");
 
                 player.getComponent(ServerThreadComponent.class).net = thread;
-                player.getComponent(ServerThreadComponent.class).user = new ServerUser("", thread);
+                player.getComponent(ServerThreadComponent.class).user = new ServerUser("", thread, player);
 
                 player.getComponent(PhysicsComponent.class).gravity = false;
 
                 player.spawn();
 
+                // TODO
+                net.sendPacket(new GameVariablePacket("sv_cheats", GameVariableManager.sv_cheats.getValueAsString()));
                 net.sendPacket(new LevelChangePacket(level));
 
                 for (Entity entity : scene.getEntities())
@@ -165,8 +172,6 @@ public class GameServer extends App implements IPacketHandler {
                     else
                         net.sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
                 for (Entity entity : clients.values()) {
-                    System.out.println("SENDING CLIENT INFO");
-
                     net.sendPacket(new EntitySpawnPacket(entity));
                     entity.getComponent(ServerThreadComponent.class).net.sendPacket(new EntitySpawnPacket(player));
                 }
@@ -184,7 +189,14 @@ public class GameServer extends App implements IPacketHandler {
 
             if (clients.get(net).getComponent(ServerThreadComponent.class).user.canSetVariable(var))
                 var.setValue(packet.value);
+        } else if (receivedPacket.getId() == CorePacketManager.RUN_COMMAND_PACKET) {
+            GameCommandManager.run(clients.get(net).getComponent(ServerThreadComponent.class).user, ((RunCommandPacket) receivedPacket).command);
         }
+    }
+
+    @Override
+    public void handleException(Exception e) {
+        e.printStackTrace();
     }
 
     @Override

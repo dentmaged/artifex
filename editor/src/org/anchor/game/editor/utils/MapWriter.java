@@ -4,8 +4,8 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;

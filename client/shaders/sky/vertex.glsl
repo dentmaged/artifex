@@ -6,9 +6,12 @@ in vec3 normal;
 
 out vec3 pos;
 
-uniform mat4 projectionViewTransformationMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 transformationMatrix;
 
 void main(void) {
-	gl_Position = projectionViewTransformationMatrix * vec4(position, 1);
+	mat4 pvtm = projectionMatrix * viewMatrix * transformationMatrix;
+	gl_Position = pvtm * vec4(position, 1);
 	pos = position;
 }

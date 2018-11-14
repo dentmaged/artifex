@@ -4,6 +4,8 @@ import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.Raycast;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.game.editor.GameEditor;
+import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -30,7 +32,7 @@ public class TranslateGizmo extends ArrowGizmo {
         Vector3f p = Raycast.intersectionPlane(planeNormal, original, origin, ray);
 
         if (p != null)
-            return VectorUtils.mul(new Vector3f(Matrix4f.transform(CoreMaths.createTransformationMatrix(new Vector3f(), rotation, new Vector3f(1, 1, 1)), new Vector4f(axis.x, axis.y, axis.z, 0), null)), Vector3f.dot(Vector3f.sub(p, original, null), axis));
+            return VectorUtils.mul(GameEditor.getInstance().getTransformationMode() == TransformationMode.LOCAL ? new Vector3f(Matrix4f.transform(CoreMaths.createTransformationMatrix(new Vector3f(), rotation, new Vector3f(1, 1, 1)), new Vector4f(axis.x, axis.y, axis.z, 0), null)) : axis, Vector3f.dot(Vector3f.sub(p, original, null), axis));
         return new Vector3f();
     }
 

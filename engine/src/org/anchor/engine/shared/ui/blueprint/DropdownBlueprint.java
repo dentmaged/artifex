@@ -39,6 +39,7 @@ public class DropdownBlueprint extends UIBlueprint {
     @Override
     public List<Component> build(int x, int y, int width) {
         JLabel label = new JLabel(name);
+        label.setToolTipText(name);
         label.setLabelFor(dropdown);
         int w = width / 2 - 30;
         label.setBounds(x, y + 4, w, 14);

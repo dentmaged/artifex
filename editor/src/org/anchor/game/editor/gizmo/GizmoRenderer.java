@@ -1,11 +1,11 @@
 package org.anchor.game.editor.gizmo;
 
+import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
-import org.anchor.game.client.utils.KeyboardUtils;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.gizmo.types.RotateGizmo;
 import org.anchor.game.editor.gizmo.types.ScaleGizmo;

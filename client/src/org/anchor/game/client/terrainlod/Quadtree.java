@@ -151,6 +151,10 @@ public class Quadtree {
         return location;
     }
 
+    public Quadtree getParent() {
+        return parent;
+    }
+
     public float getSize() {
         return size;
     }

@@ -1,0 +1,6 @@
+hidden:truemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:445.82196@11.506741@472.45627Rotation:0.0@0.0@0.0Scale:6666.6665@6666.6665@6666.6665Model:Texture Index:0Disable Frustum Culling:true
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:9695.662@11396.236@-13271.017Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:1.0@1.0@1.0Attenuation:1.0@0.0@0.0
+org.anchor.engine.shared.components.TransformComponentorg.anchor.engine.shared.components.SpawnComponentPosition:445.82196@3.7067385@472.45627Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0
+
+00heightmapblendmapgrassmudgrass_flowerspath
+

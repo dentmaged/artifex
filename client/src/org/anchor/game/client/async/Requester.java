@@ -13,15 +13,15 @@ import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
 import org.anchor.client.engine.renderer.types.mesh.MeshType;
 import org.anchor.client.engine.renderer.types.texture.TextureRequest;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.async.types.CompletedAnimatedMesh;
 import org.anchor.game.client.async.types.CompletedCubemap;
-import org.anchor.game.client.async.types.CompletedNormalMesh;
 import org.anchor.game.client.async.types.CompletedPlainMesh;
 import org.anchor.game.client.async.types.CompletedRequest;
 import org.anchor.game.client.async.types.CompletedTexture;
-import org.anchor.game.client.loaders.dae.AnimatedModelLoader;
+import org.anchor.game.client.loaders.dae.target.ColladaLoader;
 import org.anchor.game.client.loaders.obj.ModelData;
 import org.anchor.game.client.loaders.obj.OBJFileLoader;
 import org.anchor.game.client.loaders.obj.normals.NormalMappedOBJLoader;
@@ -52,17 +52,15 @@ public class Requester {
                     if (meshRequest != null) {
                         if (meshRequest.getType() == MeshType.PLAIN)
                             toOpenGL.offer(new CompletedPlainMesh(meshRequest, OBJFileLoader.loadOBJModel(meshRequest.getName())));
-                        else if (meshRequest.getType() == MeshType.NORMAL)
-                            toOpenGL.offer(new CompletedNormalMesh(meshRequest, OBJFileLoader.loadOBJModel(meshRequest.getName())));
                         else
-                            toOpenGL.offer(new CompletedAnimatedMesh(meshRequest, AnimatedModelLoader.loadMesh(meshRequest.getName())));
+                            toOpenGL.offer(new CompletedAnimatedMesh(meshRequest, ColladaLoader.loadColladaModel(FileHelper.newGameFile(Loader.RES_LOC, meshRequest.getName() + ".dae"))));
                     }
 
                     if (textureRequest != null) {
                         try {
                             File file = FileHelper.newGameFile(Loader.RES_LOC, textureRequest.getName().replace(Loader.RES_LOC + "/", "").replace(Loader.RES_LOC, "") + ".png");
                             if (!file.exists()) {
-                                System.err.println(file.getName() + " does not exist! Falling back on default texture.");
+                                Log.warning(file.getName() + " does not exist! Falling back on default texture.");
                                 file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
                             }
 
@@ -78,7 +76,7 @@ public class Requester {
                             for (int i = 0; i < data.length; i++) {
                                 File file = FileHelper.newGameFile(Loader.RES_LOC, cubemapRequest.getTextures()[i].replace(Loader.RES_LOC + "/", "").replace(Loader.RES_LOC, "") + ".png");
                                 if (!file.exists()) {
-                                    System.err.println(file.getName() + " does not exist! Falling back on default texture.");
+                                    Log.warning(file.getName() + " does not exist! Falling back on default texture.");
                                     file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
                                 }
 
@@ -158,13 +156,6 @@ public class Requester {
         return request;
     }
 
-    public static MeshRequest requestNormalMesh(String mesh) {
-        MeshRequest request = new MeshRequest(mesh, MeshType.NORMAL);
-        meshRequests.offer(request);
-
-        return request;
-    }
-
     public static MeshRequest requestAnimatedMesh(String mesh) {
         MeshRequest request = new MeshRequest(mesh, MeshType.ANIMATION);
         meshRequests.offer(request);
@@ -177,6 +168,9 @@ public class Requester {
     }
 
     public static TextureRequest requestTexture(String texture) {
+        if (texture == null || texture.equals(""))
+            return null;
+
         TextureRequest request = new TextureRequest(texture);
         textureRequests.offer(request);
 

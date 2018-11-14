@@ -9,6 +9,7 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.anchor.client.engine.renderer.Graphics;
+import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
@@ -18,11 +19,14 @@ import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
+import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.shadows.Shadows;
-import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
+import org.anchor.client.engine.renderer.types.ibl.LightProbe;
+import org.anchor.client.engine.renderer.types.ibl.ReflectionProbe;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
@@ -34,27 +38,30 @@ import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.utils.EntityRaycast;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.utils.TerrainRaycast;
+import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.audio.Audio;
 import org.anchor.game.client.components.LightComponent;
+import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
+import org.anchor.game.client.components.ParticleSystemComponent;
+import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SunComponent;
 import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.particles.ParticleRenderer;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyShader;
 import org.anchor.game.client.shaders.StaticShader;
-import org.anchor.game.client.shaders.WaterShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.client.types.TerrainTexture;
 import org.anchor.game.client.utils.FrustumCull;
-import org.anchor.game.client.utils.KeyboardUtils;
 import org.anchor.game.client.utils.MousePicker;
 import org.anchor.game.client.utils.MouseUtils;
 import org.anchor.game.editor.components.EditorInputComponent;
@@ -113,18 +120,24 @@ public class GameEditor extends Game {
     public GameEditor(LevelEditor editor, File level) {
         this.editor = editor;
         this.level = level;
+
+        Settings.lowerFPSFocus = false;
     }
 
     @Override
     public void init() {
-        Engine.init(Side.CLIENT);
+        if (!("false".equals(System.getProperty("sun.java2d.d3d")) || "false".equals(System.getenv("J2D_D3D"))))
+            for (int i = 0; i < 10; i++)
+                Log.warning("Add -Dsun.java2d.d3d=false to your launch arguments or set the environment variable J2D_D3D to false in order to stop UI rendering bugs!");
+
+        Engine.init(Side.CLIENT, new EditorEngine());
         Graphics.init();
         Audio.init();
-        System.out.println("APP INIT");
+        ParticleRenderer.init();
 
-        sceneFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
         fxaa = new FXAA();
         deferred = new DeferredShading();
+        ibl = new IBL(deferred);
         bloom = new Bloom();
         godrays = new Godrays();
         vignette = new Vignette();
@@ -134,17 +147,15 @@ public class GameEditor extends Game {
         player = new Entity(EditorInputComponent.class);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
-        livingComponent.noPhysicsSpeed = 2;
         livingComponent.gravity = false;
         player.spawn();
 
         physics = new PhysicsEngine();
 
-        // reference shaders to load them in - only required in the editor
-        shadows = new Shadows(null); // WaterShader requires shadows to be initialised
+        // reference shaders to load them in - only required in the editor because of Swing's multithreading
+        shadows = new Shadows(null); // shadows must be initialised to prevent NPEs in ForwardStaticShader
         NormalShader.getInstance();
         StaticShader.getInstance();
-        WaterShader.getInstance();
         ForwardStaticShader.getInstance();
         BakedCubemap.getShader("irradianceConvolution");
         BakedCubemap.getShader("prefilter");
@@ -156,6 +167,7 @@ public class GameEditor extends Game {
 
         gizmo = new GizmoRenderer(this);
         picker = new MousePicker();
+        Log.info("App initialised.");
     }
 
     @Override
@@ -178,7 +190,7 @@ public class GameEditor extends Game {
         }
 
         for (TerrainCreate terrain : terrains) {
-            System.out.println("Creating terrain at " + terrain.x + ", " + terrain.z);
+            Log.info("Creating terrain at " + terrain.x + ", " + terrain.z);
             scene.getTerrains().add(new ClientTerrain(terrain.x, terrain.z, terrain.heightmap, new TerrainTexture("blendmap", "default", "default", "default", "default")));
         }
 
@@ -256,12 +268,13 @@ public class GameEditor extends Game {
             if (accumulator > 0.2)
                 accumulator = 0;
 
-            livingComponent.move(scene, GameClient.getTerrainByPoint(player.getPosition()));
-            Scheduler.tick();
+            player.updateFixed();
             if (game) {
                 scene.updateFixed();
                 physics.update(scene);
             }
+            livingComponent.move(scene, GameClient.getTerrainByPoint(player.getPosition()));
+            Scheduler.tick();
 
             FrustumCull.update();
         }
@@ -347,18 +360,16 @@ public class GameEditor extends Game {
     public void render() {
         Profiler.start("Scene");
         Profiler.start("Shadows (Full)");
-        if (shadows.start(livingComponent.getInverseViewMatrix(), livingComponent.getEyePosition(), livingComponent.pitch, livingComponent.yaw)) {
+        if (shadows.start(livingComponent.getInverseViewMatrix(), livingComponent.getEyePosition(), livingComponent.pitch, livingComponent.yaw))
             scene.renderShadows(shadows);
-            shadows.stop();
-        }
         Profiler.end("Shadows (Full)");
 
         deferred.start();
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
-        GL11.glClearColor(0, 0, 0, 0);
+        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
-        if (Settings.wireframe)
+        if (ClientGameVariables.r_wireframe.getValueAsBool())
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.render();
@@ -367,18 +378,20 @@ public class GameEditor extends Game {
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
 
         Profiler.start("Deferred (Lighting)");
-        deferred.stop(sceneFBO, livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), sky.baseColour, sky.topColour, sky.getSkybox(), sky.getIrradiance(), sky.getPrefilter(), shadows);
+        deferred.stop(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), getLights(), shadows);
         Profiler.end("Deferred (Lighting)");
 
-        if (Settings.wireframe)
+        if (ClientGameVariables.r_wireframe.getValueAsBool())
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.renderBlending();
-        deferred.reflective();
-        scene.renderReflective();
+        ParticleRenderer.render(scene.getComponents(ParticleSystemComponent.class));
 
         if (!game && editor.getSelectedEntity() != null) {
             gizmo.render();
+
+            if (editor.getSelectedEntity().getComponent(ReflectionProbeComponent.class) != null)
+                DebugRenderer.box(livingComponent.getViewMatrix(), editor.getSelectedEntity().getPosition(), new Vector3f(), editor.getSelectedEntity().getScale(), new Vector3f(1, 0, 0));
 
             LightComponent component = editor.getSelectedEntity().getComponent(LightComponent.class);
             if (component != null) {
@@ -387,18 +400,31 @@ public class GameEditor extends Game {
             }
         }
 
+        List<ReflectionProbeComponent> reflectionProbeComponents = scene.getComponents(ReflectionProbeComponent.class);
+        List<LightProbeComponent> lightProbeComponents = scene.getComponents(LightProbeComponent.class);
+
+        FrustumCull.cull(reflectionProbeComponents);
+        FrustumCull.cull(lightProbeComponents);
+
+        List<ReflectionProbe> reflectionProbes = new ArrayList<ReflectionProbe>();
+        List<LightProbe> lightProbes = new ArrayList<LightProbe>();
+        for (int i = 0; i < reflectionProbeComponents.size(); i++)
+            reflectionProbes.add(reflectionProbeComponents.get(i));
+        for (int i = 0; i < lightProbeComponents.size(); i++)
+            lightProbes.add(lightProbeComponents.get(i));
+
+        ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes, sky.baseColour);
+
         deferred.output();
         Profiler.end("Scene");
-        sceneFBO.bindFramebuffer();
-        GUIRenderer.perform(deferred.getOutputFBO().getColourTexture());
-        sceneFBO.unbindFramebuffer();
 
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         fxaa.perform(deferred.getOutputFBO().getColourTexture());
-        bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getBloomFBO().getColourTexture());
-        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getGodraysFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
+        bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
+        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
         vignette.perform(godrays.getOutputFBO().getColourTexture());
+
         Profiler.end("Post processing");
 
         Profiler.frameEnd();
@@ -407,28 +433,37 @@ public class GameEditor extends Game {
 
     @Override
     public void shutdown() {
-        shadows.shutdown();
+        if (shadows != null)
+            shadows.shutdown();
+        fxaa.shutdown();
         deferred.shutdown();
+        ibl.shutdown();
         bloom.shutdown();
         godrays.shutdown();
         vignette.shutdown();
 
         Requester.shutdown();
+        Audio.shutdown();
         Loader.getInstance().shutdown();
     }
 
     @Override
     public void resize(int width, int height) {
+        fxaa.shutdown();
         deferred.shutdown();
         bloom.shutdown();
         godrays.shutdown();
         vignette.shutdown();
 
+        fxaa = new FXAA();
         deferred = new DeferredShading();
         bloom = new Bloom();
         godrays = new Godrays();
         vignette = new Vignette();
 
+        Settings.width = width;
+        Settings.height = height;
+        Renderer.refreshProjectionMatrix();
         GL11.glViewport(0, 0, width, height);
     }
 
@@ -441,6 +476,7 @@ public class GameEditor extends Game {
         Entity light = new Entity(LightComponent.class, SunComponent.class);
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
+        lightComponent.colour.set(4, 4, 4);
         lightComponent.attenuation.set(1, 0, 0);
         light.getRotation().set(109, 23, 0);
         light.spawn();
@@ -452,17 +488,22 @@ public class GameEditor extends Game {
 
         skydome.setHidden(true);
         skydome.getComponent(MeshComponent.class).shader = SkyShader.getInstance();
-        skydome.getComponent(MeshComponent.class).model.getTexture().setBlendingEnabled(true);
+        skydome.getComponent(MeshComponent.class).material.setBlendingEnabled(true);
         sky = skydome.getComponent(SkyComponent.class);
         sky.setLight(light);
 
         scene = new ClientScene();
+        Engine.scene = scene;
+
         scene.getEntities().add(skydome);
         scene.getEntities().add(light);
         editor.updateList();
     }
 
     public void loadMap(File map) {
+        if (!map.exists())
+            return;
+
         this.level = map;
 
         scene = new GameMap(map).getScene();
@@ -484,7 +525,7 @@ public class GameEditor extends Game {
                 entity.setHidden(true);
 
         editor.updateList();
-        System.out.println("Loaded " + map.getAbsolutePath());
+        Log.info("Loaded " + map.getAbsolutePath());
     }
 
     public Entity addEntity() {
@@ -567,6 +608,7 @@ public class GameEditor extends Game {
 
     public static void create() {
         if (getInstance() == null) {
+            ClientGameVariables.init();
             LevelEditor editor = new LevelEditor();
             Window.getInstance().addTab("Untitled", editor);
             new Thread(new Runnable() {
@@ -593,8 +635,22 @@ public class GameEditor extends Game {
 
     public static void open(File file) {
         if (getInstance() == null) {
+            if (!file.exists()) {
+                if (file.getName().indexOf('.') == -1) {
+                    File other = new File(file.getAbsoluteFile() + ".asg");
+                    if (other.exists())
+                        file = other;
+                } else {
+                    JOptionPane.showMessageDialog(null, "File not found!", "Error", JOptionPane.OK_OPTION);
+                    return;
+                }
+            }
+
+            ClientGameVariables.init();
             LevelEditor editor = new LevelEditor();
             Window.getInstance().addTab(GameEditor.chooser.getSelectedFile().getName(), editor);
+
+            final File f = file; // Java is annoying
             new Thread(new Runnable() {
 
                 @Override
@@ -605,7 +661,7 @@ public class GameEditor extends Game {
                         e.printStackTrace();
                     }
 
-                    GameEditor game = new GameEditor(editor, file);
+                    GameEditor game = new GameEditor(editor, f);
                     editor.setGameEditor(game);
                     AppManager.create(game);
                 }
@@ -628,7 +684,7 @@ public class GameEditor extends Game {
         } else {
             FileHelper.write(getInstance().level, MapWriter.write(getInstance().scene));
             getInstance().modifiedSinceLastSave = false;
-            System.out.println("Saved to " + getInstance().level.getAbsolutePath());
+            Log.info("Saved to " + getInstance().level.getAbsolutePath());
         }
     }
 
@@ -641,7 +697,7 @@ public class GameEditor extends Game {
         getInstance().level = file;
 
         Window.getInstance().setTabName(file.getName());
-        System.out.println("Saved to " + getInstance().level.getAbsolutePath());
+        Log.info("Saved to " + getInstance().level.getAbsolutePath());
     }
 
     public boolean isEntityRaycast(TerrainRaycast terrainRaycast, EntityRaycast entityRaycast) {

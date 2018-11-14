@@ -1,8 +1,8 @@
 package org.anchor.game.server.components;
 
 import org.anchor.engine.common.net.server.ServerThread;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.net.IUser;
 
 public class ServerThreadComponent implements IComponent {

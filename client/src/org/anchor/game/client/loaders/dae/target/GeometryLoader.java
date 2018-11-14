@@ -44,6 +44,7 @@ public class GeometryLoader {
         initArrays();
         convertDataToArrays();
         convertIndicesListToArray();
+
         return new MeshData(verticesArray, texturesArray, normalsArray, indicesArray, jointIdsArray, weightsArray);
     }
 

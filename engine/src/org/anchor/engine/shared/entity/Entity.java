@@ -7,9 +7,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.anchor.engine.common.Log;
+import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.Engine;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.lwjgl.util.vector.Matrix4f;
@@ -19,7 +20,7 @@ import org.lwjgl.util.vector.Vector4f;
 public class Entity {
 
     protected int id, lineIndex = -1;
-    protected boolean hidden, spawned;
+    protected boolean hidden, spawned, updated;
 
     protected Entity parent;
     protected List<Entity> children = new ArrayList<Entity>();
@@ -27,7 +28,7 @@ public class Entity {
     protected Map<String, String> data = new HashMap<String, String>();
     protected List<IComponent> components = new ArrayList<IComponent>(), spawnComponents = new ArrayList<IComponent>();
 
-    protected Matrix4f transformationMatrix = new Matrix4f();
+    protected Matrix4f transformationMatrix = new Matrix4f(), previousTransformationMatrix = new Matrix4f();
 
     public Entity() {
         addComponent(new TransformComponent());
@@ -106,7 +107,7 @@ public class Entity {
 
     public Vector3f getVelocity() {
         if (!hasComponent(PhysicsComponent.class)) {
-            System.err.println("WARN: Entity doesn't contain PhysicsComponent");
+            Log.warning("Entity doesn't contain PhysicsComponent");
 
             return new Vector3f();
         }
@@ -224,6 +225,12 @@ public class Entity {
     }
 
     public void updateFixed() {
+        updated = false;
+        if (!transformationMatrix.equals(previousTransformationMatrix)) {
+            CoreMaths.set(transformationMatrix, previousTransformationMatrix);
+            updated = true;
+        }
+
         for (IComponent spawn : spawnComponents)
             spawn.spawn(this);
 
@@ -263,6 +270,10 @@ public class Entity {
         return children;
     }
 
+    public boolean hasUpdated() {
+        return updated;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder("Entity[");
@@ -272,7 +283,7 @@ public class Entity {
         for (int i = 0; i < components.size(); i++)
             builder.append(components.get(i).getClass().getName()).append(i < components.size() - 1 ? ", " : "");
         builder.append("], ").append("data=[");
-        
+
         int i = 0;
         for (Entry<String, String> entry : data.entrySet()) {
             builder.append(entry.getKey()).append("=").append(entry.getValue()).append(i < data.size() - 1 ? ", " : "");
@@ -280,7 +291,7 @@ public class Entity {
             i++;
         }
         builder.append("]").append("]");
-        
+
         return builder.toString();
     }
 

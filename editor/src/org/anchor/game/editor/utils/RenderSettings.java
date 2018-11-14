@@ -1,27 +1,25 @@
 package org.anchor.game.editor.utils;
 
 import org.anchor.client.engine.renderer.Settings;
+import org.anchor.game.client.ClientGameVariables;
 
 public class RenderSettings {
 
     public static void set(String key, String value) {
         if (key.equals("Wireframe"))
-            Settings.wireframe = parseBoolean(value);
+            ClientGameVariables.r_wireframe.setValue(value);
 
         if (key.equals("Procedural Skybox"))
             Settings.proceduralSky = parseBoolean(value);
 
         if (key.equals("Perform Lighting"))
-            Settings.performLighting = parseBoolean(value);
+            ClientGameVariables.r_performLighting.setValue(value);
 
         if (key.equals("Perform SSAO"))
-            Settings.performSSAO = parseBoolean(value);
+            ClientGameVariables.r_performSSAO.setValue(value);
 
         if (key.equals("Show Lightmaps"))
-            Settings.showLightmaps = parseBoolean(value);
-
-        if (key.equals("Minimum Diffuse"))
-            Settings.minDiffuse = parseFloat(value);
+            ClientGameVariables.r_showLightmaps.setValue(value);
 
         if (key.equals("Fog Density"))
             Settings.density = parseFloat(value);
@@ -31,6 +29,12 @@ public class RenderSettings {
 
         if (key.equals("Exposure Speed"))
             Settings.exposureSpeed = parseFloat(value);
+
+        if (key.equals("SSAO Bias"))
+            Settings.ssaoBias = parseFloat(value);
+
+        if (key.equals("SSAO Radius"))
+            Settings.ssaoRadius = parseFloat(value);
     }
 
     private static boolean parseBoolean(String value) {

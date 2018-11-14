@@ -12,6 +12,7 @@ import java.nio.IntBuffer;
 import javax.imageio.ImageIO;
 
 import org.anchor.client.engine.renderer.Settings;
+import org.anchor.engine.common.Log;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
@@ -111,7 +112,7 @@ public class Texture {
         if (GLContext.getCapabilities().GL_EXT_texture_filter_anisotropic)
             GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, Math.min(Settings.anisotropyLevel, GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
         else
-            System.err.println("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
+            Log.warning("Anisotropic texture filtering is not supported! Make sure you update your driver.\nIf you don't, you may recieve lower FPS and/or textures at steep angles\nwill look low quality!");
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
 
         return result;

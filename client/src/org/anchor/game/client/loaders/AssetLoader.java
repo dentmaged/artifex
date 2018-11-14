@@ -1,80 +1,29 @@
 package org.anchor.game.client.loaders;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.anchor.client.engine.renderer.Loader;
+import org.anchor.client.engine.renderer.types.Material;
 import org.anchor.client.engine.renderer.types.Model;
-import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.async.Requester;
-import org.anchor.game.client.loaders.obj.ModelData;
-import org.anchor.game.client.loaders.obj.OBJFileLoader;
+import org.anchor.game.client.particles.ParticleTexture;
 
 public class AssetLoader {
 
     private static Map<String, Model> models = new HashMap<String, Model>();
-    private static Map<String, ModelTexture> textures = new HashMap<String, ModelTexture>();
+    private static Map<String, Material> materials = new HashMap<String, Material>();
+    private static Map<String, ParticleTexture> particles = new HashMap<String, ParticleTexture>();
 
     public static Model loadModel(String name) {
         return loadModel(name, false);
     }
 
     public static Model loadModel(String name, boolean singleThreaded) {
-        if (!models.containsKey(name.toLowerCase())) {
-            ModelTexture texture = new ModelTexture(Requester.requestTexture(name + "_diffuse"));
-            MeshRequest mesh = null;
-
-            if (FileHelper.newGameFile("res", name + "_normal.png").exists()) {
-                if (singleThreaded) {
-                    ModelData data = OBJFileLoader.loadOBJModel(name);
-
-                    mesh = Requester.alreadyLoadedMesh(Loader.getInstance().loadToVAO(data.getVertices(), data.getTextureCoords(), data.getNormals(), data.getTangents(), data.getIndices()));
-                    texture.setNormalMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_normal")));
-                } else {
-                    mesh = Requester.requestNormalMesh(name);
-                    texture.setNormalMap(Requester.requestTexture(name + "_normal"));
-                }
-            } else {
-                if (singleThreaded) {
-                    ModelData data = OBJFileLoader.loadOBJModel(name);
-                    mesh = Requester.alreadyLoadedMesh(Loader.getInstance().loadToVAO(data.getVertices(), data.getTextureCoords(), data.getNormals(), data.getIndices()));
-                } else {
-                    mesh = Requester.requestMesh(name);
-                }
-            }
-
-            if (FileHelper.newGameFile("res", name + "_specular.png").exists()) {
-                if (singleThreaded)
-                    texture.setSpecularMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_specular")));
-                else
-                    texture.setSpecularMap(Requester.requestTexture(name + "_specular"));
-            }
-
-            if (FileHelper.newGameFile("res", name + "_metallic.png").exists()) {
-                if (singleThreaded)
-                    texture.setMetallicMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_metallic")));
-                else
-                    texture.setMetallicMap(Requester.requestTexture(name + "_metallic"));
-            }
-
-            if (FileHelper.newGameFile("res", name + "_roughness.png").exists()) {
-                if (singleThreaded)
-                    texture.setRoughnessMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_roughness")));
-                else
-                    texture.setRoughnessMap(Requester.requestTexture(name + "_roughness"));
-            }
-
-            if (FileHelper.newGameFile("res", name + "_ao.png").exists()) {
-                if (singleThreaded)
-                    texture.setAmbientOcclusionMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_ao")));
-                else
-                    texture.setAmbientOcclusionMap(Requester.requestTexture(name + "_ao"));
-            }
-
-            models.put(name.toLowerCase(), new Model(mesh, texture));
-        }
+        if (!models.containsKey(name.toLowerCase()))
+            models.put(name.toLowerCase(), new Model(Requester.requestMesh(name)));
 
         return models.get(name.toLowerCase());
     }
@@ -83,53 +32,82 @@ public class AssetLoader {
         models.remove(model.getName());
     }
 
-    public static ModelTexture loadDecalTexture(String name) {
-        return loadDecalTexture(name, false);
+    public static Material loadMaterial(String name) {
+        if (name == null)
+            return loadAEM("default");
+
+        if (!materials.containsKey(name.toLowerCase()))
+            materials.put(name.toLowerCase(), loadAEM(name));
+
+        return materials.get(name.toLowerCase());
     }
 
-    public static ModelTexture loadDecalTexture(String name, boolean singleThreaded) {
-        if (!textures.containsKey(name.toLowerCase())) {
-            ModelTexture texture = new ModelTexture(Requester.requestTexture(name));
+    private static Material loadAEM(String name) {
+        Material material = new Material();
+        Map<String, String> values = loadValues(FileHelper.newGameFile(Loader.RES_LOC, name + ".aem"));
 
-            if (FileHelper.newGameFile("res", name + "_normal.png").exists()) {
-                if (singleThreaded)
-                    texture.setNormalMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_normal")));
-                else
-                    texture.setNormalMap(Requester.requestTexture(name + "_normal"));
-            }
+        if (values.containsKey("albedo") && FileHelper.newGameFile("res", values.get("albedo") + ".png").exists())
+            material.setAlbedo(Requester.requestTexture(values.get("albedo")));
 
-            if (FileHelper.newGameFile("res", name + "_specular.png").exists()) {
-                if (singleThreaded)
-                    texture.setSpecularMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_specular")));
-                else
-                    texture.setSpecularMap(Requester.requestTexture(name + "_specular"));
-            }
+        if (values.containsKey("normal") && FileHelper.newGameFile("res", values.get("normal") + ".png").exists())
+            material.setNormalMap(Requester.requestTexture(values.get("normal")));
 
-            if (FileHelper.newGameFile("res", name + "_metallic.png").exists()) {
-                if (singleThreaded)
-                    texture.setMetallicMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_metallic")));
-                else
-                    texture.setMetallicMap(Requester.requestTexture(name + "_metallic"));
-            }
+        if (values.containsKey("specular") && FileHelper.newGameFile("res", values.get("specular") + ".png").exists())
+            material.setSpecularMap(Requester.requestTexture(values.get("specular")));
 
-            if (FileHelper.newGameFile("res", name + "_roughness.png").exists()) {
-                if (singleThreaded)
-                    texture.setRoughnessMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_roughness")));
-                else
-                    texture.setRoughnessMap(Requester.requestTexture(name + "_roughness"));
-            }
+        if (values.containsKey("metallic") && FileHelper.newGameFile("res", values.get("metallic") + ".png").exists())
+            material.setMetallicMap(Requester.requestTexture(values.get("metallic")));
 
-            if (FileHelper.newGameFile("res", name + "_ao.png").exists()) {
-                if (singleThreaded)
-                    texture.setAmbientOcclusionMap(Requester.alreadyLoadedTexture(Loader.getInstance().loadTexture(name + "_ao")));
-                else
-                    texture.setAmbientOcclusionMap(Requester.requestTexture(name + "_ao"));
-            }
+        if (values.containsKey("roughness") && FileHelper.newGameFile("res", values.get("roughness") + ".png").exists())
+            material.setRoughnessMap(Requester.requestTexture(values.get("roughness")));
 
-            textures.put(name.toLowerCase(), texture);
+        if (values.containsKey("ao") && FileHelper.newGameFile("res", values.get("ao") + ".png").exists())
+            material.setAmbientOcclusionMap(Requester.requestTexture(values.get("ao")));
+
+        if (values.containsKey("backface"))
+            material.setCullingEnabled(Boolean.parseBoolean(values.get("backface")));
+
+        if (values.containsKey("blending"))
+            material.setCullingEnabled(Boolean.parseBoolean(values.get("blending")));
+
+        return material;
+    }
+
+    public static ParticleTexture loadParticle(String name) {
+        if (!particles.containsKey(name.toLowerCase()))
+            particles.put(name.toLowerCase(), loadAEP(name));
+
+        return particles.get(name.toLowerCase());
+    }
+
+    private static ParticleTexture loadAEP(String name) {
+        Map<String, String> values = loadValues(FileHelper.newGameFile(Loader.RES_LOC, name + ".aep"));
+
+        int rows = 1;
+        if (values.containsKey("rows"))
+            rows = Integer.parseInt(values.get("rows"));
+
+        boolean additive = false;
+        if (values.containsKey("additive"))
+            additive = Boolean.parseBoolean(values.get("additive"));
+
+        return new ParticleTexture(Requester.requestTexture(values.get("texture")), rows, additive);
+    }
+
+    private static Map<String, String> loadValues(File file) {
+        Map<String, String> values = new HashMap<String, String>();
+        String contents = FileHelper.read(file);
+        String[] lines = contents.split("\n");
+
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].indexOf('=') == -1)
+                continue;
+
+            String[] parts = lines[i].split("=");
+            values.put(parts[0], parts[1]);
         }
 
-        return textures.get(name.toLowerCase());
+        return values;
     }
 
 }

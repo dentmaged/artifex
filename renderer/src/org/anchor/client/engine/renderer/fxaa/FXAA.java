@@ -3,6 +3,7 @@ package org.anchor.client.engine.renderer.fxaa;
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Vector2f;
 
@@ -12,7 +13,7 @@ public class FXAA {
     protected FXAAShader shader;
 
     public FXAA() {
-        outputFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
+        outputFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE, ImageFormat.RGBA16F);
         shader = FXAAShader.getInstance();
 
         shader.start();

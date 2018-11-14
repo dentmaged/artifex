@@ -3,6 +3,7 @@ package org.anchor.engine.shared.components;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;

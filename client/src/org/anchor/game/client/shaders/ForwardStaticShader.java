@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Settings;
-import org.anchor.client.engine.renderer.deferred.DeferredShader;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
 import org.anchor.engine.common.utils.Mathf;
@@ -12,7 +11,6 @@ import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.components.MeshComponent;
-import org.anchor.game.client.components.SkyComponent;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -22,7 +20,7 @@ public class ForwardStaticShader extends ModelShader {
     private static ForwardStaticShader instance = new ForwardStaticShader();
 
     protected ForwardStaticShader() {
-        super("forward");
+        super("forwardStatic");
     }
 
     @Override
@@ -33,40 +31,23 @@ public class ForwardStaticShader extends ModelShader {
         loadInt("metallic", 3);
         loadInt("roughness", 4);
         loadInt("ao", 5);
-        loadInt("skybox", 8);
-        loadInt("irradianceMap", 9);
-        loadInt("prefilter", 10);
-        loadInt("brdf", 11);
 
         for (int i = 0; i < Settings.shadowSplits; i++)
-            loadInt("shadowMaps[" + i + "]", 12 + i);
+            loadInt("shadowMaps[" + i + "]", 13 + i);
 
         loadMatrix("inverseViewMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getInverseViewMatrix());
-        loadFloat("minDiffuse", Settings.minDiffuse);
-        loadFloat("density", Settings.density);
-        loadFloat("gradient", Settings.gradient);
 
         for (int i = 0; i < Settings.shadowSplits; i++) {
             loadMatrix("toShadowMapSpaces[" + i + "]", GameClient.getToShadowMapSpaceMatrix(i));
             loadFloat("shadowDistances[" + i + "]", GameClient.getShadowExtents(i));
-            Graphics.bind2DTexture(GameClient.getShadowMap(i), 12 + i);
+            Graphics.bind2DTexture(GameClient.getShadowMap(i), 13 + i);
         }
 
-        SkyComponent sky = GameClient.getSky();
-        if (sky != null) {
-            loadVector("baseColour", sky.baseColour);
-            loadVector("topColour", sky.topColour);
-            loadBoolean("proceduralSky", Settings.proceduralSky);
-
-            Graphics.bindCubemap(sky.getSkybox(), 8);
-            Graphics.bindCubemap(sky.getIrradiance(), 9);
-            Graphics.bindCubemap(sky.getPrefilter(), 10);
-        }
-        Graphics.bind2DTexture(GameClient.getBRDF(), 11);
+        loadBoolean("bakedGeneration", Settings.bakedGeneration);
 
         List<Light> lights = GameClient.getSceneLights();
         Matrix4f viewMatrix = GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix();
-        for (int i = 0; i < DeferredShader.MAX_LIGHTS; i++) {
+        for (int i = 0; i < Settings.maxLights; i++) {
             if (i < lights.size()) {
                 Light light = lights.get(i);
 
@@ -105,11 +86,11 @@ public class ForwardStaticShader extends ModelShader {
         loadMatrix("viewTransformationMatrix", Matrix4f.mul(GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix(), entity.getTransformationMatrix(), null));
         loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(entity));
 
-        loadFloat("numberOfRows", render.model.getTexture().getNumberOfRows());
+        loadFloat("numberOfRows", render.material.getNumberOfRows());
         loadVector("textureOffset", render.getTextureOffset());
         loadVector("colour", render.colour);
 
-        loadBoolean("useAOMap", render.model.getTexture().getAmbientOcclusionMap() != -1);
+        loadBoolean("useAOMap", render.material.hasAmbientOcclusionMap());
     }
 
     public static ForwardStaticShader getInstance() {

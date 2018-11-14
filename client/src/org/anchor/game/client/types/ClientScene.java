@@ -19,11 +19,12 @@ import org.anchor.game.client.TerrainRenderer;
 import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
-import org.anchor.game.client.components.WaterComponent;
 import org.anchor.game.client.shaders.DecalShader;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.utils.FrustumCull;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL40;
 
 public class ClientScene extends Scene {
 
@@ -36,10 +37,10 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || entity.hasComponent(WaterComponent.class))
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class))
                 continue;
 
-            if (!component.model.getTexture().isBlendingEnabled()) {
+            if (!component.material.isBlendingEnabled()) {
                 if (!FrustumCull.isVisible(entity))
                     continue;
 
@@ -53,7 +54,9 @@ public class ClientScene extends Scene {
             Renderer.bind(entry.getKey());
 
             for (Entity entity : entry.getValue()) {
-                ClientShader shader = entity.getComponent(MeshComponent.class).shader;
+                MeshComponent component = entity.getComponent(MeshComponent.class);
+                ClientShader shader = component.shader;
+                component.material.bind();
                 shader.start();
                 shader.loadEntitySpecificInformation(entity);
 
@@ -70,6 +73,7 @@ public class ClientScene extends Scene {
     }
 
     public void renderDecals(int depthMap) {
+        GL30.glColorMaski(2, false, false, false, true); // normal buffer: surface normals are stored in red and green channels
         Profiler.start("Decals");
         if (!Renderer.getCubeModel().isLoaded())
             return;
@@ -83,15 +87,10 @@ public class ClientScene extends Scene {
         Graphics.bind2DTexture(depthMap, 6);
         for (Entity entity : getEntitiesWithComponent(DecalComponent.class)) {
             DecalComponent component = entity.getComponent(DecalComponent.class);
-            if (component.texture == null || !component.texture.isLoaded())
+            if (component.material == null || !component.material.isLoaded())
                 continue;
 
-            Graphics.bind2DTexture(component.texture.getId(), 0);
-            Graphics.bind2DTexture(component.texture.getNormalMap(), 1);
-            Graphics.bind2DTexture(component.texture.getSpecularMap(), 2);
-            Graphics.bind2DTexture(component.texture.getMetallicMap(), 3);
-            Graphics.bind2DTexture(component.texture.getRoughnessMap(), 4);
-            Graphics.bind2DTexture(component.texture.getAmbientOcclusionMap(), 5);
+            component.material.bind();
             shader.loadEntitySpecificInformation(entity);
 
             Renderer.render(Renderer.getCubeModel());
@@ -99,8 +98,11 @@ public class ClientScene extends Scene {
 
         shader.stop();
         GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_BLEND);
         Renderer.unbind(Renderer.getCubeModel());
         Profiler.end("Decals");
+        GL30.glColorMaski(2, true, true, true, true);
     }
 
     public void renderBlending() {
@@ -109,10 +111,10 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(WaterComponent.class))
+            if (component.shader == null || component.model == null || !component.model.isLoaded())
                 continue;
 
-            if (component.model.getTexture().isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
+            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
                 if (!FrustumCull.isVisible(entity))
                     continue;
 
@@ -123,12 +125,16 @@ public class ClientScene extends Scene {
         }
 
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL40.glBlendFunci(3, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
             Renderer.bind(entry.getKey());
 
             for (Entity entity : entry.getValue()) {
-                ClientShader shader = entity.getComponent(MeshComponent.class).shader;
+                MeshComponent component = entity.getComponent(MeshComponent.class);
+                ClientShader shader = component.shader;
+                component.material.bind();
+
                 shader.start();
                 shader.loadEntitySpecificInformation(entity);
 
@@ -143,59 +149,16 @@ public class ClientScene extends Scene {
         Profiler.end("Blending");
     }
 
-    public void renderReflective() {
-        Profiler.start("Reflective");
-        renderables.clear();
-
-        for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
-            if (!FrustumCull.isVisible(entity))
-                continue;
-
-            MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded())
-                continue;
-
-            if (entity.hasComponent(WaterComponent.class)) {
-                if (!renderables.containsKey(component.model))
-                    renderables.put(component.model, new ArrayList<Entity>());
-                renderables.get(component.model).add(entity);
-            }
-        }
-
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-        for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
-            Renderer.bind(entry.getKey());
-
-            for (Entity entity : entry.getValue()) {
-                ClientShader shader = entity.getComponent(MeshComponent.class).shader;
-                shader.start();
-                shader.loadEntitySpecificInformation(entity);
-
-                GL11.glDisable(GL11.GL_CULL_FACE);
-                Renderer.render(entry.getKey());
-
-                shader.stop();
-            }
-
-            Renderer.unbind(entry.getKey());
-        }
-
-        GL11.glDisable(GL11.GL_BLEND);
-        Profiler.end("Reflective");
-    }
-
     public void forwardRender() {
         Profiler.start("Forward");
         renderables.clear();
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(WaterComponent.class))
+            if (component.shader == null || component.model == null || !component.model.isLoaded())
                 continue;
 
-            if (component.model.getTexture().isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
+            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
                 if (!FrustumCull.isVisible(entity))
                     continue;
 
@@ -208,19 +171,22 @@ public class ClientScene extends Scene {
         ClientShader shader = ForwardStaticShader.getInstance();
         shader.start();
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL40.glBlendFunci(3, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
         for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
             Renderer.bind(entry.getKey());
 
             for (Entity entity : entry.getValue()) {
+                entity.getComponent(MeshComponent.class).material.bind();
                 shader.loadEntitySpecificInformation(entity);
 
                 Renderer.render(entry.getKey());
-
             }
 
             Renderer.unbind(entry.getKey());
         }
+
         GL11.glDisable(GL11.GL_BLEND);
         shader.stop();
         Profiler.end("Forward");
@@ -249,7 +215,12 @@ public class ClientScene extends Scene {
                 Renderer.bind(entry.getKey());
 
                 for (Entity entity : entry.getValue()) {
-                    shader.loadEntitySpecificInformation(entity.getTransformationMatrix(), entry.getKey().getTexture().getNumberOfRows(), entity.getComponent(MeshComponent.class).getTextureOffset());
+                    MeshComponent component = entity.getComponent(MeshComponent.class);
+                    if (component.material == null)
+                        continue;
+
+                    component.material.bind();
+                    shader.loadEntitySpecificInformation(entity.getTransformationMatrix(), component.material.getNumberOfRows(), component.getTextureOffset());
 
                     Renderer.render(entry.getKey());
                 }
@@ -259,6 +230,7 @@ public class ClientScene extends Scene {
         }
 
         shader.stop();
+        shadows.finish();
         Profiler.end("Shadows");
     }
 
@@ -291,6 +263,7 @@ public class ClientScene extends Scene {
 
         Renderer.bind(component.model);
         shader.start();
+        component.material.bind();
         shader.loadEntitySpecificInformation(entity);
         Renderer.render(component.model);
 

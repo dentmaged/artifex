@@ -26,7 +26,7 @@ public class CrossbowData extends GunData {
 
         Entity projectile = new Entity(PhysicsComponent.class, EngineMeshComponent.class);
         projectile.setValue("model", "editor/cube");
-        projectile.setValue("collisionMesh", "aabb");
+        projectile.setValue("collisionMesh", "editor/cube");
         PhysicsComponent physics = projectile.getComponent(PhysicsComponent.class);
         physics.inverseMass = 2;
         physics.gravity = false;

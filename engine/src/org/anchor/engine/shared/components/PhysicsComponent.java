@@ -7,6 +7,7 @@ import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.physics.CollisionMesh;
 import org.anchor.engine.shared.physics.Material;
 import org.anchor.engine.shared.physics.PhysicsTouchListener;
@@ -37,6 +38,7 @@ public class PhysicsComponent implements IComponent {
     public Material material = Material.WOOD;
 
     private Entity entity;
+    protected AABB wholeAABB, aabbs[];
 
     @Override
     public void spawn(Entity entity) {
@@ -44,6 +46,7 @@ public class PhysicsComponent implements IComponent {
 
         if (meshes.size() == 0 && entity.containsKey("collisionMesh"))
             meshes.addAll(CollisionMeshLoader.loadCollisionMeshes(entity.getValue("collisionMesh")));
+        aabbs = new AABB[meshes.size()];
     }
 
     @Override
@@ -56,6 +59,48 @@ public class PhysicsComponent implements IComponent {
 
         if (key.equals("gravity"))
             gravity = Boolean.parseBoolean(value);
+    }
+
+    @Override
+    public void updateFixed() {
+        if (entity == null)
+            return;
+
+        if (!entity.hasUpdated() && wholeAABB != null)
+            return;
+
+        Matrix4f transformationMatrix = entity.getTransformationMatrix();
+        for (int i = 0; i < meshes.size(); i++)
+            aabbs[i] = meshes.get(i).getAABB(transformationMatrix);
+
+        if (meshes.size() == 1) {
+            wholeAABB = aabbs[0];
+
+            return;
+        }
+
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float minZ = Float.MAX_VALUE;
+
+        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
+        float maxX = -Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+        float maxZ = -Float.MAX_VALUE;
+
+        for (CollisionMesh mesh : meshes) {
+            for (Vector3f vertex : mesh.getAABB(transformationMatrix).getCorners()) {
+                minX = Math.min(minX, vertex.x);
+                minY = Math.min(minY, vertex.y);
+                minZ = Math.min(minZ, vertex.z);
+
+                maxX = Math.max(maxX, vertex.x);
+                maxY = Math.max(maxY, vertex.y);
+                maxZ = Math.max(maxZ, vertex.z);
+            }
+        }
+
+        wholeAABB = new AABB(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     public boolean isCollidable() {
@@ -92,42 +137,11 @@ public class PhysicsComponent implements IComponent {
     }
 
     public AABB getAABB(int mesh) {
-        if (entity == null)
-            return null;
-
-        return meshes.get(mesh).getAABB(entity.getTransformationMatrix());
+        return aabbs[mesh];
     }
 
     public AABB getWholeAABB() {
-        if (entity == null)
-            return null;
-
-        if (meshes.size() == 1)
-            return getAABB(0);
-
-        float minX = Float.MAX_VALUE;
-        float minY = Float.MAX_VALUE;
-        float minZ = Float.MAX_VALUE;
-
-        // JAVA BUG: Float.MIN_VALUE is sometimes wrong when comparing
-        float maxX = -Float.MAX_VALUE;
-        float maxY = -Float.MAX_VALUE;
-        float maxZ = -Float.MAX_VALUE;
-
-        Matrix4f transformationMatrix = entity.getTransformationMatrix();
-        for (CollisionMesh mesh : meshes) {
-            for (Vector3f vertex : mesh.getAABB(transformationMatrix).getCorners()) {
-                minX = Math.min(minX, vertex.x);
-                minY = Math.min(minY, vertex.y);
-                minZ = Math.min(minZ, vertex.z);
-
-                maxX = Math.max(maxX, vertex.x);
-                maxY = Math.max(maxY, vertex.y);
-                maxZ = Math.max(maxZ, vertex.z);
-            }
-        }
-
-        return new AABB(minX, maxX, minY, maxY, minZ, maxZ);
+        return wholeAABB;
     }
 
     public Vector3f raycast(Vector3f origin, Vector3f ray) {

@@ -20,8 +20,13 @@ public class PhysicsEngine {
         List<Entity> entities = scene.getEntitiesWithComponent(PhysicsComponent.class);
         for (Entity entity : entities) {
             PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
-            if (physics.gravity)
-                physics.velocity.y += GRAVITY * TICK_DELAY;
+            if (physics.gravity) {
+                float add = GRAVITY * TICK_DELAY;
+                if (add + entity.getVelocity().y > GRAVITY)
+                    add = GRAVITY - entity.getVelocity().y;
+
+                entity.getVelocity().y += add;
+            }
         }
 
         List<NarrowphaseCollisionResult> results = CollisionEngine.collisions(entities);

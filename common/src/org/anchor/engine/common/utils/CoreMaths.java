@@ -77,6 +77,10 @@ public class CoreMaths {
         return result;
     }
 
+    public static int roundUpToNearestY(float x, float y) {
+        return (int) (Math.ceil(x / y) * y + y);
+    }
+
     public static Matrix4f createTransformationMatrix(Vector2f translation, Vector2f scale, float rx, float ry) {
         Matrix4f matrix = new Matrix4f();
 
@@ -103,9 +107,9 @@ public class CoreMaths {
     public static Matrix4f createViewMatrix(Vector3f position, float pitch, float yaw, float roll) {
         Matrix4f matrix = new Matrix4f();
 
+        Matrix4f.rotate((float) Math.toRadians(roll), new Vector3f(0, 0, 1), matrix, matrix);
         Matrix4f.rotate((float) Math.toRadians(pitch), new Vector3f(1, 0, 0), matrix, matrix);
         Matrix4f.rotate((float) Math.toRadians(yaw), new Vector3f(0, 1, 0), matrix, matrix);
-        Matrix4f.rotate((float) Math.toRadians(roll), new Vector3f(0, 0, 1), matrix, matrix);
         Matrix4f.translate(VectorUtils.mul(position, -1), matrix, matrix);
 
         return matrix;
@@ -183,6 +187,32 @@ public class CoreMaths {
         matrix.m32 = Vector3f.dot(f, eye);
 
         return matrix;
+    }
+
+    public static void set(Matrix4f src, Matrix4f dest) {
+        dest.m00 = src.m00;
+        dest.m01 = src.m01;
+        dest.m02 = src.m02;
+        dest.m03 = src.m03;
+
+        dest.m10 = src.m10;
+        dest.m11 = src.m11;
+        dest.m12 = src.m12;
+        dest.m13 = src.m13;
+
+        dest.m20 = src.m20;
+        dest.m21 = src.m21;
+        dest.m22 = src.m22;
+        dest.m23 = src.m23;
+
+        dest.m30 = src.m30;
+        dest.m31 = src.m31;
+        dest.m32 = src.m32;
+        dest.m33 = src.m33;
+    }
+
+    public static float map(float value, float min1, float max1, float min2, float max2) {
+        return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
     }
 
 }

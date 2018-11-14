@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.app.App;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.console.GameVariableManager;
@@ -30,15 +31,14 @@ public class Launcher {
         }
 
         FileHelper.game = args.get("game");
-        for (Entry<String, String> entry : args.entrySet()) {
-            System.out.println(entry.getKey() + " = " + entry.getValue());
-        }
+        for (Entry<String, String> entry : args.entrySet())
+            Log.info(entry.getKey() + " = " + entry.getValue());
 
         String file = "client.jar";
         if (args.containsKey("server") && args.get("server").equals("1"))
             file = "server.jar";
 
-        System.out.println("Loading " + new File(new File(FileHelper.game, "bin"), file).getAbsolutePath() + "...");
+        Log.info("Loading " + new File(new File(FileHelper.game, "bin"), file).getAbsolutePath() + "...");
         loadJar(new File(new File(FileHelper.game, "bin"), file), "org.anchor.game.GameStart", "gameVarInit");
 
         for (int i = 0; i < arguments.length; i++) {

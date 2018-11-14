@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.Settings;
+import org.anchor.client.engine.renderer.types.ibl.Probe;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.Plane;
 import org.anchor.engine.common.utils.VectorUtils;
@@ -64,7 +65,7 @@ public class FrustumCull {
     public static boolean isVisible(Terrain terrain) {
         Vector3f position = terrain.getCenter();
         for (Plane plane : planes) {
-            if (plane.signedDistanceTo(position) < -terrain.getSize() * 0.7f)
+            if (plane.signedDistanceTo(position) < -terrain.getSize() * 0.8f)
                 return false;
         }
 
@@ -77,6 +78,18 @@ public class FrustumCull {
         along.normalise();
 
         return Vector3f.cross(plane, along, null);
+    }
+
+    public static <T extends Probe> void cull(List<T> probes) {
+        for (int i = 0; i < probes.size(); i++) {
+            float furthest = probes.get(i).getSize() * 1.5f;
+            Vector3f position = probes.get(i).getPosition();
+
+            for (Plane plane : planes) {
+                if (plane.signedDistanceTo(position) < -furthest)
+                    probes.remove(i);
+            }
+        }
     }
 
 }

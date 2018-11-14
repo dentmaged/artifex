@@ -35,6 +35,9 @@ public class Broadphase {
                 if (!secondary.isCollidable())
                     continue inner;
 
+                if (primary.inverseMass == 0 && secondary.inverseMass == 0)
+                    continue inner;
+
                 if (!primary.canCollideWith(two) || !secondary.canCollideWith(one))
                     continue inner;
 
@@ -49,15 +52,20 @@ public class Broadphase {
                     int x = -1;
                     int y = -1;
 
-                    meshCheckOuter: for (int k = 0; k < primary.getMeshCount(); k++) {
-                        AABB a = primary.getAABB(k);
+                    if (primary.getMeshCount() == 1 && secondary.getMeshCount() == 1) {
+                        x = 0;
+                        y = 0;
+                    } else {
+                        meshCheckOuter: for (int k = 0; k < primary.getMeshCount(); k++) {
+                            AABB a = primary.getAABB(k);
 
-                        for (int l = 0; l < secondary.getMeshCount(); l++) {
-                            if (a.collides(secondary.getAABB(l))) {
-                                x = k;
-                                y = l;
+                            for (int l = 0; l < secondary.getMeshCount(); l++) {
+                                if (a.collides(secondary.getAABB(l))) {
+                                    x = k;
+                                    y = l;
 
-                                break meshCheckOuter;
+                                    break meshCheckOuter;
+                                }
                             }
                         }
                     }

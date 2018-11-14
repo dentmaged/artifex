@@ -1,12 +1,14 @@
 package org.anchor.game.editor.components;
 
+import org.anchor.client.engine.renderer.KeyboardUtils;
+import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
-import org.anchor.game.client.utils.KeyboardUtils;
 import org.anchor.game.editor.GameEditor;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.util.vector.Vector3f;
 
 public class EditorInputComponent extends LivingComponent {
 
@@ -47,12 +49,24 @@ public class EditorInputComponent extends LivingComponent {
                 sideways *= constant;
             }
 
-            if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInAir && !isInWater) {
-                entity.getVelocity().x += (Math.sin(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
-                entity.getVelocity().z -= (Math.cos(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
+            fire = Mouse.isButtonDown(0);
+            reload = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R);
 
-                entity.getVelocity().x += (Math.sin((yaw - 90) / 180 * pi)) * (sideways * PhysicsEngine.TICK_DELAY);
-                entity.getVelocity().z -= (Math.cos((yaw - 90) / 180 * pi)) * (sideways * PhysicsEngine.TICK_DELAY);
+            if (!isInLiquid) {
+                Vector3f accelerateDirection = new Vector3f(Mathf.sinDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY + Mathf.sinDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY, 0, -Mathf.cosDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY - Mathf.cosDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY);
+
+                if (accelerateDirection.lengthSquared() != 0) {
+                    accelerateDirection.normalise();
+
+                    float projectedVelocity = Vector3f.dot(entity.getVelocity(), accelerateDirection);
+                    float maximumVelocity = selectedSpeed * PhysicsEngine.TICK_DELAY / (isInAir ? MAX_SPEED_AIR : MAX_SPEED_GROUND);
+                    float accelerateVelocity = PhysicsEngine.TICK_DELAY * (isInAir ? ACCELERATE_AIR : ACCELERATE_GROUND);
+
+                    if (projectedVelocity + accelerateVelocity > maximumVelocity)
+                        accelerateVelocity = maximumVelocity - projectedVelocity;
+
+                    Vector3f.add(entity.getVelocity(), VectorUtils.mul(accelerateDirection, accelerateVelocity), entity.getVelocity());
+                }
             }
 
             if (!gravity) {
@@ -62,7 +76,7 @@ public class EditorInputComponent extends LivingComponent {
                 } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
                     entity.getPosition().y -= 2 * JUMP_POWER;
                 }
-            } else if (isInWater) {
+            } else if (isInLiquid) {
                 if (KeyboardUtils.isKeyDown(Keyboard.KEY_SPACE)) {
                     entity.getPosition().y += 0.5f * JUMP_POWER;
                 } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
@@ -81,7 +95,7 @@ public class EditorInputComponent extends LivingComponent {
             forwards = Mouse.getDWheel() * MOUSE_WHEEL_MULTIPLIER;
             sideways = 0;
 
-            if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInAir && !isInWater) {
+            if (VectorUtils.horizontalLength(entity.getVelocity()) < selectedSpeed && !isInAir && !isInLiquid) {
                 entity.getVelocity().x += (Math.sin(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
                 entity.getVelocity().z -= (Math.cos(yaw / 180 * pi)) * (forwards * PhysicsEngine.TICK_DELAY);
             }

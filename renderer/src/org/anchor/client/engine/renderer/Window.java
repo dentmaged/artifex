@@ -36,7 +36,7 @@ public class Window {
     }
 
     public static void endFrame() {
-        Display.sync(Settings.maxFPS);
+        Display.sync(!Display.isActive() && Settings.lowerFPSFocus ? 3 : Settings.maxFPS);
         Display.update();
 
         long currentFrameTime = getCurrentTime();

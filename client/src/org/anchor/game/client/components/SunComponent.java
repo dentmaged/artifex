@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.types.light.LightType;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 
 public class SunComponent implements IComponent {
 

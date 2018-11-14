@@ -7,8 +7,7 @@ in vec4 clipSpace;
 FS_OUT(diffuse)
 FS_OUT(other)
 FS_OUT(normal)
-FS_OUT(bloom)
-FS_OUT(godrays)
+FS_OUT(albedo)
 
 tex albedo;
 tex specular;
@@ -16,6 +15,7 @@ tex metallic;
 tex roughness;
 tex ao;
 tex depthMap;
+tex normal;
 
 uniform bool usesAOMap;
 uniform mat4 inverseProjectionMatrix;
@@ -42,5 +42,5 @@ void main(void) {
 	float roughness = texture2D(roughness, tc).r;
 	float ao = usesAOMap ? texture2D(ao, tc).r : 1;
 
-	emitDecal(diffuse, texture2D(specular, tc).r * diffuse.xyz, metallic, roughness, ao);
+	emitDecal(diffuse, texture2D(specular, tc).r, metallic, roughness, ao);
 }

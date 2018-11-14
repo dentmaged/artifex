@@ -34,7 +34,7 @@ public class DecalShader extends ModelShader {
         Matrix4f inverseTransformationMatrix = Matrix4f.invert(entity.getTransformationMatrix(), null);
         if (inverseTransformationMatrix != null)
             loadMatrix("inverseTransformationMatrix", inverseTransformationMatrix);
-        loadBoolean("useAOMap", entity.getComponent(DecalComponent.class).texture.getAmbientOcclusionMap() != -1);
+        loadBoolean("useAOMap", entity.getComponent(DecalComponent.class).material.hasAmbientOcclusionMap());
     }
 
     public static DecalShader getInstance() {

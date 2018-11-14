@@ -27,10 +27,13 @@ public class Bloom {
         blurThree = new Blur(Display.getWidth() / 8, Display.getHeight() / 8);
     }
 
-    public void perform(int scene, int bloomTexture) {
+    public void perform(int scene, int bloomTexture, int mipmappedScene) {
+        autoExposure.perform(mipmappedScene);
+
         bloomShader.start();
         QuadRenderer.bind();
-        Graphics.bind2DTexture(bloomTexture, 0);
+        Graphics.bind2DTexture(scene, 0);
+        Graphics.bind2DTexture(bloomTexture, 1);
 
         outputFBO.bindFramebuffer();
         QuadRenderer.render();
@@ -42,8 +45,6 @@ public class Bloom {
         blurOne.perform(outputFBO.getColourTexture());
         blurTwo.perform(outputFBO.getColourTexture());
         blurThree.perform(outputFBO.getColourTexture());
-
-        autoExposure.perform(scene);
 
         combineShader.start();
         QuadRenderer.bind();

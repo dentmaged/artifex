@@ -12,7 +12,7 @@ public class Scheduler {
             events.get(i).tick();
     }
 
-    public static ScheduledEvent schedule(IRunnable runnable, float duration) {
+    public static ScheduledEvent schedule(ScheduledRunnable runnable, float duration) {
         ScheduledEvent event = new ScheduledEvent(runnable, duration);
         events.add(event);
 

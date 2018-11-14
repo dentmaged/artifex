@@ -8,7 +8,6 @@ texCube environment;
 uniform float mip;
 uniform float face;
 
-const float pi = 3.141592653589793238;
 const uint sampleCount = 1024u;
 
 float distributionGGX(vec3 N, vec3 H, float roughness) {

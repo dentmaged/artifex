@@ -29,7 +29,7 @@ public class TerrainShader extends ModelShader {
 
     public void loadTerrainInformation(ClientTerrain terrain) {
         loadMatrix("projectionViewTransformationMatrix", Matrix4f.mul(Matrix4f.mul(Renderer.getProjectionMatrix(), GameClient.getPlayer().getComponent(LivingComponent.class).getViewMatrix(), null), CoreMaths.createTransformationMatrix(new Vector3f(terrain.getX(), 0, terrain.getZ()), new Vector3f(), new Vector3f(terrain.getSize(), 1, terrain.getSize())), null));
-        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(new Vector3f(terrain.getX(), 0, terrain.getZ()), new Vector3f()));
+        loadMatrix("normalMatrix", GameClient.getPlayer().getComponent(LivingComponent.class).getNormalMatrix(new Vector3f()));
 
         loadVector("colour", terrain.getColour());
     }

@@ -73,4 +73,10 @@ public class VectorUtils {
         a.m33 = b.m33;
     }
 
+    public static Vector3f normalise(Vector3f v) {
+        v.normalise();
+
+        return v;
+    }
+
 }

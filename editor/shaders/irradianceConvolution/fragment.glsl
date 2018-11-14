@@ -6,8 +6,6 @@ FS_OUT(colour)
 
 texCube environment;
 
-const float pi = 3.141592653589793238;
-
 void main(void) {
 	vec3 N = normalize(pos);
 	vec3 irradiance = vec3(0);

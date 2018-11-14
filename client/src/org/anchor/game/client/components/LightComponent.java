@@ -2,10 +2,14 @@ package org.anchor.game.client.components;
 
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
-import org.anchor.engine.shared.components.IComponent;
+import org.anchor.engine.common.utils.CoreMaths;
+import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 public class LightComponent implements IComponent, Light {
 
@@ -17,9 +21,6 @@ public class LightComponent implements IComponent, Light {
 
     @Property("Attenuation")
     public Vector3f attenuation = new Vector3f(1, 0, 0.001f);
-
-    @Property("Direction")
-    public Vector3f direction = new Vector3f(0, -1, 0);
 
     @Property("Cutoff (degrees)")
     public float cutoff = 35;
@@ -62,7 +63,10 @@ public class LightComponent implements IComponent, Light {
 
     @Override
     public Vector3f getDirection() {
-        return direction;
+        if (entity == null)
+            return new Vector3f(0, 0, -1);
+
+        return VectorUtils.normalise(new Vector3f(Matrix4f.transform(CoreMaths.createTransformationMatrix(new Vector3f(), entity.getRotation(), new Vector3f(1, 1, 1)), new Vector4f(0, 0, -1, 0), null)));
     }
 
     @Override
@@ -86,7 +90,6 @@ public class LightComponent implements IComponent, Light {
         copy.relativePosition = new Vector3f(relativePosition);
         copy.colour = new Vector3f(colour);
         copy.attenuation = new Vector3f(attenuation);
-        copy.direction = new Vector3f(direction);
         copy.cutoff = cutoff;
         copy.outerCutoff = outerCutoff;
         copy.type = type;

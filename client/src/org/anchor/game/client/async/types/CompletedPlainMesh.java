@@ -17,7 +17,7 @@ public class CompletedPlainMesh extends CompletedRequest {
 
     @Override
     public void load() {
-        request.setMesh(Loader.getInstance().loadToVAO(data.getVertices(), data.getTextureCoords(), data.getNormals(), data.getIndices()));
+        request.setMesh(Loader.getInstance().loadToVAO(data.getVertices(), data.getTextureCoords(), data.getNormals(), data.getTangents(), data.getIndices()));
         request.getMesh().setAABB(AABB.generateAABB(data.getVertices()));
         request.getMesh().setFurthestVertex(data.getFurthestVertex());
     }

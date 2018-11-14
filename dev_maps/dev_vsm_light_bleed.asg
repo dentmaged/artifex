@@ -1,0 +1,7 @@
+hidden:truebackface:falsemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:25.059584@-16.0@19.273306Rotation:0.0@0.0@0.0Scale:3333.3333@3333.3333@3333.3333Model:Material:Texture Index:0Disable Frustum Culling:true
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentorg.anchor.game.client.components.SunComponentPosition:0.0@0.0@0.0Rotation:109.0@23.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:4.0@4.0@4.0Attenuation:1.0@0.0@0.0Cutoff (degrees):35.0Outer cutoff (degrees):45.0Type:DIRECTIONAL
+material:interior/checkerboard_floormodel:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:28.999619@-6.5@18.163124Rotation:0.0@0.0@0.0Scale:31.0@1.0@31.0Model:Material:Texture Index:0Disable Frustum Culling:false
+material:metal/brushed_aluminium_1model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:28.38076@-5.999998@17.390282Rotation:0.0@0.0@0.0Scale:1.0@31.0@1.0Model:Material:Texture Index:0Disable Frustum Culling:false
+
+00blackblendmapdefaultdefaultdefaultdefault
+

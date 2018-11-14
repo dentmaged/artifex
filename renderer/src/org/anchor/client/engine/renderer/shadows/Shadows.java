@@ -1,7 +1,9 @@
 package org.anchor.client.engine.renderer.shadows;
 
 import org.anchor.client.engine.renderer.Settings;
+import org.anchor.client.engine.renderer.blur.Blur;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
@@ -11,6 +13,7 @@ import org.lwjgl.util.vector.Vector3f;
 public class Shadows {
 
     private static Framebuffer[] shadowFBOs;
+    private static Blur vsm;
     private ShadowFrustum[] frustums;
 
     private Matrix4f lightViewMatrices[];
@@ -26,7 +29,8 @@ public class Shadows {
         if (shadowFBOs == null) {
             shadowFBOs = new Framebuffer[Settings.shadowSplits];
             for (int i = 0; i < shadowFBOs.length; i++)
-                shadowFBOs[i] = new Framebuffer(Settings.shadowResolution, Settings.shadowResolution, Framebuffer.DEPTH_TEXTURE);
+                shadowFBOs[i] = new Framebuffer(Settings.shadowResolution, Settings.shadowResolution, Framebuffer.NONE, ImageFormat.RG32F);
+            vsm = new Blur(Settings.shadowResolution, Settings.shadowResolution, ImageFormat.RG32F);
         }
 
         lightViewMatrices = new Matrix4f[Settings.shadowSplits];
@@ -60,6 +64,7 @@ public class Shadows {
 
         for (int i = 0; i < Settings.shadowSplits; i++)
             prepare(inverseViewMatrix, direction, position, i);
+        GL11.glClearColor(1, 1, 1, 1);
 
         return true;
     }
@@ -71,8 +76,9 @@ public class Shadows {
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
 
-    public void stop() {
-        shadowFBOs[0].unbindFramebuffer();
+    public void finish() {
+        vsm.perform(shadowFBOs[0].getColourTexture());
+        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
     }
 
     public Matrix4f getToShadowMapSpaceMatrix(int shadow) {
@@ -88,12 +94,15 @@ public class Shadows {
             shadowFBO.shutdown();
     }
 
-    public int getPCFShadowMap(int map) {
-        return shadowFBOs[map].getDepthTexture();
+    public int getShadowMap(int map) {
+        if (map == 0)
+            return vsm.getOutputFBO().getColourTexture();
+
+        return shadowFBOs[map].getColourTexture();
     }
 
     public float getExtents(int shadow) {
-        return frustums[shadow].getFarPlane();
+        return frustums[shadow].getFarPlane() * 0.5f;
     }
 
     public void setSun(Light sun) {

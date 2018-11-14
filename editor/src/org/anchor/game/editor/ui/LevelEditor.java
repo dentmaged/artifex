@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,18 +49,18 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
 
 import org.anchor.client.engine.renderer.Settings;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.Pointer;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.ui.blueprint.ButtonBlueprint;
@@ -79,16 +78,18 @@ import org.anchor.engine.shared.ui.swing.CustomButton;
 import org.anchor.engine.shared.ui.swing.CustomCheckbox;
 import org.anchor.engine.shared.ui.swing.CustomDropdown;
 import org.anchor.engine.shared.ui.swing.CustomTextField;
+import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
+import org.anchor.game.client.components.ParticleSystemComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SlidingDoorComponent;
 import org.anchor.game.client.components.SoundComponent;
-import org.anchor.game.client.components.WaterComponent;
+import org.anchor.game.client.components.SunComponent;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
@@ -100,10 +101,14 @@ import org.anchor.game.editor.terrain.brush.SmoothBrush;
 import org.anchor.game.editor.terrain.brush.TerrainBrush;
 import org.anchor.game.editor.terrain.shape.Shape;
 import org.anchor.game.editor.utils.AssetManager;
+import org.anchor.game.editor.utils.FilePickCallback;
 import org.anchor.game.editor.utils.LogRedirector;
 import org.anchor.game.editor.utils.RenderSettings;
 import org.lwjgl.util.vector.Vector3f;
 
+/*
+ * Note: The gap between subpanels is 19px.
+ */
 public class LevelEditor extends JPanel {
 
     private JTextField xTransformField;
@@ -149,7 +154,7 @@ public class LevelEditor extends JPanel {
     protected boolean paint, terraform;
 
     private static Class<?>[] COMPONENTS = new Class[] {
-            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, WaterComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ReflectionProbeComponent.class
+            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ParticleSystemComponent.class, ReflectionProbeComponent.class, SunComponent.class
     };
 
     private static TerrainBrush[] BRUSHES = new TerrainBrush[] {
@@ -231,7 +236,7 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run() {
-                GameClient.getPlayer().getComponent(LivingComponent.class).noPhysicsSpeed = parseFloat(speedField.getText());
+                GameClient.getPlayer().getComponent(LivingComponent.class).noclipSpeed = parseFloat(speedField.getText());
             }
 
         });
@@ -350,7 +355,7 @@ public class LevelEditor extends JPanel {
             public void mouseClicked(MouseEvent arg0) {
                 float ram = getUsedMemory();
                 System.gc();
-                System.out.println(String.format("%.1f", ram - getUsedMemory()) + "MB of RAM has been freed.");
+                Log.info(String.format("%.1f", ram - getUsedMemory()) + "MB of RAM has been freed.");
             }
 
             @Override
@@ -585,7 +590,7 @@ public class LevelEditor extends JPanel {
 
         }));
         assetBrowserPopupMenu.addSeparator();
-        assetBrowserPopupMenu.add(new JMenuItem(new AbstractAction("Open in explorer") {
+        assetBrowserPopupMenu.add(new JMenuItem(new AbstractAction("Show in explorer") {
 
             private static final long serialVersionUID = 2487913488717280373L;
 
@@ -614,7 +619,7 @@ public class LevelEditor extends JPanel {
             }
 
         });
-        expand(assetBrowserFileSystem, new TreePath(assetBrowserFileSystem.getModel().getRoot()));
+        expand(assetBrowserFileSystem, 0, assetBrowserFileSystem.getRowCount());
         LEFT_DOCK_STATION.addTab("Asset Browser", assetBrowserPanel);
 
         JInternalFrame actionFrame = new JInternalFrame("Action");
@@ -649,13 +654,23 @@ public class LevelEditor extends JPanel {
         })), height);
         terrainCreatePanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
 
-        DropdownBlueprint createModel = new DropdownBlueprint("Model: ", AssetManager.getModels());
-        JScrollPane geometryCreatePanel = UIKit.createSubpanel("Geometry", Arrays.asList(createModel, new ButtonBlueprint("Create", new ButtonListener() {
+        Pointer<String> path = new Pointer<String>();
+        JScrollPane geometryCreatePanel = UIKit.createSubpanel("Geometry", Arrays.asList(AssetPicker.create("Model: ", null, "obj", new FilePickCallback() {
+
+            @Override
+            public void run(File file) {
+                path.set(FileHelper.removeFileExtension(FileHelper.localFileName(file)));
+            }
+
+        }), new ButtonBlueprint("Create", new ButtonListener() {
 
             @Override
             public void onButtonClick(CustomButton field) {
+                if (path.get() == null)
+                    return;
+
                 Entity entity = gameEditor.addEntity(false);
-                entity.setValue("model", (String) createModel.getSelectedItem());
+                entity.setValue("model", path.get());
                 entity.addComponent(new MeshComponent());
                 setSelectedEntity(entity);
 
@@ -665,12 +680,18 @@ public class LevelEditor extends JPanel {
         })), height);
         geometryCreatePanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
 
-        DropdownBlueprint prefabDropdown = new DropdownBlueprint("Prefab: ", AssetManager.getPrefabs());
-        JScrollPane prefabCreatePanel = UIKit.createSubpanel("Prefab", Arrays.asList(prefabDropdown, new ButtonBlueprint("Load", new ButtonListener() {
+        JScrollPane prefabCreatePanel = UIKit.createSubpanel("Prefab", Arrays.asList(AssetPicker.create("Prefab: ", null, "pfb", new FilePickCallback() {
+
+            @Override
+            public void run(File file) {
+                path.set(FileHelper.removeFileExtension(FileHelper.localFileName(file)));
+            }
+
+        }), new ButtonBlueprint("Load", new ButtonListener() {
 
             @Override
             public void onButtonClick(CustomButton field) {
-                gameEditor.getScene().getEntities().addAll(PrefabReader.read(FileHelper.newGameFile("res", prefabDropdown.getSelectedItem() + ".pfb")));
+                gameEditor.getScene().getEntities().addAll(PrefabReader.read(FileHelper.newGameFile("res", path.get() + ".pfb")));
                 updateList();
 
                 removeSubpanel();
@@ -1213,7 +1234,6 @@ public class LevelEditor extends JPanel {
         })), height);
         terrainBrushPanel.setBounds(UIKit.SUBPANEL_X, 310, UIKit.SUBPANEL_WIDTH, height.get());
         terrainPanel.add(terrainBrushPanel);
-        System.out.println(terrainBrushPanel.getBounds().y + height.get() + 19);
 
         JPanel environmentPanel = new JPanel();
         tabbedPane.addTab("Environment", null, environmentPanel, null);
@@ -1252,23 +1272,25 @@ public class LevelEditor extends JPanel {
 
         environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] {
                 {
-                        "Wireframe", Settings.wireframe
+                        "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool()
                 }, {
                         "Procedural Skybox", Settings.proceduralSky
                 }, {
-                        "Perform Lighting", Settings.performLighting
+                        "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool()
                 }, {
-                        "Perform SSAO", Settings.performSSAO
+                        "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool()
                 }, {
-                        "Show Lightmaps", Settings.showLightmaps
-                }, {
-                        "Minimum Diffuse", Settings.minDiffuse
+                        "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool()
                 }, {
                         "Fog Density", Settings.density
                 }, {
                         "Fog Gradient", Settings.gradient
                 }, {
                         "Exposure Speed", Settings.exposureSpeed
+                }, {
+                        "SSAO Bias", Settings.ssaoBias
+                }, {
+                        "SSAO Radius", Settings.ssaoRadius
                 }
         }, new String[] {
                 "Property", "Value"
@@ -1308,15 +1330,135 @@ public class LevelEditor extends JPanel {
         environmentScrollPane.setViewportView(environmentPropertiesTable);
 
         JPanel modelPanel = new JPanel();
-        RIGHT_DOCK_STATION.addTab("Model Settings", modelPanel);
+        RIGHT_DOCK_STATION.addTab("Material Settings", modelPanel);
         modelPanel.setLayout(null);
 
-        JScrollPane modelSettingsPanel = UIKit.createSubpanel("Model Settings", Arrays.asList(new TextFieldBlueprint("Rows: ", "1", new TextFieldListener() {
+        JScrollPane modelSettingsPanel = UIKit.createSubpanel("Material Settings", Arrays.asList(AssetPicker.create("Albedo: ", null, "png", new FilePickCallback() {
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                if (current != null) {
+                    MeshComponent mesh = current.getComponent(MeshComponent.class);
+                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
+                        String albedo = mesh.material != null ? mesh.material.getAlbedoName() : null;
+
+                        ((CustomButton) component).setText(albedo != null ? albedo : "Choose File");
+                        component.setEnabled(true);
+                    }
+                } else {
+                    ((CustomButton) component).setText("Choose File");
+                    component.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void run(File file) {
+                if (selectedEntity != null)
+                    selectedEntity.getComponent(MeshComponent.class).material.setAlbedo(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+            }
+
+        }), AssetPicker.create("Normal Map: ", null, "png", new FilePickCallback() {
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                if (current != null) {
+                    MeshComponent mesh = current.getComponent(MeshComponent.class);
+                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
+                        String normalMap = mesh.material != null ? mesh.material.getNormalMapName() : null;
+
+                        ((CustomButton) component).setText(normalMap != null ? normalMap : "Choose File");
+                        component.setEnabled(true);
+                    }
+                } else {
+                    ((CustomButton) component).setText("Choose File");
+                    component.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void run(File file) {
+                if (selectedEntity != null)
+                    selectedEntity.getComponent(MeshComponent.class).material.setNormalMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+            }
+
+        }), AssetPicker.create("Specular Map: ", null, "png", new FilePickCallback() {
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                if (current != null) {
+                    MeshComponent mesh = current.getComponent(MeshComponent.class);
+                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
+                        String specularMap = mesh.material != null ? mesh.material.getSpecularMapName() : null;
+
+                        ((CustomButton) component).setText(specularMap != null ? specularMap : "Choose File");
+                        component.setEnabled(true);
+                    }
+                } else {
+                    ((CustomButton) component).setText("Choose File");
+                    component.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void run(File file) {
+                if (selectedEntity != null)
+                    selectedEntity.getComponent(MeshComponent.class).material.setSpecularMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+            }
+
+        }), AssetPicker.create("Metallic: ", null, "png", new FilePickCallback() {
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                if (current != null) {
+                    MeshComponent mesh = current.getComponent(MeshComponent.class);
+                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
+                        String metallicMap = mesh.material != null ? mesh.material.getMetallicMapName() : null;
+
+                        ((CustomButton) component).setText(metallicMap != null ? metallicMap : "Choose File");
+                        component.setEnabled(true);
+                    }
+                } else {
+                    ((CustomButton) component).setText("Choose File");
+                    component.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void run(File file) {
+                if (selectedEntity != null)
+                    selectedEntity.getComponent(MeshComponent.class).material.setMetallicMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+            }
+
+        }), AssetPicker.create("Roughness Map: ", null, "png", new FilePickCallback() {
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                if (current != null) {
+                    MeshComponent mesh = current.getComponent(MeshComponent.class);
+                    if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
+                        String roughnessMap = mesh.material != null ? mesh.material.getRoughnessMapName() : null;
+
+                        ((CustomButton) component).setText(roughnessMap != null ? roughnessMap : "Choose File");
+                        component.setEnabled(true);
+                    }
+                } else {
+                    ((CustomButton) component).setText("Choose File");
+                    component.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void run(File file) {
+                if (selectedEntity != null)
+                    selectedEntity.getComponent(MeshComponent.class).material.setRoughnessMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+            }
+
+        }), new TextFieldBlueprint("Rows: ", "1", new TextFieldListener() {
 
             @Override
             public void onTextFieldEdit(CustomTextField field) {
                 if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).model.getTexture().setNumberOfRows(parseInt(field.getText(), 1));
+                    selectedEntity.getComponent(MeshComponent.class).material.setNumberOfRows(parseInt(field.getText(), 1));
             }
 
             @Override
@@ -1327,7 +1469,7 @@ public class LevelEditor extends JPanel {
                 if (current != null) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
-                        field.setText(mesh.model.getTexture().getNumberOfRows() + "");
+                        field.setText(mesh.material.getNumberOfRows() + "");
                         field.setEnabled(true);
                     }
                 } else {
@@ -1340,7 +1482,7 @@ public class LevelEditor extends JPanel {
             @Override
             public void onCheckboxEdit(CustomCheckbox checkbox) {
                 if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).model.getTexture().setCullingEnabled(checkbox.isSelected());
+                    selectedEntity.getComponent(MeshComponent.class).material.setCullingEnabled(checkbox.isSelected());
             }
 
             @Override
@@ -1351,7 +1493,7 @@ public class LevelEditor extends JPanel {
                 if (current != null) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
-                        checkbox.setSelected(mesh.model.getTexture().isCullingEnabled());
+                        checkbox.setSelected(mesh.material.isCullingEnabled());
                         checkbox.setEnabled(true);
                     }
                 } else {
@@ -1364,7 +1506,7 @@ public class LevelEditor extends JPanel {
             @Override
             public void onCheckboxEdit(CustomCheckbox checkbox) {
                 if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).model.getTexture().setBlendingEnabled(checkbox.isSelected());
+                    selectedEntity.getComponent(MeshComponent.class).material.setBlendingEnabled(checkbox.isSelected());
             }
 
             @Override
@@ -1375,7 +1517,7 @@ public class LevelEditor extends JPanel {
                 if (current != null) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
-                        checkbox.setSelected(mesh.model.getTexture().isBlendingEnabled());
+                        checkbox.setSelected(mesh.material.isBlendingEnabled());
                         checkbox.setEnabled(true);
                     }
                 } else {
@@ -1440,7 +1582,7 @@ public class LevelEditor extends JPanel {
                 render.colour.set(1, 0, 0, 0.65f);
 
             lblObjectsSelected.setText("1 Object Selected");
-            System.out.println("Entity selected at " + entity.getPosition().x + ", " + entity.getPosition().y + ", " + entity.getPosition().z);
+            Log.info("Entity selected at " + entity.getPosition().x + ", " + entity.getPosition().y + ", " + entity.getPosition().z);
         } else {
             lblObjectsSelected.setText("0 Objects Selected");
 
@@ -1472,7 +1614,7 @@ public class LevelEditor extends JPanel {
                     break;
             tree.setSelectionRow(i);
 
-            System.out.println("Terrain selected at " + terrain.getGX() + ", " + terrain.getGZ());
+            Log.info("Terrain selected at " + terrain.getGX() + ", " + terrain.getGZ());
             terrain.getColour().set(0, 0, 1, 0.65f);
 
             lblObjectsSelected.setText("1 Object Selected");
@@ -1505,7 +1647,7 @@ public class LevelEditor extends JPanel {
         }
     }
 
-    private void reloadEntityComponents(Entity entity) {
+    public void reloadEntityComponents(Entity entity) {
         Pointer<Integer> height = new Pointer<Integer>();
         int y = 0;
 
@@ -1680,19 +1822,15 @@ public class LevelEditor extends JPanel {
         }
 
         ((DefaultTreeModel) tree.getModel()).setRoot(root);
-        expand(tree, new TreePath(root));
+        expand(tree, 0, tree.getRowCount());
     }
 
-    private void expand(JTree tree, TreePath path) {
-        CustomMutableTreeNode node = (CustomMutableTreeNode) path.getLastPathComponent();
+    private void expand(JTree tree, int start, int count) {
+        for (int i = start; i < count; i++)
+            tree.expandRow(i);
 
-        if (node.getChildCount() > 0) {
-            Enumeration<?> enumeration = node.children();
-            while (enumeration.hasMoreElements())
-                expand(tree, path.pathByAddingChild(enumeration.nextElement()));
-        }
-
-        tree.expandPath(path);
+        if (tree.getRowCount() != count)
+            expand(tree, count, tree.getRowCount());
     }
 
     public void addTextFieldListener(JTextField textField, Runnable runnable) {

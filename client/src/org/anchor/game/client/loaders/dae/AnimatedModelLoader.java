@@ -1,7 +1,7 @@
 package org.anchor.game.client.loaders.dae;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
+import org.anchor.client.engine.renderer.types.Material;
 import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.animation.AnimatedModel;
@@ -13,22 +13,15 @@ import org.anchor.game.client.loaders.dae.types.JointData;
 
 public class AnimatedModelLoader {
 
-    public static final int MAX_WEIGHTS = 3;
-    private static final String RES_LOC = "res";
-
     public static AnimatedModel loadAnimatedModel(String name, TextureRequest texture) {
-        return loadAnimatedModel(name, new ModelTexture(texture));
+        return loadAnimatedModel(name, new Material(texture));
     }
 
-    public static AnimatedModel loadAnimatedModel(String name, ModelTexture texture) {
-        AnimatedModelData data = loadMesh(name);
+    public static AnimatedModel loadAnimatedModel(String name, Material texture) {
+        AnimatedModelData data = ColladaLoader.loadColladaModel(FileHelper.newGameFile(Loader.RES_LOC, name + ".dae"));
         Joint headJoint = createHeadJoint(data);
 
-        return new AnimatedModel(Requester.alreadyLoadedMesh(Loader.getInstance().loadToVAO(data.getMeshData().getVertices(), data.getMeshData().getTextureCoords(), data.getMeshData().getNormals(), data.getMeshData().getIndices(), data.getMeshData().getJointIds(), data.getMeshData().getVertexWeights())), texture, headJoint, data.getJointsData().getJointCount());
-    }
-
-    public static AnimatedModelData loadMesh(String name) {
-        return ColladaLoader.loadColladaModel(FileHelper.newGameFile(RES_LOC, name + ".dae"), MAX_WEIGHTS);
+        return new AnimatedModel(Requester.alreadyLoadedMesh(Loader.getInstance().loadToVAO(data.getMeshData().getVertices(), data.getMeshData().getTextureCoords(), data.getMeshData().getNormals(), data.getMeshData().getIndices(), data.getMeshData().getJointIds(), data.getMeshData().getVertexWeights())), headJoint, data.getJointsData().getJointCount());
     }
 
     public static Joint createHeadJoint(AnimatedModelData data) {

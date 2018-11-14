@@ -7,6 +7,8 @@ import org.anchor.client.engine.renderer.Shader;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.IGameVariable;
 import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -14,12 +16,14 @@ import org.lwjgl.util.vector.Vector4f;
 
 public class DeferredShader extends Shader {
 
-    public static final int MAX_LIGHTS = 20;
-
     private static DeferredShader instance = new DeferredShader();
+
+    private IGameVariable r_showLightmaps;
 
     public DeferredShader() {
         super("deferred");
+
+        r_showLightmaps = CoreGameVariableManager.getByName("r_showLightmaps");
     }
 
     @Override
@@ -29,40 +33,23 @@ public class DeferredShader extends Shader {
         loadInt("diffuse", 0);
         loadInt("other", 1);
         loadInt("normal", 2);
-        loadInt("bloom", 3);
-        loadInt("godrays", 4);
-        loadInt("depthMap", 5);
-        loadInt("ssao", 6);
-        loadInt("scene", 7);
-        loadInt("skybox", 8);
-        loadInt("irradianceMap", 9);
-        loadInt("prefilter", 10);
-        loadInt("brdf", 11);
+        loadInt("depthMap", 3);
 
         for (int i = 0; i < Settings.shadowSplits; i++)
-            loadInt("shadowMaps[" + i + "]", 12 + i);
+            loadInt("shadowMaps[" + i + "]", 13 + i);
     }
 
-    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Vector3f baseColour, Vector3f topColour, Shadows shadows) {
+    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Shadows shadows) {
         loadMatrix("viewMatrix", viewMatrix);
         loadMatrix("inverseViewMatrix", inverseViewMatrix);
-        loadBoolean("showLightmaps", Settings.showLightmaps);
-        loadFloat("minDiffuse", Settings.minDiffuse);
-
-        loadFloat("density", Settings.density);
-        loadFloat("gradient", Settings.gradient);
-        loadVector("skyColour", baseColour);
-
-        loadVector("baseColour", baseColour);
-        loadVector("topColour", topColour);
-        loadBoolean("proceduralSky", Settings.proceduralSky);
+        loadBoolean("showLightmaps", r_showLightmaps.getValueAsBool());
 
         for (int i = 0; i < Settings.shadowSplits; i++) {
             loadMatrix("toShadowMapSpaces[" + i + "]", shadows.getToShadowMapSpaceMatrix(i));
             loadFloat("shadowDistances[" + i + "]", shadows.getExtents(i));
         }
 
-        for (int i = 0; i < DeferredShader.MAX_LIGHTS; i++) {
+        for (int i = 0; i < Settings.maxLights; i++) {
             if (i < lights.size()) {
                 Light light = lights.get(i);
 
@@ -97,7 +84,7 @@ public class DeferredShader extends Shader {
         bindFragOutput(0, "out_diffuse");
         bindFragOutput(1, "out_other");
         bindFragOutput(2, "out_normal");
-        bindFragOutput(3, "out_bloom");
+        bindFragOutput(3, "out_albedo");
 
         bindAttribute(0, "position");
     }

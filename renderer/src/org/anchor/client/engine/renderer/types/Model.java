@@ -2,23 +2,15 @@ package org.anchor.client.engine.renderer.types;
 
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
-import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
 
 public class Model {
 
     protected MeshRequest mesh;
-    protected ModelTexture texture;
 
-    public Model(MeshRequest mesh, TextureRequest texture) {
-        this(mesh, new ModelTexture(texture));
-    }
-
-    public Model(MeshRequest mesh, ModelTexture texture) {
+    public Model(MeshRequest mesh) {
         this.mesh = mesh;
-        this.texture = texture;
     }
 
     public Mesh getMesh() {
@@ -29,12 +21,8 @@ public class Model {
         return mesh.getName();
     }
 
-    public ModelTexture getTexture() {
-        return texture;
-    }
-
     public boolean isLoaded() {
-        return mesh.isLoaded() && texture.isLoaded();
+        return mesh.isLoaded();
     }
 
     public void unload() {

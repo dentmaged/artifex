@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.shadows.Shadows;
-import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.engine.common.app.App;
 import org.anchor.engine.common.net.client.Client;
 import org.anchor.engine.common.utils.AABB;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.IInteractable;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
@@ -27,8 +27,8 @@ public abstract class Game extends App {
     public ClientScene scene;
     public SkyComponent sky;
     public DeferredShading deferred;
+    public IBL ibl;
     public Shadows shadows;
-    public Framebuffer sceneFBO;
     public LivingComponent livingComponent;
     public Client client;
 

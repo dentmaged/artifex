@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.anchor.engine.common.Log;
+
 public class Profiler {
 
     private static Map<Thread, List<Profile>> threads = new HashMap<Thread, List<Profile>>();
@@ -47,9 +49,10 @@ public class Profiler {
 
     public static void dump() {
         for (Entry<Thread, List<Profile>> entry : threads.entrySet()) {
-            System.out.println("Thread " + entry.getKey().getName() + " (id " + entry.getKey().getId() + ")");
+            Log.debug("Thread " + entry.getKey().getName() + " (id " + entry.getKey().getId() + ")");
+
             for (Profile profile : entry.getValue()) {
-                System.out.println("\t" + profile.getName() + ": " + profile.getDuration() + "ms");
+                Log.debug("\t" + profile.getName() + ": " + profile.getDuration() + "ms");
                 print(profile, "\t\t");
             }
         }
@@ -57,9 +60,13 @@ public class Profiler {
 
     private static void print(Profile profile, String base) {
         for (Profile child : profile.getChildren()) {
-            System.out.println(base + child.getName() + ": " + child.getDuration() + "ms");
+            Log.debug(base + child.getName() + ": " + child.getDuration() + "ms");
             print(child, base + "\t");
         }
+    }
+
+    public static Map<Thread, List<Profile>> getThreads() {
+        return threads;
     }
 
 }

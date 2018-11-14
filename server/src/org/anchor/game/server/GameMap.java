@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Property;
@@ -157,7 +158,7 @@ public class GameMap {
                         if (field != null)
                             field.set(component, RawParser.getInstance().decode(value, field.getType()));
                         else
-                            System.err.println("[WARN] Map load: field " + name + " (in component " + component.getClass().getSimpleName() + ") does not exist!");
+                            Log.error("Map load: field " + name + " (in component " + component.getClass().getSimpleName() + ") does not exist!");
                     }
                 }
             }

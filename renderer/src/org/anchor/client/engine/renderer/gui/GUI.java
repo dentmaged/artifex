@@ -23,6 +23,18 @@ public class GUI {
         return texture;
     }
 
+    public void setTexture(int texture) {
+        this.texture = texture;
+    }
+
+    public Vector2f getPosition() {
+        return position;
+    }
+
+    public Vector2f getScale() {
+        return scale;
+    }
+
     public Matrix4f getTransformationMatrix() {
         return CoreMaths.createTransformationMatrix(position, scale, 0, 0);
     }

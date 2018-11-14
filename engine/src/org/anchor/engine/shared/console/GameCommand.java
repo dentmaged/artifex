@@ -1,20 +1,24 @@
 package org.anchor.engine.shared.console;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.shared.net.IUser;
 
 public abstract class GameCommand {
 
     private String name, description;
-    private boolean serverOnly;
+    private boolean serverOnly, cheat;
 
     public GameCommand(String name, String description) {
-        this(name, description, false);
+        this(name, description, false, false);
     }
 
-    public GameCommand(String name, String description, boolean serverOnly) {
+    public GameCommand(String name, String description, boolean serverOnly, boolean cheat) {
         this.name = name;
         this.description = description;
         this.serverOnly = serverOnly;
+        this.cheat = cheat;
+
+        GameCommandManager.register(this);
     }
 
     public String getName() {
@@ -29,8 +33,12 @@ public abstract class GameCommand {
         return serverOnly;
     }
 
+    public boolean isCheat() {
+        return cheat;
+    }
+
     public void printDescription() {
-        System.out.println(description);
+        Log.print(description);
     }
 
     public abstract void run(IUser sender, String[] args);

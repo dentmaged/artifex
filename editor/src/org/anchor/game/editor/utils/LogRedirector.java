@@ -16,16 +16,10 @@ public class LogRedirector implements Runnable {
     private BufferedReader reader;
 
     private PrintStream output;
-    private boolean error;
 
-    private LogRedirector(JEditorPane editorPane, PipedOutputStream outputStream, PrintStream original) {
-        this(editorPane, outputStream, original, false);
-    }
-
-    private LogRedirector(JEditorPane log, PipedOutputStream outputStream, PrintStream output, boolean error) {
+    private LogRedirector(JEditorPane log, PipedOutputStream outputStream, PrintStream output) {
         this.log = log;
         this.output = output;
-        this.error = error;
 
         try {
             reader = new BufferedReader(new InputStreamReader(new PipedInputStream(outputStream)));
@@ -40,8 +34,6 @@ public class LogRedirector implements Runnable {
 
         try {
             while ((line = reader.readLine()) != null) {
-                line = (error ? "[ERROR] " : "[INFO] ") + line;
-
                 output.println(line);
                 log.setText(log.getText() + line + "\n");
                 log.setCaretPosition(log.getDocument().getLength());
@@ -69,7 +61,7 @@ public class LogRedirector implements Runnable {
         PrintStream err = System.err;
         System.setErr(new PrintStream(outputStream, true));
 
-        new Thread(new LogRedirector(editorPane, outputStream, err, true)).start();
+        new Thread(new LogRedirector(editorPane, outputStream, err)).start();
     }
 
 }

@@ -4,6 +4,6 @@ import java.io.File;
 
 public interface Filter {
 
-    public boolean allow(File file, String tmp);
+    public boolean allow(File file);
 
 }

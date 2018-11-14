@@ -61,8 +61,16 @@ public class AABB {
         return z2;
     }
 
+    public Vector3f getMin() {
+        return new Vector3f(x1, y1, z1);
+    }
+
+    public Vector3f getMax() {
+        return new Vector3f(x2, y2, z2);
+    }
+
     public boolean inside(Vector3f point) {
-        return point.x >= x1 && point.x <= x2 && point.y >= y1 && point.y <= y2 && point.z >= z1 && point.z <= z2;
+        return inside(point.x, point.y, point.z);
     }
 
     public boolean inside(float x, float y, float z) {

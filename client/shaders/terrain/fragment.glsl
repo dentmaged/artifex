@@ -6,8 +6,7 @@ in vec2 tc;
 FS_OUT(diffuse)
 FS_OUT(other)
 FS_OUT(normal)
-FS_OUT(bloom)
-FS_OUT(godrays)
+FS_OUT(albedo)
 
 tex blendmap;
 tex backgroundTexture;
@@ -18,6 +17,8 @@ uniform vec4 colour;
 
 uniform mat4 viewMatrix;
 
+#include "material.glsl"
+
 void main(void) {
 	vec4 blendMapColour = texture2D(blendmap, tc);
 
@@ -27,11 +28,7 @@ void main(void) {
 	vec4 rTextureColour = texture2D(rTexture, tiled) * blendMapColour.r;
 	vec4 gTextureColour = texture2D(gTexture, tiled) * blendMapColour.g;
 	vec4 bTextureColour = texture2D(bTexture, tiled) * blendMapColour.b;
+	vec4 albedo = backgroundTextureColour + rTextureColour + gTextureColour + bTextureColour;
 
-	out_diffuse = backgroundTextureColour + rTextureColour + gTextureColour + bTextureColour;
-	out_diffuse.xyz = mix(pow(out_diffuse.xyz, vec3(GAMMA)), colour.xyz, colour.a);
-	out_other = vec4(0, 1, 0, 0);
-	out_normal = vec4(s_normal, 0.5);
-	out_bloom = vec4(0, 0, 0, 1);
-	out_godrays = vec4(0, 0, 0, 1);
+	emit(albedo, s_normal, 0, 0, 1, 1);
 }

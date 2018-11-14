@@ -1,9 +1,12 @@
 package org.anchor.engine.shared.console;
 
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.GameVariableType;
+import org.anchor.engine.common.console.IGameVariable;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.net.packet.GameVariablePacket;
 
-public class GameVariable {
+public class GameVariable implements IGameVariable {
 
     private String name, value, defaultValue, description;
     private GameVariableType type;
@@ -15,13 +18,15 @@ public class GameVariable {
         this.description = description;
         this.type = type;
 
-        GameVariableManager.register(this);
+        CoreGameVariableManager.register(this);
     }
 
+    @Override
     public String getValueAsString() {
         return value;
     }
 
+    @Override
     public int getValueAsInt() {
         try {
             return Integer.valueOf(value);
@@ -32,6 +37,7 @@ public class GameVariable {
         return 0;
     }
 
+    @Override
     public float getValueAsFloat() {
         try {
             return Float.valueOf(value);
@@ -42,14 +48,17 @@ public class GameVariable {
         return 0;
     }
 
+    @Override
     public boolean getValueAsBool() {
-        return getValueAsInt() != 0;
+        return getValueAsInt() != 0 || getValueAsString().equals("true");
     }
 
+    @Override
     public void setValue(String value) {
-        if (type == GameVariableType.CHEAT && !GameVariableManager.getByName("sv_cheats").getValueAsBool())
+        if (type == GameVariableType.CHEAT && !GameVariableManager.sv_cheats.getValueAsBool() && Engine.getInstance().isConnected())
             return;
-        if (Engine.isClientSide() && type == GameVariableType.GAMEMODE) {
+
+        if (Engine.isClientSide() && type == GameVariableType.GAMEMODE && Engine.getInstance().isConnected()) {
             Engine.getInstance().broadcast(new GameVariablePacket(name, value));
 
             return;
@@ -58,33 +67,40 @@ public class GameVariable {
         this.value = value;
 
         if (Engine.isServerSide())
-            Engine.getInstance().broadcast(new GameVariablePacket(value, value));
+            Engine.getInstance().broadcast(new GameVariablePacket(name, value));
     }
 
+    @Override
     public void setValue(int value) {
         setValue(value + "");
     }
 
+    @Override
     public void setValue(float value) {
         setValue(value + "");
     }
 
+    @Override
     public void setValue(boolean value) {
         setValue(value ? "1" : "0");
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public String getDefaultValue() {
         return defaultValue;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }
 
+    @Override
     public GameVariableType getType() {
         return type;
     }

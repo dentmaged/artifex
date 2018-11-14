@@ -1,23 +1,23 @@
 package org.anchor.game.client.components;
 
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
-import org.anchor.engine.shared.components.IComponent;
+import org.anchor.client.engine.renderer.types.Material;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.game.client.loaders.AssetLoader;
 
 public class DecalComponent implements IComponent {
 
     @Property("Texture")
-    public ModelTexture texture;
+    public Material material;
 
     protected Entity entity;
 
     @Override
     public void spawn(Entity entity) {
         this.entity = entity;
-        if (texture == null && entity.containsKey("texture"))
-            texture = AssetLoader.loadDecalTexture(entity.getValue("texture"));
+        if (material == null && entity.containsKey("material"))
+            material = AssetLoader.loadMaterial(entity.getValue("material"));
     }
 
     @Override
@@ -28,7 +28,7 @@ public class DecalComponent implements IComponent {
     @Override
     public IComponent copy() {
         DecalComponent copy = new DecalComponent();
-        copy.texture = texture;
+        copy.material = material;
 
         return copy;
     }

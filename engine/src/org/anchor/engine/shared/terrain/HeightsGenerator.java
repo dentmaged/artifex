@@ -2,6 +2,8 @@ package org.anchor.engine.shared.terrain;
 
 import java.util.Random;
 
+import org.anchor.engine.common.Log;
+
 public class HeightsGenerator {
 
     private static final float AMPLITUDE = 70f;
@@ -15,13 +17,13 @@ public class HeightsGenerator {
 
     public HeightsGenerator() {
         this.seed = random.nextInt(1000000000);
-        System.out.println("SEED " + seed);
+        Log.debug("Seed for terrain generation: " + seed);
     }
 
     public HeightsGenerator(int gridX, int gridZ, int vertexCount, int seed) {
         this.seed = seed;
 
-        System.out.println("SEED " + seed);
+        Log.debug("Seed for terrain generation: " + seed);
         xOffset = gridX * (vertexCount - 1);
         zOffset = gridZ * (vertexCount - 1);
     }

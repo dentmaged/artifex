@@ -4,8 +4,8 @@ import java.lang.reflect.Field;
 
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.shared.Engine;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.net.packet.EntityAddComponentPacket;
 import org.anchor.engine.shared.net.packet.EntityComponentVariableChangePacket;
 import org.anchor.engine.shared.net.packet.EntityDestroyPacket;
@@ -13,7 +13,6 @@ import org.anchor.engine.shared.net.packet.EntityKeyValuePacket;
 import org.anchor.engine.shared.net.packet.EntityRemoveComponentPacket;
 import org.anchor.engine.shared.net.packet.EntitySpawnPacket;
 import org.anchor.game.server.components.ServerThreadComponent;
-import org.anchor.game.server.filter.AllPlayersExceptOneFilter;
 import org.anchor.game.server.filter.AllPlayersFilter;
 
 public class ServerEngine extends Engine {
@@ -57,7 +56,7 @@ public class ServerEngine extends Engine {
     @Override
     public void onMonitorVariableChange(Object parent, Object target, Field field, Object previous, Object current) {
         if (((Entity) parent).hasSpawned())
-            new AllPlayersExceptOneFilter((Entity) parent).sendPacket(new EntityComponentVariableChangePacket((Entity) parent, (IComponent) target, field));
+            new AllPlayersFilter().sendPacket(new EntityComponentVariableChangePacket((Entity) parent, (IComponent) target, field));
     }
 
     @Override

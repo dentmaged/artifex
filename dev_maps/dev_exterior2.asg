@@ -1,0 +1,8 @@
+hidden:truemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:499.0423@20.59197@484.54416Rotation:0.0@0.0@0.0Scale:6666.6665@6666.6665@6666.6665Model:Texture Index:0Disable Frustum Culling:true
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:2454.1282@12123.9795@-15715.801Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:1.0@1.0@1.0Attenuation:1.0@0.0@0.0
+org.anchor.engine.shared.components.TransformComponentorg.anchor.engine.shared.components.SpawnComponentPosition:486.0666@8.353361@478.62653Rotation:0.0@0.0@0.0Scale:1.0@1.0@1.0
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.WaterComponentPosition:425.01385@8.272598@417.91586Rotation:0.0@0.0@0.0Scale:177.0@0.5@193.5Model:Texture Index:0Disable Frustum Culling:falseWave Speed:0.03Wave Strength:0.1Colour:0.0@0.075@0.125@0.5
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.WaterComponentPosition:338.51385@8.272598@223.91586Rotation:0.0@0.0@0.0Scale:177.0@0.5@193.5Model:Texture Index:0Disable Frustum Culling:falseWave Speed:0.03Wave Strength:0.1Colour:0.0@0.075@0.125@0.5
+
+00heightmapblendmapgrassmudgrass_flowerspath
+

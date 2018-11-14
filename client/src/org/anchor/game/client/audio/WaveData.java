@@ -13,6 +13,7 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import org.anchor.engine.common.Log;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
@@ -57,7 +58,7 @@ public class WaveData {
             data.flip();
         } catch (IOException e) {
             e.printStackTrace();
-            System.err.println("Couldn't read bytes from audio stream!");
+            Log.warning("Couldn't read bytes from audio stream!");
         }
 
         return data;

@@ -12,6 +12,9 @@ import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.blur.Blur;
 import org.anchor.client.engine.renderer.types.Framebuffer;
+import org.anchor.client.engine.renderer.types.ImageFormat;
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.IGameVariable;
 import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
@@ -28,6 +31,8 @@ public class SSAO {
     protected Framebuffer outputFBO;
     protected Blur blur;
     protected SSAOShader shader;
+
+    private IGameVariable r_performSSAO;
 
     public SSAO() {
         Random random = new Random();
@@ -68,20 +73,22 @@ public class SSAO {
             samples.add(sample);
         }
 
-        outputFBO = new Framebuffer(Display.getWidth() / 4, Display.getHeight() / 4, Framebuffer.NONE);
-        blur = new Blur();
+        outputFBO = new Framebuffer(Display.getWidth() / 4, Display.getHeight() / 4, Framebuffer.NONE, ImageFormat.R);
+        blur = new Blur(ImageFormat.R);
         blur.setShader(SSAOBlurShader.getInstance());
         shader = SSAOShader.getInstance();
 
         shader.start();
         shader.loadInformation(new Vector2f(Display.getWidth() / 4, Display.getHeight() / 4), samples);
         shader.stop();
+
+        r_performSSAO = CoreGameVariableManager.getByName("r_performSSAO");
     }
 
     public void perform(Matrix4f inverseViewMatrix, int depthMap, int normal) {
         outputFBO.bindFramebuffer();
 
-        if (Settings.performSSAO) {
+        if (r_performSSAO.getValueAsBool()) {
             shader.start();
             shader.loadInverseViewMatrix(inverseViewMatrix);
             QuadRenderer.bind();
@@ -96,11 +103,12 @@ public class SSAO {
         } else {
             GL11.glClearColor(1, 1, 1, 1);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-            GL11.glClearColor(0, 0, 0, 1);
+            GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
         }
 
         outputFBO.unbindFramebuffer();
-        blur.perform(outputFBO.getColourTexture());
+        if (r_performSSAO.getValueAsBool())
+            blur.perform(outputFBO.getColourTexture());
     }
 
     public int getAmbientOcclusionTexture() {

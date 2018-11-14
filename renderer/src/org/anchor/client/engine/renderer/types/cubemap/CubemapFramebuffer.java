@@ -83,20 +83,26 @@ public class CubemapFramebuffer {
         if (i < 2 || i > 3)
             return 0;
         else if (i == 2)
-            return 90;
+            return -90;
 
-        return -90;
+        return 90;
     }
 
     public float getYaw(int i) {
         if (i > 1 && i < 5)
             return 180;
         else if (i == 0)
-            return -90;
-        else if (i == 1)
             return 90;
+        else if (i == 1)
+            return -90;
 
         return 0;
+    }
+
+    public void shutdown() {
+        GL30.glDeleteFramebuffers(framebuffer);
+        GL30.glDeleteRenderbuffers(renderbuffer);
+        GL11.glDeleteTextures(cubemap);
     }
 
 }

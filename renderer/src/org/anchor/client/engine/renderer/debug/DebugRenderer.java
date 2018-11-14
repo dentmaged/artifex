@@ -1,6 +1,7 @@
 package org.anchor.client.engine.renderer.debug;
 
 import org.anchor.client.engine.renderer.Loader;
+import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.opengl.GL11;
@@ -30,6 +31,29 @@ public class DebugRenderer {
         GL20.glEnableVertexAttribArray(0);
 
         GL11.glDrawArrays(GL11.GL_LINE_LOOP, 0, circle.getVertexCount());
+
+        GL20.glDisableVertexAttribArray(0);
+        GL30.glBindVertexArray(0);
+        shader.stop();
+    }
+
+    public static void box(Matrix4f viewMatrix, Vector3f position, Vector3f rotation) {
+        box(viewMatrix, position, rotation, new Vector3f(1, 1, 1), new Vector3f(1, 0, 0));
+    }
+
+    public static void box(Matrix4f viewMatrix, Vector3f position, Vector3f rotation, Vector3f scale, Vector3f colour) {
+        if (Renderer.getCubeModel() == null)
+            return;
+
+        shader.start();
+        shader.loadInformation(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, scale), colour);
+        GL30.glBindVertexArray(Renderer.getCubeModel().getMesh().getVAO());
+        GL20.glEnableVertexAttribArray(0);
+
+        int polygonMode = GL11.glGetInteger(GL11.GL_POLYGON_MODE);
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+        GL11.glDrawElements(GL11.GL_TRIANGLES, Renderer.getCubeModel().getMesh().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, polygonMode);
 
         GL20.glDisableVertexAttribArray(0);
         GL30.glBindVertexArray(0);

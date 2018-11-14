@@ -5,21 +5,39 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
-import java.util.regex.Pattern;
 
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
+import org.anchor.game.editor.utils.Filter;
+
 public class FileSystemModel implements TreeModel {
 
     private File root;
     private Vector<TreeModelListener> listeners;
 
+    protected Filter filter;
+
     public FileSystemModel(File root) {
+        this(root, new Filter() {
+
+            @Override
+            public boolean allow(File file) {
+                if (file.isDirectory())
+                    return true;
+
+                return file.getName().toLowerCase().endsWith(".png") || file.getName().toLowerCase().endsWith(".obj") || file.getName().toLowerCase().endsWith(".pcl") || file.getName().toLowerCase().endsWith(".aem");
+            }
+
+        });
+    }
+
+    public FileSystemModel(File root, Filter filter) {
         this.root = root.getAbsoluteFile();
-        listeners = new Vector<TreeModelListener>();
+        this.listeners = new Vector<TreeModelListener>();
+        this.filter = filter;
     }
 
     private CustomMutableTreeNode createFromFile(File file) {
@@ -32,7 +50,7 @@ public class FileSystemModel implements TreeModel {
     private List<File> listFiles(File parent) {
         List<File> files = new ArrayList<File>();
         for (File file : parent.listFiles())
-            if (file.isHidden() || file.getName().startsWith(".") || !allowEnding(file))
+            if (file.isHidden() || file.getName().startsWith(".") || !filter.allow(file))
                 continue;
             else
                 files.add(file);
@@ -40,21 +58,10 @@ public class FileSystemModel implements TreeModel {
         return files;
     }
 
-    private boolean allowEnding(File file) {
-        if (file.isDirectory())
-            return true;
-
-        String[] parts = file.getName().split(Pattern.quote("."));
-        if (parts.length < 2)
-            return false;
-
-        return parts[1].equals("png") || parts[1].equals("obj");
-    }
-
     @Override
     public Object getRoot() {
         CustomMutableTreeNode node = createFromFile(root);
-        node.setUserObject("Asset Browser");
+        node.setUserObject(root.getName());
 
         return node;
     }

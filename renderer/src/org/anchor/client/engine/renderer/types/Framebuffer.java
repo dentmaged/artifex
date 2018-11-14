@@ -3,6 +3,7 @@ package org.anchor.client.engine.renderer.types;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import org.anchor.client.engine.renderer.Graphics;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
@@ -18,38 +19,41 @@ public class Framebuffer {
     public static final int DEPTH_RENDER_BUFFER = 2;
     public static final int ONLY_DEPTH_TEXTURE = 3;
 
-    public static final int COLOUR_BUFFERS = 5;
+    public static final int COLOUR_BUFFERS = 4;
 
     private final int width;
     private final int height;
 
     private int id;
-    private boolean multiTarget = false;
+    private boolean multiTarget = false, mipmaps;
+    private ImageFormat format;
 
-    private int colourTexture;
-    private int depthTexture;
+    private int colourTexture, depthTexture, depthBuffer;
 
-    private int depthBuffer;
     private int[] colourBuffers = new int[COLOUR_BUFFERS];
-    private boolean dataBuffer;
 
     public Framebuffer(int width, int height, int depthBufferType) {
-        this(width, height, depthBufferType, false);
+        this(width, height, depthBufferType, ImageFormat.RGBA);
     }
 
-    public Framebuffer(int width, int height, int depthBufferType, boolean dataBuffer) {
+    public Framebuffer(int width, int height, int depthBufferType, ImageFormat format) {
+        this(width, height, depthBufferType, format, false);
+    }
+
+    public Framebuffer(int width, int height, int depthBufferType, ImageFormat format, boolean mipmaps) {
         this.width = width;
         this.height = height;
-        this.dataBuffer = dataBuffer;
+        this.format = format;
+        this.mipmaps = mipmaps;
 
         initialiseFrameBuffer(depthBufferType);
     }
 
-    public Framebuffer(int width, int height, boolean dataBuffer) {
+    public Framebuffer(int width, int height, ImageFormat format) {
         this.width = width;
         this.height = height;
         this.multiTarget = true;
-        this.dataBuffer = dataBuffer;
+        this.format = format;
 
         initialiseFrameBuffer(DEPTH_RENDER_BUFFER);
     }
@@ -133,12 +137,11 @@ public class Framebuffer {
     private void initialiseFrameBuffer(int type) {
         createFrameBuffer();
         if (type != ONLY_DEPTH_TEXTURE) {
-            if (multiTarget) {
+            if (multiTarget)
                 for (int i = 0; i < colourBuffers.length; i++)
                     colourBuffers[i] = createColourAttachment(GL30.GL_COLOR_ATTACHMENT0 + i);
-            } else {
+            else
                 createTextureAttachment();
-            }
         }
 
         if (type == DEPTH_RENDER_BUFFER)
@@ -170,16 +173,18 @@ public class Framebuffer {
 
     private void createTextureAttachment() {
         colourTexture = GL11.glGenTextures();
-        int type = dataBuffer ? GL30.GL_RGBA16F : GL11.GL_RGBA;
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, colourTexture);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, format.getType(), width, height, 0, format.getBase(), GL11.GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        Graphics.checkForErrors();
 
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mipmaps ? GL11.GL_LINEAR_MIPMAP_LINEAR : GL11.GL_LINEAR);
 
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
 
+        if (mipmaps)
+            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
         GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, colourTexture, 0);
     }
 
@@ -196,11 +201,11 @@ public class Framebuffer {
 
     private int createColourAttachment(int attachment) {
         int colourBuffer = GL30.glGenRenderbuffers();
-        int type = dataBuffer ? GL30.GL_RGBA16F : GL11.GL_RGBA;
 
         GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, colourBuffer);
-        GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, type, width, height);
+        GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, format.getType(), width, height);
         GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachment, GL30.GL_RENDERBUFFER, colourBuffer);
+        Graphics.checkForErrors();
 
         return colourBuffer;
     }

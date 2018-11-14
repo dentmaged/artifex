@@ -1,0 +1,4 @@
+hidden:truebackface:falsemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:14.580564@-1.6701573@12.668082Rotation:0.0@0.0@0.0Scale:3333.3333@3333.3333@3333.3333Model:Texture Index:0Disable Frustum Culling:true
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentPosition:-0.22495107@0.5727204@-0.78828204Rotation:36.0@13.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:1.0@1.0@1.0Attenuation:1.0@0.0@0.0Directional:true
+
+

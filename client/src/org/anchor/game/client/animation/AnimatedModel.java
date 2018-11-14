@@ -2,8 +2,6 @@ package org.anchor.game.client.animation;
 
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
-import org.anchor.client.engine.renderer.types.texture.ModelTexture;
-import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.lwjgl.util.vector.Matrix4f;
 
 public class AnimatedModel extends Model {
@@ -12,12 +10,8 @@ public class AnimatedModel extends Model {
     private int jointCount;
     private Animator animator;
 
-    public AnimatedModel(MeshRequest mesh, TextureRequest texture, Joint root, int jointCount) {
-        this(mesh, new ModelTexture(texture), root, jointCount);
-    }
-
-    public AnimatedModel(MeshRequest mesh, ModelTexture texture, Joint root, int jointCount) {
-        super(mesh, texture);
+    public AnimatedModel(MeshRequest mesh, Joint root, int jointCount) {
+        super(mesh);
 
         this.root = root;
         this.jointCount = jointCount;

@@ -6,9 +6,9 @@ import java.lang.reflect.Field;
 import java.util.Map.Entry;
 
 import org.anchor.engine.common.net.packet.IPacket;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.net.CorePacketManager;
 import org.anchor.engine.shared.net.Redirect;
 import org.anchor.engine.shared.utils.Property;

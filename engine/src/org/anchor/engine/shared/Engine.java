@@ -4,9 +4,9 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 import org.anchor.engine.common.net.packet.IPacket;
-import org.anchor.engine.shared.components.IComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.EntityRaycast;
@@ -39,6 +39,10 @@ public class Engine {
         return scene.getEntitiesWithComponent(clazz);
     }
 
+    public static <T extends IComponent> List<T> getComponents(Class<T> clazz) {
+        return scene.getComponents(clazz);
+    }
+
     public static List<Terrain> getTerrains() {
         return scene.getTerrains();
     }
@@ -63,10 +67,6 @@ public class Engine {
         return new EntityRaycast(closest, distance, ray, origin);
     }
 
-    public void broadcast(IPacket packet) {
-        
-    }
-
     public static Engine getInstance() {
         return instance;
     }
@@ -77,6 +77,14 @@ public class Engine {
 
     public static boolean isServerSide() {
         return side == Side.SERVER;
+    }
+
+    public void broadcast(IPacket packet) {
+
+    }
+
+    public boolean isConnected() {
+        return isServerSide();
     }
 
     public void onEntityCreate(Entity entity) {

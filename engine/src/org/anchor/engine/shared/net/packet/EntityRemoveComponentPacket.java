@@ -4,7 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
 import org.anchor.engine.common.net.packet.IPacket;
-import org.anchor.engine.shared.components.IComponent;
+import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.net.CorePacketManager;
 import org.anchor.engine.shared.net.Redirect;
 

@@ -2,9 +2,11 @@ package org.anchor.engine.common.net.client;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.net.BaseNetworkable;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.common.net.packet.IPacketHandler;
@@ -29,7 +31,7 @@ public class Client extends BaseNetworkable {
                 @Override
                 public void run() {
                     try {
-                        System.out.println("Connected to " + ip + ":" + port);
+                        Log.info("Connected to " + ip + ":" + port);
                         handler.connect(Client.this);
 
                         while (isConnected()) {
@@ -51,7 +53,11 @@ public class Client extends BaseNetworkable {
 
             thread.start();
         } catch (Exception e) {
-            e.printStackTrace();
+            if (e instanceof ConnectException) {
+                handler.handleException(e);
+            } else {
+                e.printStackTrace();
+            }
         }
     }
 

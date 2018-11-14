@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.FileHelper;
@@ -35,7 +36,7 @@ public class Terrain {
         setGridZ(gridZ);
 
         if (heightmap == null || heightmap == "") {
-            System.err.println("Heightmap is null or blank! Using template heightmap!");
+            Log.warning("Heightmap is null or blank! Using template heightmap!");
             heightmap = "heightmap";
         }
 

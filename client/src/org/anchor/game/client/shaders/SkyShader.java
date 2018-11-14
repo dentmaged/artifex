@@ -34,6 +34,7 @@ public class SkyShader extends ModelShader {
         loadVector("topColour", component.topColour);
 
         loadBoolean("proceduralSky", Settings.proceduralSky);
+        loadMatrix("transformationMatrix", entity.getTransformationMatrix());
     }
 
     public static SkyShader getInstance() {

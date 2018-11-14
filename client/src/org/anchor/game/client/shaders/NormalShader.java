@@ -15,7 +15,6 @@ public class NormalShader extends ModelShader {
     public void onBind() {
         super.onBind();
 
-        loadInt("normal", 1);
         loadInt("specular", 2);
         loadInt("metallic", 3);
         loadInt("roughness", 4);
@@ -26,7 +25,7 @@ public class NormalShader extends ModelShader {
     public void loadEntitySpecificInformation(Entity entity) {
         super.loadEntitySpecificInformation(entity);
 
-        loadBoolean("useAOMap", entity.getComponent(MeshComponent.class).model.getTexture().getAmbientOcclusionMap() != -1);
+        loadBoolean("useAOMap", entity.getComponent(MeshComponent.class).material.hasAmbientOcclusionMap());
     }
 
     public static NormalShader getInstance() {

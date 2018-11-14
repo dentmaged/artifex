@@ -17,7 +17,7 @@ public class GodraysShader extends Shader {
 
         loadInt("scene", 0);
         loadInt("godrays", 1);
-        loadInt("exposure", 1);
+        loadInt("exposure", 2);
     }
 
     public void loadInformation(int samples, Vector2f projectedSunPosition) {

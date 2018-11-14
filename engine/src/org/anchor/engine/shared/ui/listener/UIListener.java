@@ -57,6 +57,10 @@ public class UIListener {
         return backup;
     }
 
+    public String toNonNullString(String input) {
+        return input == null ? "" : input;
+    }
+
     public void setComponent(Component component) {
         this.component = component;
     }

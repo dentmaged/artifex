@@ -9,8 +9,7 @@ in float discardFragment;
 FS_OUT(diffuse)
 FS_OUT(other)
 FS_OUT(normal)
-FS_OUT(bloom)
-FS_OUT(godrays)
+FS_OUT(albedo)
 
 tex blendmap;
 tex backgroundTexture;
@@ -36,10 +35,9 @@ void main(void) {
 
 	out_diffuse = backgroundTextureColour + rTextureColour + gTextureColour + bTextureColour;
 	out_diffuse.xyz = mix(pow(out_diffuse.xyz, vec3(GAMMA)), colour.xyz, colour.a);
-	out_other = vec4(viewPosition.xyz, 0);
-	out_normal = vec4(s_normal, 0);
-	out_bloom = vec4(0, 0, 0, 1);
-	out_godrays = vec4(0, 0, 0, 1);
+	out_other = vec4(1, 0, 0, 0);
+	out_normal = vec4(s_normal.xy, 0, 0.5);
+	out_albedo = out_diffuse;
 
 	out_diffuse.a = 1;
 }

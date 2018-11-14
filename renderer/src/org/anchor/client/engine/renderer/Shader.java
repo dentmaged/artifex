@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.anchor.client.engine.renderer.deferred.DeferredShader;
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -29,7 +29,7 @@ public abstract class Shader {
     protected Map<String, Integer> uniforms = new HashMap<String, Integer>();
 
     private static FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private static String DEFINES = "\n#define tex uniform sampler2D\n#define texCube uniform samplerCube\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define SHADOW_SPLITS " + Settings.shadowSplits + "\n#define MAX_LIGHTS " + DeferredShader.MAX_LIGHTS + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA 2.2\n";
+    private static String DEFINES = "\n#define tex uniform sampler2D\n#define texCube uniform samplerCube\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define SHADOW_SPLITS " + Settings.shadowSplits + "\n#define MAX_LIGHTS " + Settings.maxLights + "\n#define MAX_JOINTS " + Settings.maxJoints + "\n#define MAX_PROBES " + Settings.maxProbes + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA 2.2\n#define TO_V4(x) vec4(vec3(x##.xyz), 1)\nconst float pi = 3.141592653589793238;\n";
 
     private static List<Shader> shaders = new ArrayList<Shader>();
 
@@ -52,6 +52,17 @@ public abstract class Shader {
         stop();
 
         shaders.add(this);
+    }
+
+    public void reload() {
+        loadShader("shaders/" + program + "/vertex.glsl", vertexShaderId, true);
+        loadShader("shaders/" + program + "/fragment.glsl", fragmentShaderId, true);
+        GL20.glLinkProgram(programId);
+
+        start();
+        loadMatrix("projectionMatrix", Renderer.getProjectionMatrix());
+        loadMatrix("inverseProjectionMatrix", Matrix4f.invert(Renderer.getProjectionMatrix(), null));
+        stop();
     }
 
     protected int getUniformLocation(String name) {
@@ -100,19 +111,31 @@ public abstract class Shader {
     }
 
     protected void loadVector(String location, Vector2f vector) {
-        GL20.glUniform2f(getUniformLocation(location), vector.x, vector.y);
+        if (vector == null)
+            GL20.glUniform2f(getUniformLocation(location), 0, 0);
+        else
+            GL20.glUniform2f(getUniformLocation(location), vector.x, vector.y);
     }
 
     protected void loadVector(String location, Vector3f vector) {
-        GL20.glUniform3f(getUniformLocation(location), vector.x, vector.y, vector.z);
+        if (vector == null)
+            GL20.glUniform3f(getUniformLocation(location), 0, 0, 0);
+        else
+            GL20.glUniform3f(getUniformLocation(location), vector.x, vector.y, vector.z);
     }
 
     protected void loadVector(String location, Vector4f vector) {
-        GL20.glUniform4f(getUniformLocation(location), vector.x, vector.y, vector.z, vector.w);
+        if (vector == null)
+            GL20.glUniform4f(getUniformLocation(location), 0, 0, 0, 0);
+        else
+            GL20.glUniform4f(getUniformLocation(location), vector.x, vector.y, vector.z, vector.w);
     }
 
     protected void loadAs3DVector(String location, Vector4f vector) {
-        GL20.glUniform3f(getUniformLocation(location), vector.x, vector.y, vector.z);
+        if (vector == null)
+            GL20.glUniform3f(getUniformLocation(location), 0, 0, 0);
+        else
+            GL20.glUniform3f(getUniformLocation(location), vector.x, vector.y, vector.z);
     }
 
     protected void loadVector(String location, float x, float y) {
@@ -139,6 +162,10 @@ public abstract class Shader {
     }
 
     private static int loadShader(String file, int type) {
+        return loadShader(file, type, false);
+    }
+
+    private static int loadShader(String file, int type, boolean reload) {
         StringBuilder shaderSource = new StringBuilder();
         try {
             BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -158,7 +185,10 @@ public abstract class Shader {
         }
         shaderSource.insert(shaderSource.indexOf("\n", shaderSource.indexOf("#version")) + 1, DEFINES);
 
-        int shaderId = GL20.glCreateShader(type);
+        int shaderId = type;
+        if (!reload)
+            shaderId = GL20.glCreateShader(type);
+
         GL20.glShaderSource(shaderId, shaderSource);
         GL20.glCompileShader(shaderId);
 
@@ -167,9 +197,7 @@ public abstract class Shader {
             String[] lines = shaderSource.toString().split("\n");
             int location = Integer.parseInt(error.substring(error.indexOf('(') + 1, error.indexOf(')')));
 
-            System.out.println(error);
-            System.out.println("Possible offending lines:\n\t" + lines[location - 2] + "\n\t" + lines[location - 1] + "\n\t" + lines[location]);
-            System.err.println("Could not compile shader " + file + "!");
+            Log.error(error + "\nPossible offending lines:\n\t" + lines[location - 2] + "\n\t" + lines[location - 1] + "\n\t" + lines[location] + "\nCould not compile shader " + file + "!");
 
             System.exit(-1);
         }
