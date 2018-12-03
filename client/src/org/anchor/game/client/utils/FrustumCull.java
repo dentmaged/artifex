@@ -81,13 +81,16 @@ public class FrustumCull {
     }
 
     public static <T extends Probe> void cull(List<T> probes) {
-        for (int i = 0; i < probes.size(); i++) {
+        outer: for (int i = 0; i < probes.size(); i++) {
             float furthest = probes.get(i).getSize() * 1.5f;
             Vector3f position = probes.get(i).getPosition();
 
             for (Plane plane : planes) {
-                if (plane.signedDistanceTo(position) < -furthest)
+                if (!probes.get(i).isBaked() || plane.signedDistanceTo(position) < -furthest) {
                     probes.remove(i);
+
+                    continue outer;
+                }
             }
         }
     }

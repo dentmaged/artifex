@@ -68,8 +68,6 @@ public class Bloom {
         blurOne.shutdown();
         blurTwo.shutdown();
         blurThree.shutdown();
-        bloomShader.shutdown();
-        combineShader.shutdown();
     }
 
     public Framebuffer getOutputFBO() {

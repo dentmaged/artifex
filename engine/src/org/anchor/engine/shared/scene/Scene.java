@@ -1,16 +1,20 @@
 package org.anchor.engine.shared.scene;
 
+import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.Layer;
 
 public class Scene {
 
     protected List<Entity> entities = new ArrayList<Entity>();
     protected List<Terrain> terrains = new ArrayList<Terrain>();
+    protected List<Layer> layers = new ArrayList<Layer>(Arrays.asList(new Layer("Default", new Color(132, 217, 132))));
 
     public List<Entity> getEntities() {
         return entities;
@@ -18,6 +22,30 @@ public class Scene {
 
     public List<Terrain> getTerrains() {
         return terrains;
+    }
+
+    public List<Layer> getLayers() {
+        return layers;
+    }
+
+    public Layer getDefaultLayer() {
+        return layers.get(0);
+    }
+
+    public List<String> getLayerNames() {
+        List<String> names = new ArrayList<String>();
+        for (Layer layer : layers)
+            names.add(layer.getName());
+
+        return names;
+    }
+
+    public Layer getLayerByName(String name) {
+        for (Layer layer : layers)
+            if (layer.getName().equalsIgnoreCase(name))
+                return layer;
+
+        return null;
     }
 
     public void update() {

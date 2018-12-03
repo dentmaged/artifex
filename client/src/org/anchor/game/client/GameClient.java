@@ -12,6 +12,7 @@ import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.fog.Fog;
 import org.anchor.client.engine.renderer.font.Alignment;
 import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
@@ -140,6 +141,7 @@ public class GameClient extends Game implements IPacketHandler {
         fxaa = new FXAA();
         deferred = new DeferredShading();
         ibl = new IBL(deferred);
+        fog = new Fog();
         bloom = new Bloom();
         godrays = new Godrays();
         vignette = new Vignette();
@@ -484,7 +486,10 @@ public class GameClient extends Game implements IPacketHandler {
         for (int i = 0; i < lightProbeComponents.size(); i++)
             lightProbes.add(lightProbeComponents.get(i));
 
-        ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes, sky.baseColour);
+        ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes);
+
+        deferred.fog();
+        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour);
 
         deferred.output();
         Profiler.end("Scene");
@@ -534,7 +539,6 @@ public class GameClient extends Game implements IPacketHandler {
         ibl.shutdown();
         bloom.shutdown();
         godrays.shutdown();
-        vignette.shutdown();
 
         if (client != null)
             client.shutdown();
@@ -545,17 +549,7 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void resize(int width, int height) {
-        fxaa.shutdown();
-        deferred.shutdown();
-        bloom.shutdown();
-        godrays.shutdown();
-        vignette.shutdown();
-
-        fxaa = new FXAA();
-        deferred = new DeferredShading();
-        bloom = new Bloom();
-        godrays = new Godrays();
-        vignette = new Vignette();
+        Log.info("Resizing to " + width + "x" + height);
 
         Settings.width = width;
         Settings.height = height;
@@ -709,7 +703,7 @@ public class GameClient extends Game implements IPacketHandler {
     }
 
     public static int getBRDF() {
-        return ((Game) AppManager.getInstance()).deferred.getBRDF();
+        return ((Game) AppManager.getInstance()).ibl.getBRDF();
     }
 
     public static Shadows getShadows() {

@@ -1,22 +1,23 @@
 package org.anchor.game.editor.properties;
 
-import java.lang.reflect.Field;
-
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import org.anchor.engine.common.utils.JavaField;
+import org.anchor.game.editor.commands.Undo;
+
 public abstract class PropertyTextField extends JTextField {
 
     protected Object object;
-    protected Field field;
+    protected JavaField field;
 
     protected String previousValue;
 
     private static final long serialVersionUID = -586156248454660986L;
 
-    public PropertyTextField(Field field, Object object) {
-        super(get(field, object));
+    public PropertyTextField(JavaField field, Object object) {
+        super(String.valueOf(field.get(object)));
         getDocument().addDocumentListener(new DocumentListener() {
 
             @Override
@@ -38,16 +39,15 @@ public abstract class PropertyTextField extends JTextField {
             }
 
             private void set() {
+                if (!isEnabled())
+                    return;
+
                 String value = getText();
                 if (value.equals(previousValue))
                     return;
 
                 previousValue = value;
-                try {
-                    field.set(object, convert(value));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                Undo.fieldSet(field, object, convert(value));
             }
 
         });
@@ -57,17 +57,9 @@ public abstract class PropertyTextField extends JTextField {
     }
 
     public void update() {
-        setText(get(field, object));
-    }
-
-    public static String get(Field field, Object object) {
-        try {
-            return field.get(object).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return "";
+        setEnabled(false);
+        setText(String.valueOf(field.get(object)));
+        setEnabled(true);
     }
 
     public abstract Object convert(String value);

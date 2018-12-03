@@ -11,6 +11,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.FileImageInputStream;
 import javax.imageio.stream.ImageInputStream;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 
 public class FileHelper {
@@ -35,6 +36,11 @@ public class FileHelper {
 
     public static String read(File file) {
         try {
+            if (!file.exists()) {
+                Log.warning("File not found: " + file.getName());
+                return "";
+            }
+
             StringBuilder builder = new StringBuilder();
             Scanner scanner = new Scanner(file);
 

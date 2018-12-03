@@ -18,10 +18,11 @@ public class DebugShader extends Shader {
         bindAttribute(0, "position");
     }
 
-    public void loadInformation(Matrix4f viewMatrix, Matrix4f transformationMatrix, Vector3f colour) {
+    public void loadInformation(Matrix4f viewMatrix, Matrix4f transformationMatrix, Vector3f colour, float alpha) {
         loadMatrix("viewMatrix", viewMatrix);
         loadMatrix("transformationMatrix", transformationMatrix);
         loadVector("colour", colour);
+        loadFloat("alpha", alpha);
     }
 
     public static DebugShader getInstance() {

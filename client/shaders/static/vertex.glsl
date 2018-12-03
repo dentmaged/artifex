@@ -13,10 +13,15 @@ uniform mat4 normalMatrix;
 
 uniform float numberOfRows;
 uniform vec2 offset;
+uniform vec2 uvScale;
+
+vec2 f(vec2 a) {
+	return a - floor(a);
+}
 
 void main(void) {
 	gl_Position = projectionViewTransformationMatrix * vec4(position, 1);
 
 	s_normal = normalize(mat3(normalMatrix) * normal);
-	tc = (textureCoordinates / numberOfRows) + offset;
+	tc = offset + (textureCoordinates * uvScale / numberOfRows);
 }

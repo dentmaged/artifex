@@ -22,8 +22,4 @@ public class Vignette {
         shader.stop();
     }
 
-    public void shutdown() {
-        shader.shutdown();
-    }
-
 }

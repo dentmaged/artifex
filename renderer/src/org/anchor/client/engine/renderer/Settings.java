@@ -2,8 +2,8 @@ package org.anchor.client.engine.renderer;
 
 public class Settings {
 
-    public static int width = 1280;
-    public static int height = 720;
+    public static int width = 1920;
+    public static int height = 1080;
     public static int maxFPS = 300;
     public static boolean fullscreen = false;
 
@@ -38,9 +38,7 @@ public class Settings {
     public static String skybox = "skybox/partly-cloudy-day/";
 
     public static final int shadowSplits = 3;
-    public static final int[] shadowExtents = {
-            30, 100, 200
-    };
+    public static final int[] shadowExtents = { 30, 100, 200 };
     public static final float shadowDistance = 50;
     public static final int shadowResolution = 2048;
 

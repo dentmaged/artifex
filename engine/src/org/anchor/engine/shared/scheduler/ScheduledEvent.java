@@ -19,6 +19,7 @@ public class ScheduledEvent {
         if (time > 0) {
             runnable.tick(time, time / duration);
         } else {
+            runnable.tick(time, time / duration);
             runnable.finish();
             Scheduler.cancel(this);
         }

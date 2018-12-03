@@ -32,7 +32,7 @@ public class Raycast {
             Vector3f p = Vector3f.add(origin, VectorUtils.mul(direction, t), null);
             Vector3f v = Vector3f.sub(p, position, null);
 
-            return Math.abs(v.lengthSquared() - radius * radius) < 0.1f * radius;
+            return Math.abs(v.lengthSquared() - radius * radius) < 0.05f * radius * t;
         }
 
         return false;

@@ -78,9 +78,7 @@ public class SkyComponent implements IComponent {
         entity.setValue("backface", "false");
         entity.setHidden(false);
 
-        skybox = Requester.requestCubemap(new String[] {
-                Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz"
-        });
+        skybox = Requester.requestCubemap(new String[] { Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz" });
     }
 
     @Override

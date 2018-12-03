@@ -41,7 +41,6 @@ public class FXAA {
 
     public void shutdown() {
         outputFBO.shutdown();
-        shader.shutdown();
     }
 
 }

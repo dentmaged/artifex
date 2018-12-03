@@ -56,9 +56,7 @@ public class Narrowphase {
                 min = val;
         }
 
-        return new float[] {
-                min, max
-        };
+        return new float[] { min, max };
     }
 
     public static Vector3f[] convert(List<Vector3f> list) {

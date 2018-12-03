@@ -61,7 +61,6 @@ public class Blur {
     public void shutdown() {
         horizontal.shutdown();
         vertical.shutdown();
-        shader.shutdown();
     }
 
     public void setShader(BlurShader shader) {

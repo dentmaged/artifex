@@ -15,7 +15,6 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector3f;
 
 public class IBL {
 
@@ -35,7 +34,7 @@ public class IBL {
         r_showLightmaps = CoreGameVariableManager.getByName("r_showLightmaps");
     }
 
-    public void perform(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, int irradiance, int prefilter, List<ReflectionProbe> reflectionProbes, List<LightProbe> lightProbes, Vector3f baseColour) {
+    public void perform(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, int irradiance, int prefilter, List<ReflectionProbe> reflectionProbes, List<LightProbe> lightProbes) {
         if (!r_performLighting.getValueAsBool() || r_showLightmaps.getValueAsBool())
             return;
 
@@ -50,7 +49,7 @@ public class IBL {
         GL11.glDepthMask(false);
 
         shader.start();
-        shader.loadInformation(viewMatrix, inverseViewMatrix, reflectionProbes, lightProbes, baseColour);
+        shader.loadInformation(viewMatrix, inverseViewMatrix, reflectionProbes, lightProbes);
         QuadRenderer.bind();
 
         Graphics.bindColourTexture(deferred.getOutputFBO(), 0);
@@ -88,7 +87,15 @@ public class IBL {
     }
 
     public void shutdown() {
-        shader.shutdown();
+        brdf.shutdown();
+    }
+
+    public void setDeferredShading(DeferredShading deferred) {
+        this.deferred = deferred;
+    }
+
+    public int getBRDF() {
+        return brdf.getOutputFBO().getColourTexture();
     }
 
 }

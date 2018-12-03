@@ -30,4 +30,8 @@ public class BRDF {
         return outputFBO;
     }
 
+    public void shutdown() {
+        outputFBO.shutdown();
+    }
+
 }

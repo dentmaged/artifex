@@ -8,4 +8,6 @@ public interface Probe {
 
     public float getSize();
 
+    public boolean isBaked();
+
 }

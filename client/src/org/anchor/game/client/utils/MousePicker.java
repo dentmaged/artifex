@@ -50,7 +50,7 @@ public class MousePicker {
 
         for (int i = 0; i < scene.getEntities().size(); i++) {
             Entity entity = scene.getEntities().get(i);
-            if (entity.isHidden())
+            if (entity.isHidden() || !entity.getLayer().isPickable())
                 continue;
 
             MeshComponent render = entity.getComponent(MeshComponent.class);

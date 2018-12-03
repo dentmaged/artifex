@@ -17,12 +17,10 @@ public class Godrays {
 
     protected Framebuffer outputFBO;
     protected GodraysShader shader;
-    protected Projection projection;
 
     public Godrays() {
         outputFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
         shader = GodraysShader.getInstance();
-        projection = new Projection(Renderer.getProjectionMatrix());
     }
 
     public void perform(int scene, int godraysTexture, int exposureTexture, Matrix4f viewMatrix, Light light) {
@@ -39,7 +37,7 @@ public class Godrays {
             if (light.getLightType() == LightType.DIRECTIONAL)
                 position = VectorUtils.mul(light.getDirection(), 20000);
 
-            shader.loadInformation(100, projection.update(position, viewMatrix));
+            shader.loadInformation(100, Projection.projectPoint(position, Renderer.getProjectionMatrix(), viewMatrix));
         } else {
             shader.loadInformation(0, new Vector2f(0, 0));
         }
@@ -51,7 +49,6 @@ public class Godrays {
     }
 
     public void shutdown() {
-        shader.shutdown();
         outputFBO.shutdown();
     }
 

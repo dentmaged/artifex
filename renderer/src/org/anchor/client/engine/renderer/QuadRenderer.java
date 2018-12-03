@@ -7,9 +7,7 @@ import org.lwjgl.opengl.GL30;
 
 public class QuadRenderer {
 
-    private static Mesh mesh = Loader.getInstance().loadToVAO(new float[] {
-            -1, 1, -1, -1, 1, 1, 1, -1
-    }, 2);
+    private static Mesh mesh = Loader.getInstance().loadToVAO(new float[] { -1, 1, -1, -1, 1, 1, 1, -1 }, 2);
 
     public static void bind() {
         GL30.glBindVertexArray(mesh.getVAO());
@@ -17,6 +15,9 @@ public class QuadRenderer {
     }
 
     public static void render() {
+        Renderer.triangleCount += 2;
+        Renderer.drawCalls++;
+
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
         GL11.glEnable(GL11.GL_DEPTH_TEST);

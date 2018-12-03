@@ -146,6 +146,9 @@ public class OBJFileLoader {
     }
 
     private static Vector3f convertDataToArrays(List<Vertex> vertices, List<Vector2f> textures, List<Vector3f> normals, float[] verticesArray, float[] texturesArray, float[] normalsArray, float[] tangentsArray) {
+        if (vertices.size() == 0)
+            return new Vector3f();
+
         Vertex furthestVertex = vertices.get(0);
 
         for (int i = 0; i < vertices.size(); i++) {

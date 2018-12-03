@@ -1,5 +1,6 @@
 package org.anchor.game.client.storage;
 
+import java.awt.Color;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.Layer;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;
 import org.anchor.game.client.types.ClientScene;
@@ -27,6 +29,9 @@ public class GameMap {
     public static String ENTITY_END = ((char) 3) + "";
     public static String TERRAIN_END = ((char) 4) + "";
     public static String SUBPARTS = ((char) 5) + "";
+    public static String INFO = ((char) 6) + "";
+
+    public static int MAP_VERSION = 1;
 
     public static Map<Entity, Integer> parents = new HashMap<Entity, Integer>();
 
@@ -42,8 +47,25 @@ public class GameMap {
         String contents = FileHelper.read(file);
         String[] lines = contents.split("\n");
         int i = 0;
+        if (lines[0].startsWith(INFO)) {
+            String[] parts = lines[0].split(PARTS);
+            int version = Integer.parseInt(parts[0].substring(1));
+            if (version != MAP_VERSION)
+                return;
+
+            if (parts.length > 1) {
+                String[] layers = parts[1].split(SUBPARTS);
+                for (String layer : layers) {
+                    String[] sections = layer.split("@");
+
+                    scene.getLayers().add(new Layer(sections[0], new Color(Integer.parseInt(sections[1]), Integer.parseInt(sections[2]), Integer.parseInt(sections[3])), Boolean.parseBoolean(sections[4]), Boolean.parseBoolean(sections[5])));
+                }
+            }
+
+            i++;
+        }
         while (!lines[i].equals(ENTITY_END)) {
-            Entity entity = parse(lines[i]);
+            Entity entity = parse(scene, lines[i]);
             if (entity != null) {
                 scene.getEntities().add(entity);
                 entity.setLineIndex(i);
@@ -108,7 +130,7 @@ public class GameMap {
         return arr;
     }
 
-    public static Entity parse(String line) {
+    public static Entity parse(ClientScene scene, String line) {
         String[] parts = split(line, PARTS);
         Entity entity = new Entity();
 
@@ -116,6 +138,8 @@ public class GameMap {
             for (Entry<String, String> entry : getValues(parts[0]).entrySet()) {
                 if (entry.getKey().equals("parent"))
                     parents.put(entity, Integer.parseInt(entry.getValue()));
+                if (entry.getKey().equals("layer"))
+                    entity.setLayer(scene.getLayerByName(entry.getValue()));
 
                 entity.setValue(entry.getKey(), entry.getValue());
             }

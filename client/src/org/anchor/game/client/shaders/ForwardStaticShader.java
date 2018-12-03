@@ -88,6 +88,7 @@ public class ForwardStaticShader extends ModelShader {
 
         loadFloat("numberOfRows", render.material.getNumberOfRows());
         loadVector("textureOffset", render.getTextureOffset());
+        loadVector("uvScale", render.getUVScale());
         loadVector("colour", render.colour);
 
         loadBoolean("useAOMap", render.material.hasAmbientOcclusionMap());

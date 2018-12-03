@@ -10,7 +10,6 @@ import org.anchor.engine.common.utils.Mathf;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
-import org.lwjgl.util.vector.Vector3f;
 
 public class IBLShader extends Shader {
 
@@ -39,7 +38,7 @@ public class IBLShader extends Shader {
         }
     }
 
-    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<ReflectionProbe> reflectionProbes, List<LightProbe> lightProbes, Vector3f baseColour) {
+    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<ReflectionProbe> reflectionProbes, List<LightProbe> lightProbes) {
         loadMatrix("viewMatrix", viewMatrix);
         loadMatrix("inverseViewMatrix", inverseViewMatrix);
 
@@ -75,10 +74,6 @@ public class IBLShader extends Shader {
                 pcc.y = 1;
             }
         }
-
-        loadFloat("density", Settings.density);
-        loadFloat("gradient", Settings.gradient);
-        loadVector("skyColour", baseColour);
     }
 
     @Override

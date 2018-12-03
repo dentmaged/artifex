@@ -13,6 +13,7 @@ import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
+import org.anchor.engine.shared.utils.Layer;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -21,6 +22,7 @@ public class Entity {
 
     protected int id, lineIndex = -1;
     protected boolean hidden, spawned, updated;
+    protected Layer layer;
 
     protected Entity parent;
     protected List<Entity> children = new ArrayList<Entity>();
@@ -33,12 +35,14 @@ public class Entity {
     public Entity() {
         addComponent(new TransformComponent());
 
+        layer = Engine.getDefaultLayer();
         Engine.getInstance().onEntityCreate(this);
     }
 
     public Entity(Class<? extends IComponent>... clazzes) {
         addComponent(new TransformComponent());
 
+        layer = Engine.getDefaultLayer();
         for (Class<? extends IComponent> clazz : clazzes) {
             try {
                 addComponent(clazz.newInstance());
@@ -51,6 +55,9 @@ public class Entity {
     }
 
     public void spawn() {
+        if (layer == null)
+            layer = Engine.getDefaultLayer();
+
         Engine.getInstance().onEntityPreSpawn(this);
         for (IComponent component : components)
             component.spawn(this);
@@ -78,6 +85,19 @@ public class Entity {
 
     public void setLineIndex(int lineIndex) {
         this.lineIndex = lineIndex;
+    }
+
+    public void setLayer(Layer layer) {
+        if (this.layer != null)
+            this.layer.getEntities().remove(this);
+
+        setValue("layer", layer.getName());
+        this.layer = layer;
+        this.layer.getEntities().add(this);
+    }
+
+    public Layer getLayer() {
+        return layer;
     }
 
     public Vector3f getPosition() {
@@ -211,6 +231,7 @@ public class Entity {
 
     public Entity copy() {
         Entity copy = new Entity();
+        copy.layer = layer;
         copy.hidden = hidden;
         copy.removeComponent(TransformComponent.class);
 
@@ -240,6 +261,9 @@ public class Entity {
     }
 
     public void update() {
+        if (layer == null)
+            layer = Engine.getDefaultLayer();
+
         VectorUtils.set(transformationMatrix, getComponent(TransformComponent.class).getTransformationMatrix());
 
         if (parent != null)

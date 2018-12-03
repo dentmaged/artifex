@@ -15,10 +15,6 @@ texCube irradianceMap[MAX_PROBES];
 texCube prefilter[MAX_PROBES];
 tex brdf;
 
-uniform float density;
-uniform float gradient;
-uniform vec3 skyColour;
-
 uniform float irradianceScale;
 uniform float ambientScale;
 uniform float mips;
@@ -116,8 +112,7 @@ vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic
 		ambient += kD * diffuse + reflectedColour * specularBRDF;
 	}
 
-	// TODO separate fog pass
-	return mix(skyColour, ambientScale * ao * ambient, clamp(exp(-pow((distance * density), gradient)), 0, 1));
+	return ambientScale * ao * ambient;
 }
 
 void main(void) {

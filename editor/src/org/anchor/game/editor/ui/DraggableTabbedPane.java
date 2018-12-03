@@ -85,6 +85,8 @@ public class DraggableTabbedPane extends JTabbedPane {
 
             @Override
             public void dragDropEnd(DragSourceDropEvent e) {
+                LevelEditor.getInstance().stopDrag(DraggableTabbedPane.this);
+
                 isDrawRect = false;
                 lineRect.setRect(0, 0, 0, 0);
 
@@ -105,6 +107,8 @@ public class DraggableTabbedPane extends JTabbedPane {
 
             @Override
             public void dragGestureRecognized(DragGestureEvent e) {
+                LevelEditor.getInstance().startDrag();
+
                 Point tabPt = e.getDragOrigin();
                 int dragTabIndex = indexAtLocation(tabPt.x, tabPt.y);
 
@@ -413,7 +417,6 @@ public class DraggableTabbedPane extends JTabbedPane {
                     targetIndex = 0;
 
                 insertTab(str, null, cmp, null, targetIndex);
-
             }
 
             setSelectedComponent(cmp);

@@ -56,11 +56,15 @@ vec4 raymarch(vec3 dir, inout vec3 hitCoord, out float dDepth) {
 }
 
 vec3 getReflection(vec3 hitPosition, vec3 reflected, float otherFactors) {
+#ifdef DISABLE_SSR
+	return vec3(0);
+#else
 	float dDepth;
 	vec4 coords = raymarch(reflected * max(minRayStep, -hitPosition.z), vec3(hitPosition), dDepth);
 	vec2 dCoords = smoothstep(0.3, 0.6, abs(vec2(0.5) - coords.xy));
 
 	return vec3(coords.xy, clamp(otherFactors * clamp(1.0 - (dCoords.x + dCoords.y), 0, 1) * -reflected.z, 0, 1));
+#endif
 }
 
 vec3 getReflection(vec3 hitPosition, vec3 reflected) {

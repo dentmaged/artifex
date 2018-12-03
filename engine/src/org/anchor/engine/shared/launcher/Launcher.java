@@ -64,9 +64,7 @@ public class Launcher {
 
     private static Object loadJar(File path, String clazz, String methodName) {
         try {
-            child = new URLClassLoader(new URL[] {
-                    path.toURI().toURL()
-            }, App.class.getClassLoader());
+            child = new URLClassLoader(new URL[] { path.toURI().toURL() }, App.class.getClassLoader());
         } catch (Exception e) {
             e.printStackTrace();
         }

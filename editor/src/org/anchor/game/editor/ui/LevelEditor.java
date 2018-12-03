@@ -6,8 +6,12 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -21,6 +25,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JColorChooser;
 import javax.swing.JDesktopPane;
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
@@ -55,8 +60,10 @@ import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.Pointer;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.PhysicsComponent;
+import org.anchor.engine.shared.components.ScriptComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.entity.Entity;
@@ -78,6 +85,7 @@ import org.anchor.engine.shared.ui.swing.CustomButton;
 import org.anchor.engine.shared.ui.swing.CustomCheckbox;
 import org.anchor.engine.shared.ui.swing.CustomDropdown;
 import org.anchor.engine.shared.ui.swing.CustomTextField;
+import org.anchor.engine.shared.utils.Layer;
 import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
@@ -94,6 +102,7 @@ import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.editor.GameEditor;
+import org.anchor.game.editor.commands.Undo;
 import org.anchor.game.editor.properties.PropertyUIKit;
 import org.anchor.game.editor.terrain.brush.IncreaseDecreaseHeightBrush;
 import org.anchor.game.editor.terrain.brush.SetHeightBrush;
@@ -111,14 +120,14 @@ import org.lwjgl.util.vector.Vector3f;
  */
 public class LevelEditor extends JPanel {
 
-    private JTextField xTransformField;
-    private JTextField yTransformField;
-    private JTextField zTransformField;
+    private JTextField xTransformField, yTransformField, zTransformField;
     private JLabel lblObjectsSelected;
     private static final long serialVersionUID = 1625891826028289732L;
 
-    private JTabbedPane LEFT_DOCK_STATION = new DraggableTabbedPane();
-    private JTabbedPane RIGHT_DOCK_STATION = new DraggableTabbedPane();
+    private JDesktopPane desktopPane;
+    private JInternalFrame sceneFrame, actionFrame, gameFrame, logFrame;
+
+    private JTabbedPane leftDock, rightDock;
 
     private JTabbedPane tabbedPane;
     private JPopupMenu scenePopupMenu, assetBrowserPopupMenu;
@@ -128,6 +137,7 @@ public class LevelEditor extends JPanel {
     private JTree tree;
 
     private boolean ignoreTreeEvent;
+    private Layer layer;
 
     private Window window;
     private GameEditor gameEditor;
@@ -143,7 +153,7 @@ public class LevelEditor extends JPanel {
     private static float MB = 1024 * 1024;
     private JTextField speedField;
     private JLabel lblMbRAM;
-    private boolean updateRAM;
+    private boolean updateRAM, mouseDown, resizing;
     private long lastUpdateTime;
 
     private float radius = 5;
@@ -153,39 +163,120 @@ public class LevelEditor extends JPanel {
 
     protected boolean paint, terraform;
 
-    private static Class<?>[] COMPONENTS = new Class[] {
-            MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ParticleSystemComponent.class, ReflectionProbeComponent.class, SunComponent.class
-    };
+    private static Class<?>[] COMPONENTS = new Class[] { MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ParticleSystemComponent.class, ReflectionProbeComponent.class, SunComponent.class, ScriptComponent.class };
 
-    private static TerrainBrush[] BRUSHES = new TerrainBrush[] {
-            new IncreaseDecreaseHeightBrush(), new SetHeightBrush(), new SmoothBrush()
-    };
+    private static TerrainBrush[] BRUSHES = new TerrainBrush[] { new IncreaseDecreaseHeightBrush(), new SetHeightBrush(), new SmoothBrush() };
 
     private static Shape[] SHAPES = AssetManager.getShapes();
+    private static LevelEditor instance;
 
     public LevelEditor() {
+        instance = this;
+        leftDock = new DraggableTabbedPane() {
+
+            private static final long serialVersionUID = -5027117767044676642L;
+
+            @Override
+            public void remove(int index) {
+                super.remove(index);
+
+                if (getTabCount() == 0) {
+                    sceneFrame.setVisible(false);
+
+                    Rectangle bounds = gameFrame.getBounds();
+                    gameFrame.setBounds(sceneFrame.getBounds().x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+
+                    bounds = logFrame.getBounds();
+                    logFrame.setBounds(sceneFrame.getBounds().x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+                    for (Component component : logFrame.getContentPane().getComponents()) {
+                        bounds = component.getBounds();
+                        component.setBounds(bounds.x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+                    }
+                }
+            }
+
+        };
+
+        rightDock = new DraggableTabbedPane() {
+
+            private static final long serialVersionUID = 1970534169216404328L;
+
+            @Override
+            public void remove(int index) {
+                super.remove(index);
+
+                if (getTabCount() == 0) {
+                    actionFrame.setVisible(false);
+
+                    Rectangle bounds = gameFrame.getBounds();
+                    gameFrame.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+
+                    bounds = logFrame.getBounds();
+                    logFrame.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+                    for (Component component : logFrame.getContentPane().getComponents()) {
+                        bounds = component.getBounds();
+                        component.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+                    }
+                }
+            }
+        };
+
         setLayout(null);
         this.window = Window.getInstance();
 
-        JDesktopPane desktopPane = new JDesktopPane();
+        desktopPane = new JDesktopPane();
         desktopPane.setBounds(0, 0, 1918, 943);
         add(desktopPane);
 
-        JInternalFrame gameFrame = new JInternalFrame("Perspective");
+        gameFrame = new JInternalFrame("Perspective");
         gameFrame.getContentPane().setBackground(Color.BLACK);
         gameFrame.setBounds(316, -2, 1281, 745);
         gameFrame.setFrameIcon(null);
+        gameFrame.addComponentListener(new ComponentAdapter() {
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                super.componentResized(e);
+
+                if (mouseDown)
+                    resizing = true;
+            }
+
+        });
         desktopPane.add(gameFrame);
-        gameFrame.getContentPane().setLayout(null);
+
+        gameFrame.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mousePressed(MouseEvent arg0) {
+                mouseDown = true;
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent arg0) {
+                mouseDown = false;
+
+                if (resizing) {
+                    resizing = false;
+
+                    Dimension dimensions = gameFrame.getContentPane().getSize();
+                    gameEditor.queueResize(dimensions.width, dimensions.height);
+                }
+            }
+
+        });
+        gameFrame.getContentPane().setLayout(new BorderLayout());
 
         canvas = new Canvas();
-        canvas.setBounds(0, 0, 1280, 720);
-        gameFrame.getContentPane().add(canvas);
+        canvas.setFocusable(false);
+        gameFrame.getContentPane().add(canvas, BorderLayout.CENTER);
 
-        JInternalFrame logFrame = new JInternalFrame("Log");
-        logFrame.setBounds(316, 744, 1281, 197);
+        logFrame = new JInternalFrame("Log");
+        logFrame.setClosable(true);
+        logFrame.setBounds(316, 743, 1281, 198);
         logFrame.setFrameIcon(null);
         desktopPane.add(logFrame);
+        Window.getInstance().registerWindow(logFrame, Window.BOTTOM);
         logFrame.getContentPane().setLayout(null);
 
         JPanel panel = new JPanel();
@@ -203,27 +294,57 @@ public class LevelEditor extends JPanel {
         lblX.setBounds(119, 6, 10, 14);
         panel.add(lblX);
 
-        xTransformField = new JTextField();
+        xTransformField = new JTextField("0.0", 10);
         xTransformField.setBounds(139, 3, 86, 20);
+        addTextFieldListener(xTransformField, new Runnable() {
+
+            @Override
+            public void run() {
+                if (selectedEntity == null)
+                    return;
+
+                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).x = parseFloat(xTransformField.getText());
+            }
+
+        });
         panel.add(xTransformField);
-        xTransformField.setColumns(10);
 
         JLabel lblY = new JLabel("Y:");
         lblY.setBounds(235, 6, 10, 14);
         panel.add(lblY);
 
-        yTransformField = new JTextField();
-        yTransformField.setColumns(10);
+        yTransformField = new JTextField("0.0", 10);
         yTransformField.setBounds(255, 3, 86, 20);
+        addTextFieldListener(yTransformField, new Runnable() {
+
+            @Override
+            public void run() {
+                if (selectedEntity == null)
+                    return;
+
+                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).y = parseFloat(yTransformField.getText());
+            }
+
+        });
         panel.add(yTransformField);
 
         JLabel lblZ = new JLabel("Z:");
         lblZ.setBounds(351, 6, 10, 14);
         panel.add(lblZ);
 
-        zTransformField = new JTextField();
-        zTransformField.setColumns(10);
+        zTransformField = new JTextField("0.0", 10);
         zTransformField.setBounds(371, 3, 86, 20);
+        addTextFieldListener(zTransformField, new Runnable() {
+
+            @Override
+            public void run() {
+                if (selectedEntity == null)
+                    return;
+
+                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).z = parseFloat(zTransformField.getText());
+            }
+
+        });
         panel.add(zTransformField);
 
         JLabel lblSpeed = new JLabel("Speed: ");
@@ -369,6 +490,7 @@ public class LevelEditor extends JPanel {
             }
 
         });
+        lblMbRAM.setHorizontalTextPosition(SwingConstants.RIGHT);
         lblMbRAM.setHorizontalAlignment(SwingConstants.RIGHT);
         lblMbRAM.setBounds(1188, 4, 86, 16);
         panel.add(lblMbRAM);
@@ -383,11 +505,11 @@ public class LevelEditor extends JPanel {
         logScrollPane.setViewportView(editorPane);
         LogRedirector.redirect(editorPane);
 
-        JInternalFrame sceneFrame = new JInternalFrame("Scene");
+        sceneFrame = new JInternalFrame("Scene");
         sceneFrame.setBounds(0, 0, 317, 940);
         desktopPane.add(sceneFrame);
         sceneFrame.getContentPane().setLayout(new BorderLayout());
-        sceneFrame.getContentPane().add(LEFT_DOCK_STATION, BorderLayout.CENTER);
+        sceneFrame.getContentPane().add(leftDock, BorderLayout.CENTER);
 
         scenePopupMenu = new JPopupMenu();
         scenePopupMenu.add(new JMenuItem(new AbstractAction("Copy") {
@@ -506,7 +628,7 @@ public class LevelEditor extends JPanel {
 
         });
         updateList();
-        LEFT_DOCK_STATION.addTab("Scene", scenePanel);
+        Window.getInstance().registerPanel("Scene", scenePanel, Window.LEFT);
 
         JPanel assetBrowserPanel = new JPanel();
         JTree assetBrowserFileSystem = UIKit.createTree(assetBrowserPanel);
@@ -519,7 +641,7 @@ public class LevelEditor extends JPanel {
             public void actionPerformed(ActionEvent event) {
                 File file = (File) ((CustomMutableTreeNode) assetBrowserFileSystem.getLastSelectedPathComponent()).getStorage();
                 if (file.isFile() && file.getName().endsWith("obj")) {
-                    String model = file.getName().replace(".obj", "");
+                    String model = FileHelper.removeFileExtension(FileHelper.localFileName(file));
 
                     Entity entity = gameEditor.addEntity(false);
                     entity.setValue("model", model);
@@ -540,7 +662,7 @@ public class LevelEditor extends JPanel {
                     if (mesh != null) {
                         File file = (File) ((CustomMutableTreeNode) assetBrowserFileSystem.getLastSelectedPathComponent()).getStorage();
                         if (file.isFile() && file.getName().endsWith("obj")) {
-                            String model = file.getName().replace(".obj", "");
+                            String model = FileHelper.removeFileExtension(FileHelper.localFileName(file));
 
                             selectedEntity.setValue("model", model);
                             mesh.model = AssetLoader.loadModel(model);
@@ -620,17 +742,17 @@ public class LevelEditor extends JPanel {
 
         });
         expand(assetBrowserFileSystem, 0, assetBrowserFileSystem.getRowCount());
-        LEFT_DOCK_STATION.addTab("Asset Browser", assetBrowserPanel);
+        Window.getInstance().registerPanel("Asset Browser", assetBrowserPanel, Window.LEFT);
 
-        JInternalFrame actionFrame = new JInternalFrame("Action");
+        actionFrame = new JInternalFrame("Action");
         actionFrame.setBorder(null);
         actionFrame.setBounds(1599, 0, 317, 943);
         desktopPane.add(actionFrame);
         actionFrame.getContentPane().setLayout(new BorderLayout());
 
         tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        actionFrame.getContentPane().add(RIGHT_DOCK_STATION, BorderLayout.CENTER);
-        RIGHT_DOCK_STATION.addTab("Action", tabbedPane);
+        actionFrame.getContentPane().add(rightDock, BorderLayout.CENTER);
+        Window.getInstance().registerPanel("Action", tabbedPane, Window.RIGHT);
 
         JPanel addPanel = new JPanel();
         tabbedPane.addTab("Add", null, addPanel, null);
@@ -771,7 +893,7 @@ public class LevelEditor extends JPanel {
                 public void onButtonClick(CustomButton field) {
                     try {
                         if (selectedEntity != null) {
-                            selectedEntity.addComponent((IComponent) one.newInstance());
+                            Undo.addComponent(selectedEntity, (IComponent) one.newInstance());
                             reloadEntityComponents(selectedEntity);
                         }
                     } catch (Exception e) {
@@ -785,7 +907,7 @@ public class LevelEditor extends JPanel {
                 public void onButtonClick(CustomButton field) {
                     try {
                         if (selectedEntity != null) {
-                            selectedEntity.addComponent((IComponent) two.newInstance());
+                            Undo.addComponent(selectedEntity, (IComponent) two.newInstance());
                             reloadEntityComponents(selectedEntity);
                         }
                     } catch (Exception e) {
@@ -900,12 +1022,61 @@ public class LevelEditor extends JPanel {
 
         });
         entityName.setBounds(118, 148, 148, 23);
-        entityPanel.add(entityName);
         entityName.setColumns(10);
+        entityPanel.add(entityName);
+
+        JLabel lblLayer = new JLabel("Layer: ");
+        lblLayer.setBounds(UIKit.SUBPANEL_X, 192, UIKit.SUBPANEL_WIDTH, 16);
+        entityPanel.add(lblLayer);
+
+        CustomDropdown entityLayer = new CustomDropdown(Engine.getLayerNames(), new DropdownListener() {
+
+            @Override
+            public void onDropdownSelect(CustomDropdown field) {
+                selectedEntity.setLayer(Engine.getLayerByName((String) field.getSelectedItem()));
+            }
+
+            @Override
+            public void onEntitySelect(Entity previous, Entity current) {
+                CustomDropdown field = (CustomDropdown) component;
+                field.setEnabled(false);
+
+                field.removeAllItems();
+                for (String item : Engine.getLayerNames())
+                    field.addItem(item);
+
+                if (current != null) {
+                    reloadEntityComponents(current);
+
+                    field.setSelectedItem(current.getLayer().getName());
+                    field.setEnabled(true);
+                } else {
+                    components.removeAll();
+                    components.revalidate();
+                    components.repaint();
+
+                    field.setSelectedIndex(-1);
+                }
+            }
+
+        });
+        entityLayer.getListener().setComponent(entityLayer);
+        lblLayer.setLabelFor(entityLayer);
+        entityLayer.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (entityLayer.isEnabled())
+                    ((DropdownListener) entityLayer.getListener()).onDropdownSelect(entityLayer);
+            }
+
+        });
+        entityLayer.setBounds(118, 188, 148, 23);
+        entityPanel.add(entityLayer);
 
         JPanel componentsPanel = new JPanel();
         componentsPanel.setBorder(new TitledBorder(null, "Components", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-        componentsPanel.setBounds(UIKit.SUBPANEL_X, 183, UIKit.SUBPANEL_WIDTH, 709);
+        componentsPanel.setBounds(UIKit.SUBPANEL_X, 223, UIKit.SUBPANEL_WIDTH, 669);
         entityPanel.add(componentsPanel);
         componentsPanel.setLayout(new BorderLayout(0, 0));
 
@@ -1237,7 +1408,7 @@ public class LevelEditor extends JPanel {
 
         JPanel environmentPanel = new JPanel();
         tabbedPane.addTab("Environment", null, environmentPanel, null);
-        environmentPanel.setLayout(new BorderLayout(0, 0));
+        environmentPanel.setLayout(new BorderLayout());
 
         JScrollPane environmentScrollPane = new JScrollPane();
         environmentPanel.add(environmentScrollPane, BorderLayout.CENTER);
@@ -1270,45 +1441,17 @@ public class LevelEditor extends JPanel {
 
         };
 
-        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] {
-                {
-                        "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool()
-                }, {
-                        "Procedural Skybox", Settings.proceduralSky
-                }, {
-                        "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool()
-                }, {
-                        "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool()
-                }, {
-                        "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool()
-                }, {
-                        "Fog Density", Settings.density
-                }, {
-                        "Fog Gradient", Settings.gradient
-                }, {
-                        "Exposure Speed", Settings.exposureSpeed
-                }, {
-                        "SSAO Bias", Settings.ssaoBias
-                }, {
-                        "SSAO Radius", Settings.ssaoRadius
-                }
-        }, new String[] {
-                "Property", "Value"
-        }) {
+        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] { { "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool() }, { "Procedural Skybox", Settings.proceduralSky }, { "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool() }, { "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool() }, { "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool() }, { "Fog Density", Settings.density }, { "Fog Gradient", Settings.gradient }, { "Exposure Speed", Settings.exposureSpeed }, { "SSAO Bias", Settings.ssaoBias }, { "SSAO Radius", Settings.ssaoRadius } }, new String[] { "Property", "Value" }) {
 
             private static final long serialVersionUID = 3225320749175276075L;
 
-            Class<?>[] columnTypes = new Class[] {
-                    String.class, Object.class
-            };
+            Class<?>[] columnTypes = new Class[] { String.class, Object.class };
 
             public Class<?> getColumnClass(int columnIndex) {
                 return columnTypes[columnIndex];
             }
 
-            boolean[] columnEditables = new boolean[] {
-                    false, true
-            };
+            boolean[] columnEditables = new boolean[] { false, true };
 
             public boolean isCellEditable(int row, int column) {
                 return columnEditables[column];
@@ -1329,8 +1472,161 @@ public class LevelEditor extends JPanel {
         environmentPropertiesTable.setFillsViewportHeight(true);
         environmentScrollPane.setViewportView(environmentPropertiesTable);
 
+        JPanel layersPanel = new JPanel();
+        layersPanel.setLayout(null);
+
+        JButton createLayerButton = new JButton("Create");
+        createLayerButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String name = JOptionPane.showInputDialog(null, "Name: ", "Anchor Engine Editor", JOptionPane.QUESTION_MESSAGE);
+                if (name.equals(""))
+                    return;
+
+                Color colour = JColorChooser.showDialog(null, "Anchor Engine Editor", new Color(133, 213, 214));
+                if (colour == null)
+                    return;
+
+                Engine.getLayers().add(new Layer(name, colour));
+                layersPanel.repaint();
+            }
+
+        });
+        createLayerButton.setBounds(0, 0, 317, 23);
+        layersPanel.add(createLayerButton);
+
+        JPopupMenu layersPopupMenu = new JPopupMenu();
+        layersPopupMenu.add(new JMenuItem(new AbstractAction("Rename") {
+
+            private static final long serialVersionUID = -2341604367379331217L;
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                String name = JOptionPane.showInputDialog(null, "Rename " + layer.getName(), "Anchor Engine Editor", JOptionPane.QUESTION_MESSAGE);
+                if (name.equals(""))
+                    return;
+
+                layer.setName(name);
+                layersPanel.repaint();
+            }
+
+        }));
+        layersPopupMenu.add(new JMenuItem(new AbstractAction("Change colour") {
+
+            private static final long serialVersionUID = -1342640139711215514L;
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                Color colour = JColorChooser.showDialog(null, "Anchor Engine Editor", new Color(133, 213, 214));
+                if (colour == null)
+                    return;
+
+                layer.setColour(colour);
+                layersPanel.repaint();
+            }
+
+        }));
+        layersPopupMenu.add(new JMenuItem(new AbstractAction("Delete") {
+
+            private static final long serialVersionUID = 9216970922260879244L;
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                for (Entity entity : Engine.getEntities())
+                    if (entity.getLayer() == layer)
+                        entity.setLayer(Engine.getDefaultLayer());
+
+                Engine.getLayers().remove(layer);
+                layersPanel.repaint();
+            }
+
+        }));
+
+        Font title = new Font("Segoe UI", Font.PLAIN, 10);
+        Font text = new Font("Segoe UI", Font.PLAIN, 15);
+        JPanel listPanel = new JPanel() {
+
+            private static final long serialVersionUID = -3841338472978260323L;
+
+            @Override
+            public void paint(Graphics g) {
+                super.paint(g);
+
+                g.setFont(title);
+                g.drawString("Visi...", 2, 8);
+                g.drawString("Pick...", 28, 8);
+                g.drawString("Name", 58, 8);
+
+                int y = 12;
+                g.setFont(text);
+
+                for (Layer layer : Engine.getLayers()) {
+                    g.fillRect(0, y - 1, 317, 1);
+                    g.setColor(layer.getColour());
+                    g.fillRect(55, y, leftDock.getBounds().width, 25);
+
+                    g.setColor(Color.BLACK);
+                    g.drawString(layer.getName(), 60, y + 18);
+
+                    g.drawRect(1, y + 1, 23, 23);
+                    g.drawRect(29, y + 1, 23, 23);
+
+                    g.setColor(Color.GRAY);
+
+                    if (layer.isVisible())
+                        g.drawString("X", 9, y + 18);
+                    if (layer.isPickable())
+                        g.drawString("X", 37, y + 18);
+
+                    g.setColor(Color.WHITE);
+                    g.fillRect(0, y + 25, 317, 1);
+
+                    y += 26;
+                }
+            }
+
+        };
+
+        listPanel.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                int mouseX = event.getX();
+                int mouseY = event.getY();
+                int y = 12;
+
+                for (Layer layer : Engine.getLayers()) {
+                    if (event.getButton() == 1) {
+                        if (mouseX >= 1 && mouseX <= 23 && mouseY >= y + 1 && mouseY <= y + 24)
+                            layer.setVisible(!layer.isVisible());
+
+                        if (mouseX >= 29 && mouseX <= 51 && mouseY >= y + 1 && mouseY <= y + 24)
+                            layer.setPickable(!layer.isPickable());
+                    } else if (event.getButton() == 3) {
+                        if (mouseX >= 51 && mouseX <= 317 && mouseY >= y && mouseY <= y + 26) {
+                            if (layer == Engine.getDefaultLayer())
+                                return;
+
+                            LevelEditor.this.layer = layer;
+                            layersPopupMenu.show(event.getComponent(), mouseX, mouseY);
+                        }
+                    }
+
+                    y += 26;
+                }
+
+                layersPanel.repaint();
+            }
+
+        });
+        listPanel.setBounds(0, 25, 317, 500);
+        layersPanel.add(listPanel);
+
+        tabbedPane.addTab("Layers", null, layersPanel, null);
+
         JPanel modelPanel = new JPanel();
-        RIGHT_DOCK_STATION.addTab("Material Settings", modelPanel);
+        Window.getInstance().registerPanel("Material Settings", modelPanel);
         modelPanel.setLayout(null);
 
         JScrollPane modelSettingsPanel = UIKit.createSubpanel("Material Settings", Arrays.asList(AssetPicker.create("Albedo: ", null, "png", new FilePickCallback() {
@@ -1576,6 +1872,7 @@ public class LevelEditor extends JPanel {
 
             ignoreTreeEvent = true;
             tree.setSelectionRow(treePosition.get(entity));
+            refreshTransformationXYZ();
 
             MeshComponent render = entity.getComponent(MeshComponent.class);
             if (render != null)
@@ -1585,6 +1882,7 @@ public class LevelEditor extends JPanel {
             Log.info("Entity selected at " + entity.getPosition().x + ", " + entity.getPosition().y + ", " + entity.getPosition().z);
         } else {
             lblObjectsSelected.setText("0 Objects Selected");
+            refreshTransformationXYZ();
 
             tree.setSelectionRow(-1);
             tabbedPane.setSelectedIndex(0);
@@ -1721,7 +2019,21 @@ public class LevelEditor extends JPanel {
         }
     }
 
+    public void refreshTransformationXYZ() {
+        if (selectedEntity != null) {
+            Vector3f vector = gameEditor.getGizmoRenderer().getVector(selectedEntity);
+            xTransformField.setText(vector.x + "");
+            yTransformField.setText(vector.y + "");
+            zTransformField.setText(vector.z + "");
+        } else {
+            xTransformField.setText("0.0");
+            yTransformField.setText("0.0");
+            zTransformField.setText("0.0");
+        }
+    }
+
     public void refreshComponentValues() {
+        refreshTransformationXYZ();
         PropertyUIKit.refresh(components);
     }
 
@@ -1762,6 +2074,26 @@ public class LevelEditor extends JPanel {
 
     public Canvas getCanvas() {
         return canvas;
+    }
+
+    public JDesktopPane getDesktopPane() {
+        return desktopPane;
+    }
+
+    public JInternalFrame getGameFrame() {
+        return gameFrame;
+    }
+
+    public JTabbedPane getLeftDock() {
+        return leftDock;
+    }
+
+    public JTabbedPane getRightDock() {
+        return rightDock;
+    }
+
+    public static LevelEditor getInstance() {
+        return instance;
     }
 
     public void setGameEditor(GameEditor gameEditor) {
@@ -1852,6 +2184,66 @@ public class LevelEditor extends JPanel {
             }
 
         });
+    }
+
+    public void startDrag() {
+        if (!sceneFrame.isVisible()) {
+            sceneFrame.setVisible(true);
+
+            Rectangle bounds = gameFrame.getBounds();
+            gameFrame.setBounds(sceneFrame.getBounds().x + sceneFrame.getBounds().width, bounds.y, bounds.width - sceneFrame.getBounds().width, bounds.height);
+
+            bounds = logFrame.getBounds();
+            logFrame.setBounds(sceneFrame.getBounds().x + sceneFrame.getBounds().width, bounds.y, bounds.width - sceneFrame.getBounds().width, bounds.height);
+            for (Component component : logFrame.getContentPane().getComponents()) {
+                bounds = component.getBounds();
+                component.setBounds(bounds.x, bounds.y, bounds.width - sceneFrame.getBounds().width, bounds.height);
+            }
+        }
+
+        if (!actionFrame.isVisible()) {
+            actionFrame.setVisible(true);
+
+            Rectangle bounds = gameFrame.getBounds();
+            gameFrame.setBounds(bounds.x, bounds.y, bounds.width - actionFrame.getBounds().width, bounds.height);
+
+            bounds = logFrame.getBounds();
+            logFrame.setBounds(bounds.x, bounds.y, bounds.width - actionFrame.getBounds().width, bounds.height);
+            for (Component component : logFrame.getContentPane().getComponents()) {
+                bounds = component.getBounds();
+                component.setBounds(bounds.x, bounds.y, bounds.width - actionFrame.getBounds().width, bounds.height);
+            }
+        }
+    }
+
+    public void stopDrag(JTabbedPane pane) {
+        if (leftDock.getTabCount() == 0 && pane != leftDock) {
+            sceneFrame.setVisible(false);
+
+            Rectangle bounds = gameFrame.getBounds();
+            gameFrame.setBounds(sceneFrame.getBounds().x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+
+            bounds = logFrame.getBounds();
+            logFrame.setBounds(sceneFrame.getBounds().x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+            for (Component component : logFrame.getContentPane().getComponents()) {
+                bounds = component.getBounds();
+                component.setBounds(bounds.x, bounds.y, bounds.width + sceneFrame.getBounds().width, bounds.height);
+            }
+        }
+
+        if (rightDock.getTabCount() == 0 && pane != rightDock) {
+            actionFrame.setVisible(false);
+
+            Rectangle bounds = gameFrame.getBounds();
+            gameFrame.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+
+            bounds = logFrame.getBounds();
+            logFrame.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+            for (Component component : logFrame.getContentPane().getComponents()) {
+                bounds = component.getBounds();
+                component.setBounds(bounds.x, bounds.y, bounds.width + actionFrame.getBounds().width, bounds.height);
+            }
+        }
     }
 
     private int parseInt(String input) {

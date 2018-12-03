@@ -34,6 +34,7 @@ public class ModelShader extends ClientShader {
 
         loadFloat("numberOfRows", render.material.getNumberOfRows());
         loadVector("textureOffset", render.getTextureOffset());
+        loadVector("uvScale", render.getUVScale());
         loadVector("colour", render.colour);
     }
 

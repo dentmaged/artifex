@@ -35,9 +35,7 @@ public class ParticleRenderer {
     public static final int DATA_LENGTH = 21;
 
     public static void init() {
-        mesh = Loader.getInstance().loadToVAO(new float[] {
-                -1, 1, -1, -1, 1, 1, 1, -1
-        }, 2);
+        mesh = Loader.getInstance().loadToVAO(new float[] { -1, 1, -1, -1, 1, 1, 1, -1 }, 2);
         vbo = Loader.getInstance().createEmptyVBO(MAX_PARTICLES * DATA_LENGTH);
         buffer = BufferUtils.createFloatBuffer(MAX_PARTICLES * DATA_LENGTH);
 

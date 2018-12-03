@@ -10,9 +10,7 @@ import org.lwjgl.opengl.GL20;
 public class Graphics {
 
     private static int[] slots;
-    private static String[] errors = new String[] {
-            "GL_INVALID_ENUM", "GL_INVALID_VALUE", "GL_INVALID_OPERATION", "GL_STACK_OVERFLOW", "GL_STACK_UNDERFLOW", "GL_OUT_OF_MEMORY", "GL_INVALID_FRAMEBUFFER_OPERATION", "GL_CONTEXT_LOST"
-    };
+    private static String[] errors = new String[] { "GL_INVALID_ENUM", "GL_INVALID_VALUE", "GL_INVALID_OPERATION", "GL_STACK_OVERFLOW", "GL_STACK_UNDERFLOW", "GL_OUT_OF_MEMORY", "GL_INVALID_FRAMEBUFFER_OPERATION", "GL_CONTEXT_LOST" };
 
     public static void init() {
         slots = new int[GL11.glGetInteger(GL20.GL_MAX_TEXTURE_IMAGE_UNITS)];
@@ -71,6 +69,8 @@ public class Graphics {
 
             slots[i] = 0; // fixes 12
         }
+
+        Renderer.triangleCount = 0;
     }
 
     public static void checkForErrors() {

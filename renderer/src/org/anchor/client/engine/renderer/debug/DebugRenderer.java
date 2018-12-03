@@ -26,7 +26,7 @@ public class DebugRenderer {
             circle = Loader.getInstance().loadToVAO(generateCircle(), 3);
 
         shader.start();
-        shader.loadInformation(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, scale), colour);
+        shader.loadInformation(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, scale), colour, 1);
         GL30.glBindVertexArray(circle.getVAO());
         GL20.glEnableVertexAttribArray(0);
 
@@ -46,14 +46,14 @@ public class DebugRenderer {
             return;
 
         shader.start();
-        shader.loadInformation(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, scale), colour);
+        shader.loadInformation(viewMatrix, CoreMaths.createTransformationMatrix(position, rotation, scale), colour, 0.8f);
         GL30.glBindVertexArray(Renderer.getCubeModel().getMesh().getVAO());
         GL20.glEnableVertexAttribArray(0);
 
-        int polygonMode = GL11.glGetInteger(GL11.GL_POLYGON_MODE);
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+        Renderer.triangleCount += Renderer.getCubeModel().getMesh().getVertexCount() / 3;
+        Renderer.drawCalls++;
+
         GL11.glDrawElements(GL11.GL_TRIANGLES, Renderer.getCubeModel().getMesh().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, polygonMode);
 
         GL20.glDisableVertexAttribArray(0);
         GL30.glBindVertexArray(0);

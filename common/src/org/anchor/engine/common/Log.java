@@ -56,9 +56,7 @@ public class Log {
     }
 
     public static void showPopup(String title, String message, int type) {
-        JOptionPane.showOptionDialog(null, message, title, JOptionPane.PLAIN_MESSAGE, type, null, new Object[] {
-                "OK",
-        }, "OK");
+        JOptionPane.showOptionDialog(null, message, title, JOptionPane.PLAIN_MESSAGE, type, null, new Object[] { "OK", }, "OK");
     }
 
     private static void notify(String text) {

@@ -47,8 +47,6 @@ public class AutoExposure {
     }
 
     public void shutdown() {
-        autoExposureShader.shutdown();
-
         previous.shutdown();
         exposure.shutdown();
     }

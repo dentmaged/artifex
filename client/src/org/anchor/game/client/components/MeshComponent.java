@@ -3,6 +3,7 @@ package org.anchor.game.client.components;
 import org.anchor.client.engine.renderer.types.Material;
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.engine.common.utils.AABB;
+import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
@@ -32,8 +33,20 @@ public class MeshComponent implements IComponent {
     @Property("Disable Frustum Culling")
     public boolean disableFrustumCulling;
 
+    @Property("UV Scale X")
+    public boolean uvX;
+
+    @Property("UV Scale Y")
+    public boolean uvY;
+
+    @Property("UV Scale Z")
+    public boolean uvZ;
+
+    @Property("UV Scale")
+    public Vector2f uvScale = new Vector2f(1, 1);
+
     public ClientShader shader;
-    public boolean castsShadows = true;
+    public boolean castsShadows = true, visible = true;
 
     public Vector4f colour = new Vector4f();
     protected Entity entity;
@@ -107,7 +120,13 @@ public class MeshComponent implements IComponent {
         copy.material = material;
         copy.shader = shader;
         copy.textureIndex = textureIndex;
+        copy.castsShadows = castsShadows;
+        copy.disableFrustumCulling = disableFrustumCulling;
         copy.colour = new Vector4f(colour);
+        copy.uvX = uvX;
+        copy.uvY = uvY;
+        copy.uvZ = uvZ;
+        copy.uvScale = new Vector2f(uvScale);
 
         return copy;
     }
@@ -127,7 +146,7 @@ public class MeshComponent implements IComponent {
     }
 
     @Property("Set collision mesh")
-    public void setCollisionMeshModel() {
+    public void setCollisionMesh() {
         if (entity == null)
             return;
 
@@ -137,6 +156,17 @@ public class MeshComponent implements IComponent {
 
         entity.setValue("collisionMesh", entity.getValue("model"));
         component.meshes = CollisionMeshLoader.loadCollisionMeshes(entity.getValue("collisionMesh"));
+    }
+
+    public Vector2f getUVScale() {
+        Vector3f axis = new Vector3f(uvX ? 1 : 0, uvY ? 1 : 0, uvZ ? 1 : 0);
+        float count = Vector3f.dot(axis, axis);
+
+        float uniformScale = 1;
+        if (count > 0)
+            uniformScale = Vector3f.dot(axis, entity.getScale()) / count;
+
+        return VectorUtils.mul(new Vector2f(uniformScale, uniformScale), uvScale);
     }
 
 }

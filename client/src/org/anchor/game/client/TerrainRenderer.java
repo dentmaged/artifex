@@ -1,6 +1,7 @@
 package org.anchor.game.client;
 
 import org.anchor.client.engine.renderer.Graphics;
+import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -43,6 +44,8 @@ public class TerrainRenderer {
             GL11.glCullFace(GL11.GL_BACK);
             shader.loadTerrainInformation(terrain);
 
+            Renderer.triangleCount += terrain.getMesh().getVertexCount() / 3;
+            Renderer.drawCalls++;
             GL11.glDrawElements(GL11.GL_TRIANGLES, terrain.getMesh().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
 
             GL20.glDisableVertexAttribArray(0);

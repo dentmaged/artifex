@@ -3,6 +3,7 @@ package org.anchor.game.client.loaders;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.Material;
@@ -30,6 +31,11 @@ public class AssetLoader {
 
     public static void removeModel(Model model) {
         models.remove(model.getName());
+    }
+
+    public static void reloadModels() {
+        for (Entry<String, Model> entry : models.entrySet())
+            models.put(entry.getKey(), new Model(Requester.requestMesh(entry.getKey())));
     }
 
     public static Material loadMaterial(String name) {
@@ -73,6 +79,11 @@ public class AssetLoader {
         return material;
     }
 
+    public static void reloadMaterials() {
+        for (Entry<String, Material> entry : materials.entrySet())
+            materials.put(entry.getKey(), loadAEM(entry.getKey()));
+    }
+
     public static ParticleTexture loadParticle(String name) {
         if (!particles.containsKey(name.toLowerCase()))
             particles.put(name.toLowerCase(), loadAEP(name));
@@ -92,6 +103,11 @@ public class AssetLoader {
             additive = Boolean.parseBoolean(values.get("additive"));
 
         return new ParticleTexture(Requester.requestTexture(values.get("texture")), rows, additive);
+    }
+
+    public static void reloadParticles() {
+        for (Entry<String, ParticleTexture> entry : particles.entrySet())
+            particles.put(entry.getKey(), loadAEP(entry.getKey()));
     }
 
     private static Map<String, String> loadValues(File file) {

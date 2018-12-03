@@ -60,9 +60,7 @@ public class Animator {
             }
             previousFrame = allFrames[i];
         }
-        return new KeyFrame[] {
-                previousFrame, nextFrame
-        };
+        return new KeyFrame[] { previousFrame, nextFrame };
     }
 
     private float calculateProgression(KeyFrame previousFrame, KeyFrame nextFrame) {

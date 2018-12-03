@@ -28,7 +28,7 @@ public class RotateGizmo extends Gizmo {
     }
 
     public RotateGizmo() {
-        super(vertices, GL11.GL_LINE_LOOP);
+        super(vertices, null, GL11.GL_LINE_LOOP);
     }
 
     @Override

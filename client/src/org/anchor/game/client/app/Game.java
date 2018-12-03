@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
+import org.anchor.client.engine.renderer.fog.Fog;
 import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.light.Light;
@@ -28,6 +29,7 @@ public abstract class Game extends App {
     public SkyComponent sky;
     public DeferredShading deferred;
     public IBL ibl;
+    public Fog fog;
     public Shadows shadows;
     public LivingComponent livingComponent;
     public Client client;
@@ -64,7 +66,6 @@ public abstract class Game extends App {
                     }
                 } else if (physics != null) {
                     Vector3f point = physics.raycast(livingComponent.getEyePosition(), livingComponent.getForwardVector());
-                    System.out.println(Vector3f.sub(livingComponent.getEyePosition(), point, null).lengthSquared());
                     if (point != null && Vector3f.sub(livingComponent.getEyePosition(), point, null).lengthSquared() <= REACH_DISTANCE)
                         interactable.interact();
                 }

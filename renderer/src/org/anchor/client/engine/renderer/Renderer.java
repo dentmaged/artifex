@@ -13,6 +13,8 @@ public class Renderer {
     private static Matrix4f projectionMatrix, inverseProjectionMatrix;
     private static Model cube;
 
+    public static int triangleCount, drawCalls;
+
     static {
         createProjectionMatrix();
     }
@@ -26,6 +28,9 @@ public class Renderer {
     }
 
     public static void render(Model model) {
+        triangleCount += model.getMesh().getVertexCount() / 3;
+        drawCalls++;
+
         GL11.glDrawElements(GL11.GL_TRIANGLES, model.getMesh().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
     }
 

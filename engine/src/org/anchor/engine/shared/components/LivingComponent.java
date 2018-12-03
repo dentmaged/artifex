@@ -18,14 +18,13 @@ import org.anchor.engine.shared.physics.collision.broadphase.BroadphaseCollision
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Maths;
+import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.weapon.Gun;
 import org.anchor.engine.shared.weapon.Weapon;
 import org.anchor.engine.shared.weapon.implementation.CrossbowData;
 import org.anchor.engine.shared.weapon.implementation.ShotgunData;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
-
-import com.oracle.webservices.internal.api.message.PropertySet.Property;
 
 public class LivingComponent implements IComponent {
 
@@ -73,9 +72,7 @@ public class LivingComponent implements IComponent {
     public void spawn(Entity entity) {
         this.entity = entity;
 
-        weapons = new Weapon[] {
-                new Gun(entity, new CrossbowData()), new Gun(entity, new ShotgunData()),
-        };
+        weapons = new Weapon[] { new Gun(entity, new CrossbowData()), new Gun(entity, new ShotgunData()), };
 
         listeners.add(new PhysicsTouchListener() {
 
@@ -281,7 +278,8 @@ public class LivingComponent implements IComponent {
 
         Vector3f eSpacePosition = VectorUtils.div(packet.R3Position, packet.eRadius);
         Vector3f eSpaceVelocity = VectorUtils.div(packet.R3Velocity, packet.eRadius);
-        eSpacePosition.y += 1f; // player position is at their feet. Add 1 to the y as the ellipsis is transformed into a unit sphere.
+        eSpacePosition.y += 1f; // player position is at their feet. Add 1 to the y as the ellipsis is
+                                // transformed into a unit sphere.
         Vector3f finalPosition = collideWithWorld(packet, eSpacePosition, eSpaceVelocity, 0);
 
         gravityStep = true;

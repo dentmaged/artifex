@@ -16,7 +16,7 @@ public class EditorInputComponent extends LivingComponent {
 
     @Override
     protected void checkInput() {
-        if (Mouse.isGrabbed()) {
+        if (Mouse.isGrabbed() && !GameEditor.getInstance().getGizmoRenderer().isDragging()) {
             float mouseDX = Mouse.getDX() * 6 * PhysicsEngine.TICK_DELAY;
             float mouseDY = Mouse.getDY() * 6 * PhysicsEngine.TICK_DELAY;
 

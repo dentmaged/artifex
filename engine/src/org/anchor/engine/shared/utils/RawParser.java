@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import org.anchor.engine.common.utils.EnumUtils;
 import org.anchor.engine.shared.monitoring.cache.CacheInformation;
 import org.anchor.engine.shared.physics.Material;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -18,6 +19,9 @@ public class RawParser {
             return null;
 
         String[] parts = value.split("@");
+        if (type == Vector2f.class)
+            return new Vector2f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]));
+
         if (type == Vector3f.class)
             return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
 
@@ -46,6 +50,12 @@ public class RawParser {
     }
 
     public String encode(Object value) {
+        if (value instanceof Vector2f) {
+            Vector2f v = (Vector2f) value;
+
+            return v.x + "@" + v.y;
+        }
+
         if (value instanceof Vector3f) {
             Vector3f v = (Vector3f) value;
 

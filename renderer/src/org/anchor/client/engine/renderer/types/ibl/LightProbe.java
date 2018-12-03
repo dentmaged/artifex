@@ -4,4 +4,9 @@ public interface LightProbe extends Probe {
 
     public int getIrradianceCubemap();
 
+    @Override
+    public default boolean isBaked() {
+        return getIrradianceCubemap() > 0;
+    }
+
 }

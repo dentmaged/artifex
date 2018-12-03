@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.Layer;
 import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;
 import org.anchor.game.client.storage.GameMap;
@@ -18,6 +19,15 @@ public class MapWriter {
     public static String write(ClientScene scene) {
         String text = "";
         try {
+            text += GameMap.INFO + GameMap.MAP_VERSION + GameMap.PARTS;
+            for (Layer layer : scene.getLayers()) {
+                if (layer == scene.getDefaultLayer())
+                    continue;
+
+                text += layer.getName() + "@" + layer.getColour().getRed() + "@" + layer.getColour().getGreen() + "@" + layer.getColour().getBlue() + "@" + layer.isPickable() + "@" + layer.isVisible() + "@" + GameMap.SUBPARTS;
+            }
+            text += "\n";
+
             for (Entity entity : scene.getEntities()) {
                 for (Entry<String, String> entry : entity.entrySet())
                     text += entry.getKey() + ":" + entry.getValue() + GameMap.SUBPARTS;

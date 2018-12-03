@@ -37,7 +37,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class))
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
             if (!component.material.isBlendingEnabled()) {
@@ -87,7 +87,7 @@ public class ClientScene extends Scene {
         Graphics.bind2DTexture(depthMap, 6);
         for (Entity entity : getEntitiesWithComponent(DecalComponent.class)) {
             DecalComponent component = entity.getComponent(DecalComponent.class);
-            if (component.material == null || !component.material.isLoaded())
+            if (component.material == null || !component.material.isLoaded() || !entity.getLayer().isVisible())
                 continue;
 
             component.material.bind();
@@ -111,7 +111,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded())
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
             if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
@@ -155,7 +155,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded())
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
             if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
@@ -198,7 +198,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.castsShadows)
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.castsShadows || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
             if (!renderables.containsKey(component.model))
@@ -250,7 +250,7 @@ public class ClientScene extends Scene {
 
     public static void renderEntity(Entity entity) {
         MeshComponent component = entity.getComponent(MeshComponent.class);
-        if (component == null || !component.model.isLoaded())
+        if (component == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
             return;
 
         renderEntity(entity, component.shader);
@@ -258,7 +258,7 @@ public class ClientScene extends Scene {
 
     public static void renderEntity(Entity entity, ClientShader shader) {
         MeshComponent component = entity.getComponent(MeshComponent.class);
-        if (component == null || !component.model.isLoaded())
+        if (component == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
             return;
 
         Renderer.bind(component.model);

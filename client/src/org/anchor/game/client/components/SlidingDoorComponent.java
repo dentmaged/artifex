@@ -43,9 +43,9 @@ public class SlidingDoorComponent implements IInteractable {
             @Override
             public void tick(float time, float percentage) {
                 if (open)
-                    Vector3f.add(entity.getPosition(), distancePerTick, entity.getPosition());
-                else
                     Vector3f.sub(entity.getPosition(), distancePerTick, entity.getPosition());
+                else
+                    Vector3f.add(entity.getPosition(), distancePerTick, entity.getPosition());
             }
 
             @Override

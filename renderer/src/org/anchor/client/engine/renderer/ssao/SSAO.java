@@ -118,7 +118,6 @@ public class SSAO {
     public void shutdown() {
         outputFBO.shutdown();
         blur.shutdown();
-        shader.shutdown();
     }
 
 }

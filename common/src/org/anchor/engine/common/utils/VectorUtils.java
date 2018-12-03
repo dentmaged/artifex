@@ -35,6 +35,10 @@ public class VectorUtils {
         return new Vector2f(v.x * f, v.y * f);
     }
 
+    public static Vector2f mul(Vector2f a, Vector2f b) {
+        return new Vector2f(a.x * b.x, a.y * b.y);
+    }
+
     public static Vector3f div(Vector3f v, Vector3f b) {
         return new Vector3f(v.x / b.x, v.y / b.y, v.z / b.z);
     }
@@ -43,8 +47,24 @@ public class VectorUtils {
         return new Vector3f(v.x / f, v.y / f, v.z / f);
     }
 
+    public static Vector2f div(Vector2f v, float f) {
+        return new Vector2f(v.x / f, v.y / f);
+    }
+
+    public static Vector2f div(Vector2f a, Vector2f b) {
+        return new Vector2f(a.x / b.x, a.y / b.y);
+    }
+
     public static Vector3f floor(Vector3f v) {
         return new Vector3f(Mathf.floor(v.x), Mathf.floor(v.y), Mathf.floor(v.z));
+    }
+
+    public static Vector3f ceil(Vector3f v) {
+        return new Vector3f(Mathf.ceil(v.x), Mathf.ceil(v.y), Mathf.ceil(v.z));
+    }
+
+    public static Vector3f clamp(Vector3f v, float min, float max) {
+        return new Vector3f(Mathf.clamp(v.x, min, max), Mathf.clamp(v.y, min, max), Mathf.clamp(v.z, min, max));
     }
 
     public static boolean anyZero(Vector3f v) {

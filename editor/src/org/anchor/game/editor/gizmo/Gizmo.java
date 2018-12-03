@@ -14,6 +14,7 @@ import org.lwjgl.util.vector.Vector3f;
 public class Gizmo {
 
     protected Mesh mesh;
+    protected Plane plane;
     protected int type;
 
     public static int SELECT_MODE = 0;
@@ -21,8 +22,9 @@ public class Gizmo {
     public static int ROTATE_MODE = 2;
     public static int SCALE_MODE = 3;
 
-    public Gizmo(float[] vertices, int type) {
+    public Gizmo(float[] vertices, Plane plane, int type) {
         this.mesh = Loader.getInstance().loadToVAO(vertices, 3);
+        this.plane = plane;
         this.type = type;
     }
 
@@ -60,12 +62,30 @@ public class Gizmo {
         return new Vector3f();
     }
 
-    public Vector3f performMove(Vector3f axis, Vector3f original, Vector3f position, Vector3f rotation, Vector3f origin, Vector3f ray, int mouseDX, int mouseDY) {
+    public Vector3f performMove(Vector3f axis, Vector3f original, Vector3f position, Vector3f rotation, Vector3f origin, Vector3f ray, int mouseDX, int mouseDY, Vector3f axisOffset) {
         int dist = mouseDX;
         if (Math.abs(mouseDY) > Math.abs(mouseDX))
             dist = mouseDY;
 
         return VectorUtils.mul(axis, dist * 0.065f);
+    }
+
+    public float getMin() {
+        return -Float.MAX_VALUE; // Java bug
+    }
+
+    public float getMax() {
+        return Float.MAX_VALUE;
+    }
+
+    public Plane getPlane() {
+        return plane;
+    }
+
+    public void shutdown() {
+        GL30.glDeleteVertexArrays(mesh.getVAO());
+        if (plane != null)
+            plane.shutdown();
     }
 
 }

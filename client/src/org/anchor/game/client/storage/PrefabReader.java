@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.game.client.types.ClientScene;
 
 public class PrefabReader {
 
@@ -15,7 +17,7 @@ public class PrefabReader {
         String contents = FileHelper.read(file);
         String[] lines = contents.split("\n");
         for (int i = 0; i < lines.length; i++)
-            entities.add(GameMap.parse(lines[i]));
+            entities.add(GameMap.parse((ClientScene) Engine.getScene(), lines[i]));
 
         GameMap.setParents(entities);
 

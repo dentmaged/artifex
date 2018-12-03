@@ -5,7 +5,6 @@ import java.util.List;
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.Settings;
-import org.anchor.client.engine.renderer.pbr.BRDF;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.ssao.SSAO;
 import org.anchor.client.engine.renderer.types.Framebuffer;
@@ -22,7 +21,6 @@ public class DeferredShading {
 
     protected Framebuffer multisampleFBO, diffuseFBO, otherFBO, normalFBO, albedoFBO;
     protected SSAO ssao;
-    protected BRDF brdf;
     protected DeferredShader shader;
 
     private IGameVariable r_performLighting;
@@ -35,8 +33,6 @@ public class DeferredShading {
         albedoFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
 
         ssao = new SSAO();
-        brdf = new BRDF();
-        brdf.perform();
         shader = DeferredShader.getInstance();
 
         r_performLighting = CoreGameVariableManager.getByName("r_performLighting");
@@ -92,22 +88,27 @@ public class DeferredShading {
     }
 
     public void shutdown() {
-        shader.shutdown();
-
         multisampleFBO.shutdown();
         diffuseFBO.shutdown();
         otherFBO.shutdown();
         normalFBO.shutdown();
         albedoFBO.shutdown();
+
+        ssao.shutdown();
     }
 
     public void decals() {
-        resolve(GL30.GL_COLOR_ATTACHMENT0, diffuseFBO);
+        resolve(diffuseFBO);
         multisampleFBO.bindFramebuffer();
     }
 
     public void ibl() {
         resolve(diffuseFBO, otherFBO, normalFBO, albedoFBO);
+        multisampleFBO.bindFramebuffer();
+    }
+
+    public void fog() {
+        resolve(diffuseFBO);
         multisampleFBO.bindFramebuffer();
     }
 
@@ -133,10 +134,6 @@ public class DeferredShading {
 
     public int getAmbientOcclusionTexture() {
         return ssao.getAmbientOcclusionTexture();
-    }
-
-    public int getBRDF() {
-        return brdf.getOutputFBO().getColourTexture();
     }
 
 }
