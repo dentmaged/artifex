@@ -55,8 +55,8 @@ public class LivingComponent implements IComponent {
     protected static final float FRICTION_GROUND = 0.65f;
     protected static final float FRICTION_AIR = 0;
 
-    protected static final float MAX_SPEED_GROUND = 1;
-    protected static final float MAX_SPEED_AIR = 1.3f;
+    protected static final float MAX_SPEED_GROUND = 0.5f;
+    protected static final float MAX_SPEED_AIR = 0.65f;
     protected static final float ACCELERATE_GROUND = 10.5f;
     protected static final float ACCELERATE_AIR = 4.5f;
 
@@ -69,7 +69,7 @@ public class LivingComponent implements IComponent {
     public float selectedSpeed = 15;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
 
         weapons = new Weapon[] { new Gun(entity, new CrossbowData()), new Gun(entity, new ShotgunData()), };
@@ -83,6 +83,11 @@ public class LivingComponent implements IComponent {
             }
 
         });
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     public void move(Scene scene, Terrain terrain) {
@@ -323,7 +328,8 @@ public class LivingComponent implements IComponent {
             V.scale(packet.nearestDistance - veryCloseDistance);
             newBasePoint = Vector3f.add(packet.basePoint, V, null);
 
-            V.normalise();
+            if (V.lengthSquared() > 0)
+                V.normalise();
             Vector3f.sub(packet.intersectionPoint, VectorUtils.mul(V, veryCloseDistance), packet.intersectionPoint);
         }
 

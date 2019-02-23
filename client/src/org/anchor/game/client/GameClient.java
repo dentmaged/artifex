@@ -18,7 +18,6 @@ import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
-import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.gui.GUI;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.ibl.IBL;
@@ -30,6 +29,7 @@ import org.anchor.client.engine.renderer.types.ibl.LightProbe;
 import org.anchor.client.engine.renderer.types.ibl.ReflectionProbe;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
+import org.anchor.client.engine.renderer.volumetrics.scattering.VolumetricScattering;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.net.BaseNetworkable;
 import org.anchor.engine.common.net.client.Client;
@@ -37,6 +37,7 @@ import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.common.net.packet.IPacketHandler;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.StringUtils;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
@@ -70,6 +71,7 @@ import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.weapon.Gun;
 import org.anchor.engine.shared.weapon.Weapon;
+import org.anchor.game.client.animation.AnimatedModel;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
@@ -86,7 +88,10 @@ import org.anchor.game.client.developer.ConsoleRenderer;
 import org.anchor.game.client.developer.LogRenderer;
 import org.anchor.game.client.developer.ProfilerRenderer;
 import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.loaders.dae.AnimatedModelLoader;
+import org.anchor.game.client.loaders.dae.AnimationLoader;
 import org.anchor.game.client.particles.ParticleRenderer;
+import org.anchor.game.client.shaders.AnimationShader;
 import org.anchor.game.client.shaders.ViewmodelShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
@@ -104,7 +109,7 @@ public class GameClient extends Game implements IPacketHandler {
 
     protected FXAA fxaa;
     protected Bloom bloom;
-    protected Godrays godrays;
+    protected VolumetricScattering volumetricScattering;
     protected Vignette vignette;
 
     private Entity gun;
@@ -125,8 +130,11 @@ public class GameClient extends Game implements IPacketHandler {
     protected boolean console;
     protected IUser user;
 
+    protected Entity man;
+
     @Override
     public void init() {
+        VirtualFileSystem.init();
         ClientGameVariables.init(); // should already be initialised by GameStart
         Engine.init(Side.CLIENT, new ClientEngine());
         Graphics.init();
@@ -143,7 +151,7 @@ public class GameClient extends Game implements IPacketHandler {
         ibl = new IBL(deferred);
         fog = new Fog();
         bloom = new Bloom();
-        godrays = new Godrays();
+        volumetricScattering = new VolumetricScattering();
         vignette = new Vignette();
 
         Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
@@ -166,6 +174,12 @@ public class GameClient extends Game implements IPacketHandler {
         gun.spawn();
         gun.getComponent(MeshComponent.class).disableFrustumCulling = true;
         gun.getComponent(MeshComponent.class).shader = ViewmodelShader.getInstance();
+
+        man = new Entity(MeshComponent.class);
+        man.getComponent(MeshComponent.class).model = AnimatedModelLoader.loadAnimatedModel("man");
+        man.spawn();
+        man.getComponent(MeshComponent.class).shader = AnimationShader.getInstance();
+        ((AnimatedModel) (man.getComponent(MeshComponent.class).model)).animate(AnimationLoader.loadAnimation("man"));
 
         texts = new ArrayList<Text>();
 
@@ -288,6 +302,9 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void update() {
+        man.getPosition().set(Vector3f.add(player.getPosition(), new Vector3f(0, -5, -5), null));
+        man.update();
+
         Profiler.start("Game Update");
         Requester.perform();
         MouseUtils.update();
@@ -458,6 +475,7 @@ public class GameClient extends Game implements IPacketHandler {
         if (state == State.IN_GAME || state == State.PAUSED)
             ClientScene.renderEntity(gun);
         GL11.glDepthRange(0, 1);
+        ClientScene.renderEntity(man);
 
         deferred.decals();
         scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
@@ -496,10 +514,10 @@ public class GameClient extends Game implements IPacketHandler {
 
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-        fxaa.perform(deferred.getOutputFBO().getColourTexture());
-        bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
-        vignette.perform(godrays.getOutputFBO().getColourTexture());
+        bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
+        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
+        fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
         if (!loaded)
             GUIRenderer.perform(0);
@@ -538,7 +556,7 @@ public class GameClient extends Game implements IPacketHandler {
         deferred.shutdown();
         ibl.shutdown();
         bloom.shutdown();
-        godrays.shutdown();
+        volumetricScattering.shutdown();
 
         if (client != null)
             client.shutdown();
@@ -752,6 +770,9 @@ public class GameClient extends Game implements IPacketHandler {
 
             for (Terrain terrain : scene.getTerrains())
                 ((ClientTerrain) terrain).unload();
+
+            if (scene.getVirtualFileSystem() != null)
+                scene.getVirtualFileSystem().unload();
         }
 
         scene = new GameMap(map).getScene();

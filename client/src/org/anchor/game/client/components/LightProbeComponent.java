@@ -19,8 +19,13 @@ public class LightProbeComponent implements IComponent, LightProbe {
     protected Entity entity;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

@@ -51,7 +51,7 @@ vec3 pcc(vec3 wDir, vec3 pccPosition, vec3 pccSize, vec3 wPosition, out float st
 
 		return wPosition + wDir * distance - pccPosition;
 	}
-	strength = 1;
+	strength = 0;
 
 	return wDir;
 }
@@ -104,6 +104,8 @@ vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic
 		} else {
 			if (!skyReflection)
 				prefiltered = vec3(0);
+			else
+				prefiltered *= 3;
 		}
 		vec3 reflectedColour = mix(prefiltered * 1, ssrColour.xyz * ssrColour.w, ssrData.z);
 
@@ -123,7 +125,7 @@ void main(void) {
 	float metallic = other.y;
 	float materialSpecular = normal.w;
 	float roughness = other.x;
-	float ao = texture2D(ssao, tc).r * normal.z;
+	float ao = texture2D(ssao, tc).r * normal.w;
 
 	out_colour = vec4(performLighting(getPosition(tc), albedo, normal.xyz, metallic, 0.5, roughness, normal.w), 1);
 }

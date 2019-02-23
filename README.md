@@ -9,6 +9,7 @@ A game engine with a level editor and (incomplete and buggy) game. It was writte
 * Image based lighting
 * Bloom
 * HDR
+* Volumetric Scattering
 * Fast approximate anti-aliasing
 * Variance Shadow Maps
 * Cascaded Shadow Maps

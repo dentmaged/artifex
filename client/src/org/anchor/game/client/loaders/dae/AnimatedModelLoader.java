@@ -1,8 +1,6 @@
 package org.anchor.game.client.loaders.dae;
 
 import org.anchor.client.engine.renderer.Loader;
-import org.anchor.client.engine.renderer.types.Material;
-import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.game.client.animation.AnimatedModel;
 import org.anchor.game.client.animation.Joint;
@@ -13,11 +11,7 @@ import org.anchor.game.client.loaders.dae.types.JointData;
 
 public class AnimatedModelLoader {
 
-    public static AnimatedModel loadAnimatedModel(String name, TextureRequest texture) {
-        return loadAnimatedModel(name, new Material(texture));
-    }
-
-    public static AnimatedModel loadAnimatedModel(String name, Material texture) {
+    public static AnimatedModel loadAnimatedModel(String name) {
         AnimatedModelData data = ColladaLoader.loadColladaModel(FileHelper.newGameFile(Loader.RES_LOC, name + ".dae"));
         Joint headJoint = createHeadJoint(data);
 

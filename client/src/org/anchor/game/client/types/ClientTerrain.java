@@ -7,6 +7,7 @@ import java.util.List;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.shared.terrain.Terrain;
+import org.anchor.engine.shared.utils.TerrainUtils;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
@@ -21,12 +22,20 @@ public class ClientTerrain extends Terrain {
 
     protected List<Integer> offsets = new ArrayList<Integer>();
 
-    public ClientTerrain(int gridX, int gridZ, String heightmap, TerrainTexture textures) {
-        this(Terrain.DEFAULT_SIZE, gridX, gridZ, heightmap, textures);
+    public ClientTerrain(int gridX, int gridZ, TerrainTexture textures) {
+        this(DEFAULT_SIZE, gridX, gridZ, textures);
     }
 
-    public ClientTerrain(float size, int gridX, int gridZ, String heightmap, TerrainTexture textures) {
-        super(gridX, gridZ, heightmap);
+    public ClientTerrain(int gridX, int gridZ, float[][] heights, TerrainTexture textures) {
+        this(DEFAULT_SIZE, gridX, gridZ, heights, textures);
+    }
+
+    public ClientTerrain(float size, int gridX, int gridZ, TerrainTexture textures) {
+        this(DEFAULT_SIZE, gridX, gridZ, TerrainUtils.loadHeightsFromData("terraindata/" + gridX + "/" + gridZ + "/height"), textures);
+    }
+
+    public ClientTerrain(float size, int gridX, int gridZ, float[][] heights, TerrainTexture textures) {
+        super(size, gridX, gridZ, heights);
 
         this.textures = textures;
     }

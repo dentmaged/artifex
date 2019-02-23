@@ -53,6 +53,9 @@ public class AssetPicker {
             @Override
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) {
+                    if (tree.getLastSelectedPathComponent() == null) // sometimes happens
+                        return;
+
                     File file = (File) ((CustomMutableTreeNode) tree.getLastSelectedPathComponent()).getStorage();
                     if (file.isDirectory()) {
                         if (file.equals(new File("res")))

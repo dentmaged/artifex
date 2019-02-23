@@ -15,16 +15,21 @@ public class ScriptComponent implements IComponent, IInteractable {
 
     protected Entity entity;
 
-    protected boolean spawn, update, updateFixed, interact, setValue;
+    protected boolean precache, spawn, update, updateFixed, interact, setValue;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
         if (script == null && entity.containsKey("script"))
             script = load(this, entity.getValue("script"));
 
         if (spawn)
             script.invoke("spawn", entity, this);
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override
@@ -56,6 +61,7 @@ public class ScriptComponent implements IComponent, IInteractable {
         ScriptComponent copy = new ScriptComponent();
         copy.script = script;
 
+        copy.precache = precache;
         copy.spawn = spawn;
         copy.update = update;
         copy.updateFixed = updateFixed;
@@ -68,6 +74,7 @@ public class ScriptComponent implements IComponent, IInteractable {
     public static Script load(ScriptComponent component, String file) {
         Script script = ScriptLoader.loadScript(file);
 
+        component.precache = script.functionExists("precache");
         component.spawn = script.functionExists("spawn");
         component.update = script.functionExists("update");
         component.updateFixed = script.functionExists("updateFixed");

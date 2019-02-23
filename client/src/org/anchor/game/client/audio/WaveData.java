@@ -2,8 +2,6 @@ package org.anchor.game.client.audio;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -14,6 +12,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.anchor.engine.common.Log;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
@@ -31,7 +30,7 @@ public class WaveData {
         this.audioStream = stream;
 
         AudioFormat audioFormat = stream.getFormat();
-        format = getOpenAlFormat(audioFormat.getChannels(), audioFormat.getSampleSizeInBits());
+        format = getOpenALFormat(audioFormat.getChannels(), audioFormat.getSampleSizeInBits());
         this.sampleRate = (int) audioFormat.getSampleRate();
         this.bytesPerFrame = audioFormat.getFrameSize();
         this.totalBytes = (int) (stream.getFrameLength() * bytesPerFrame);
@@ -65,13 +64,7 @@ public class WaveData {
     }
 
     public static WaveData create(File file) {
-        InputStream stream = null;
-        try {
-            stream = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
+        InputStream stream = VirtualFileSystem.find(file).openInputStream();
         InputStream bufferedInput = new BufferedInputStream(stream);
         AudioInputStream audioStream = null;
         try {
@@ -85,7 +78,7 @@ public class WaveData {
         return new WaveData(audioStream);
     }
 
-    private static int getOpenAlFormat(int channels, int bitsPerSample) {
+    private static int getOpenALFormat(int channels, int bitsPerSample) {
         if (channels == 1)
             return bitsPerSample == 8 ? AL10.AL_FORMAT_MONO8 : AL10.AL_FORMAT_MONO16;
 

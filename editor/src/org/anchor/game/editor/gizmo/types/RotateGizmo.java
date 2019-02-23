@@ -64,4 +64,13 @@ public class RotateGizmo extends Gizmo {
         return entity.getRotation();
     }
 
+    @Override
+    public Vector3f performMove(Vector3f axis, Vector3f original, Vector3f position, Vector3f rotation, Vector3f origin, Vector3f ray, int mouseDX, int mouseDY, Vector3f axisOffset) {
+        int dist = mouseDX;
+        if (Math.abs(mouseDY) > Math.abs(mouseDX))
+            dist = mouseDY;
+
+        return VectorUtils.mul(axis, dist * 0.2f);
+    }
+
 }

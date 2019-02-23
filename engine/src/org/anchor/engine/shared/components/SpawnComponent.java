@@ -6,7 +6,12 @@ import org.anchor.engine.shared.entity.IComponent;
 public class SpawnComponent implements IComponent {
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
+
+    }
+
+    @Override
+    public void spawn() {
 
     }
 

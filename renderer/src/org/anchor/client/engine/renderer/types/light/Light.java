@@ -12,11 +12,13 @@ public interface Light {
 
     public Vector3f getDirection();
 
-    public LightType getLightType();
-
     public float getCutoff();
 
     public float getOuterCutoff();
+
+    public boolean isVolumetricLight();
+
+    public LightType getLightType();
 
     public default float getRadius() {
         return 0;

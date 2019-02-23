@@ -139,7 +139,16 @@ public class Window {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                GameEditor.create();
+                if (Undo.hasChangedSinceSave()) {
+                    if (JOptionPane.showConfirmDialog(null, "Do you want to save your changes to " + Window.getInstance().getTabName() + "?", "Anchor Engine Editor", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+                        GameEditor.save();
+                        GameEditor.create();
+                    } else {
+                        GameEditor.create();
+                    }
+                } else {
+                    GameEditor.create();
+                }
             }
 
         });

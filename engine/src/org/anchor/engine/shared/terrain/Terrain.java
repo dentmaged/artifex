@@ -1,14 +1,7 @@
 package org.anchor.engine.shared.terrain;
 
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
-
-import org.anchor.engine.common.Log;
-import org.anchor.engine.common.TextureType;
 import org.anchor.engine.common.utils.CoreMaths;
-import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.shared.utils.TerrainUtils;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -22,25 +15,27 @@ public class Terrain {
     protected int gridX, gridZ;
     protected Vector3f center;
 
-    protected String heightmap;
     protected float[][] heights;
     protected boolean refresh;
 
-    public Terrain(int gridX, int gridZ, String heightmap) {
-        this(DEFAULT_SIZE, gridX, gridZ, heightmap);
+    public Terrain(int gridX, int gridZ) {
+        this(DEFAULT_SIZE, gridX, gridZ);
     }
 
-    public Terrain(float size, int gridX, int gridZ, String heightmap) {
+    public Terrain(int gridX, int gridZ, float[][] heights) {
+        this(DEFAULT_SIZE, gridX, gridZ, heights);
+    }
+
+    public Terrain(float size, int gridX, int gridZ) {
+        this(size, gridX, gridZ, TerrainUtils.loadHeightsFromData("terraindata/" + gridX + "/" + gridZ + "/height"));
+    }
+
+    public Terrain(float size, int gridX, int gridZ, float[][] heights) {
         this.size = size;
+
         setGridX(gridX);
         setGridZ(gridZ);
-
-        if (heightmap == null || heightmap == "") {
-            Log.warning("Heightmap is null or blank! Using template heightmap!");
-            heightmap = "heightmap";
-        }
-
-        loadHeightsFromHeightmap(heightmap);
+        setHeights(heights);
     }
 
     public void setGridX(int gridX) {
@@ -63,6 +58,19 @@ public class Terrain {
         this.z = gridZ * size;
 
         this.center = new Vector3f(x + (size / 2), 0, z + (size / 2));
+    }
+
+    public int getVerticesPerSide() {
+        return heights.length;
+    }
+
+    public float[][] getHeights() {
+        return heights;
+    }
+
+    public void setHeights(float[][] heights) {
+        this.heights = heights;
+        this.refresh = true;
     }
 
     public float getX() {
@@ -97,10 +105,6 @@ public class Terrain {
         return center;
     }
 
-    public String getHeightmap() {
-        return heightmap;
-    }
-
     public void update() {
 
     }
@@ -126,43 +130,14 @@ public class Terrain {
             return CoreMaths.barryCentric(new Vector3f(1, heights[gridX + 1][gridZ], 0), new Vector3f(1, heights[gridX + 1][gridZ + 1], 1), new Vector3f(0, heights[gridX][gridZ + 1], 1), new Vector2f(xCoord, zCoord));
     }
 
-    // LOADING \\
-
-    public void loadHeightsFromHeightmap(String heightmap) {
-        this.heightmap = heightmap;
-
-        BufferedImage image = null;
-        try {
-            image = ImageIO.read(FileHelper.newGameFile("res", TextureType.HEIGHTMAP, heightmap + ".png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        int VERTEX_COUNT = image.getHeight();
-        heights = new float[VERTEX_COUNT][VERTEX_COUNT];
-
-        for (int i = 0; i < VERTEX_COUNT; i++)
-            for (int j = 0; j < VERTEX_COUNT; j++)
-                heights[j][i] = getHeightHeightmap(j, i, image);
-
-        refresh = true;
+    public float getHeightAt(int x, int z) {
+        return heights[x][z];
     }
+
+    // LOADING \\
 
     public void unload() {
         heights = null;
-    }
-
-    protected float getHeightHeightmap(int x, int z, BufferedImage image) {
-        if (x < 0 || x >= image.getHeight() || z < 0 || z >= image.getHeight()) {
-            return 0;
-        }
-
-        float height = image.getRGB(x, z);
-        height += MAX_PIXEL_COLOUR / 2f;
-        height /= MAX_PIXEL_COLOUR / 2f;
-        height *= MAX_HEIGHT;
-
-        return height;
     }
 
     public float getIncrement() {

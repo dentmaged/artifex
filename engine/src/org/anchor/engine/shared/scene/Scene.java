@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -15,6 +16,7 @@ public class Scene {
     protected List<Entity> entities = new ArrayList<Entity>();
     protected List<Terrain> terrains = new ArrayList<Terrain>();
     protected List<Layer> layers = new ArrayList<Layer>(Arrays.asList(new Layer("Default", new Color(132, 217, 132))));
+    protected VirtualFileSystem virtualFileSystem;
 
     public List<Entity> getEntities() {
         return entities;
@@ -79,6 +81,14 @@ public class Scene {
         }
 
         return components;
+    }
+
+    public VirtualFileSystem getVirtualFileSystem() {
+        return virtualFileSystem;
+    }
+
+    public void setVirtualFileSystem(VirtualFileSystem virtualFileSystem) {
+        this.virtualFileSystem = virtualFileSystem;
     }
 
 }

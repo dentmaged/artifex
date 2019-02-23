@@ -18,9 +18,9 @@ const float weight = 0.01;
 void main() {
 	vec2 deltaTextCoord = vec2(tc - lightPositionOnScreen.xy);
 	vec2 textCoord = tc.xy;
-	deltaTextCoord *= (1 / float(numSamples)) * density;
+	deltaTextCoord *= (1.0 / float(numSamples)) * density;
 	vec3 colour = vec3(0);
-	float illuminationDecay = 1;
+	float illuminationDecay = 1.0;
 
 	for (int i = 0; i < numSamples; i++) {
 		textCoord -= deltaTextCoord;
@@ -31,13 +31,11 @@ void main() {
 		illuminationDecay *= decay;
 	}
 
-	vec2 dc = smoothstep(0.215, 0.615, abs(vec2(0.5) - lightPositionOnScreen));
+	vec2 dc = smoothstep(0.215, 0.54, abs(vec2(0.5) - lightPositionOnScreen));
 	float screenEdgeFactor = clamp(1 - dot(dc, dc), 0, 1);
 	colour.xyz *= screenEdgeFactor;
 
 	out_colour = texture2D(scene, tc);
 	out_colour.xyz = pow(out_colour.xyz, vec3(1.0 / GAMMA));
-	out_colour.xyz += colour * texture2D(exposure, vec2(0.5)).x * 2;
-
-	out_colour = TO_V4(pow(vec3(texture2D(scene, tc).xyz), vec3(1.0 / GAMMA)));
+	out_colour.xyz += colour * texture2D(exposure, vec2(0.5)).x;
 }

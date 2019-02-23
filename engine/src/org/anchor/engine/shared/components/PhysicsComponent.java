@@ -41,12 +41,17 @@ public class PhysicsComponent implements IComponent {
     protected AABB wholeAABB, aabbs[];
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
 
         if (meshes.size() == 0 && entity.containsKey("collisionMesh"))
             meshes.addAll(CollisionMeshLoader.loadCollisionMeshes(entity.getValue("collisionMesh")));
         aabbs = new AABB[meshes.size()];
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

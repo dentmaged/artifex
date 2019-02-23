@@ -14,10 +14,15 @@ public class DecalComponent implements IComponent {
     protected Entity entity;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
         if (material == null && entity.containsKey("material"))
             material = AssetLoader.loadMaterial(entity.getValue("material"));
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

@@ -15,6 +15,7 @@ public class NormalShader extends ModelShader {
     public void onBind() {
         super.onBind();
 
+        loadInt("normal", 1);
         loadInt("specular", 2);
         loadInt("metallic", 3);
         loadInt("roughness", 4);

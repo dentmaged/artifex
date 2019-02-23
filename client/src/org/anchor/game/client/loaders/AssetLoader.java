@@ -35,7 +35,7 @@ public class AssetLoader {
 
     public static void reloadModels() {
         for (Entry<String, Model> entry : models.entrySet())
-            models.put(entry.getKey(), new Model(Requester.requestMesh(entry.getKey())));
+            entry.getValue().setMesh(Requester.requestMesh(entry.getKey()));
     }
 
     public static Material loadMaterial(String name) {

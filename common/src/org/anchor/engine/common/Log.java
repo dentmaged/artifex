@@ -43,11 +43,11 @@ public class Log {
     public static void error(Object obj) {
         StackTraceElement caller = Thread.currentThread().getStackTrace()[2];
         String text = stripPackage(caller.getClassName()) + "::" + caller.getMethodName() + "() - " + String.valueOf(obj);
-        showPopup("Engine error", text, JOptionPane.ERROR_MESSAGE);
 
         System.out.println("[ERROR] " + text);
         notify("[ERROR] " + text);
 
+        showPopup("Engine error", text, JOptionPane.ERROR_MESSAGE);
         System.exit(7);
     }
 

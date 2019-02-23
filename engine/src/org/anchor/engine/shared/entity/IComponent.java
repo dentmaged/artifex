@@ -5,7 +5,9 @@ import java.util.List;
 
 public interface IComponent {
 
-    public void spawn(Entity entity);
+    public void precache(Entity entity);
+
+    public void spawn();
 
     default void update() {
 

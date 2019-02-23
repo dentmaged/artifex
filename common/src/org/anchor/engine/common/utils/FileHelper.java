@@ -13,6 +13,8 @@ import javax.imageio.stream.ImageInputStream;
 
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
+import org.anchor.engine.common.vfs.IFile;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 
 public class FileHelper {
 
@@ -35,6 +37,10 @@ public class FileHelper {
     }
 
     public static String read(File file) {
+        return read(VirtualFileSystem.find(file));
+    }
+
+    public static String read(IFile file) {
         try {
             if (!file.exists()) {
                 Log.warning("File not found: " + file.getName());
@@ -42,7 +48,7 @@ public class FileHelper {
             }
 
             StringBuilder builder = new StringBuilder();
-            Scanner scanner = new Scanner(file);
+            Scanner scanner = new Scanner(file.openInputStream());
 
             while (scanner.hasNextLine())
                 builder.append(scanner.nextLine()).append("\n");
@@ -125,7 +131,11 @@ public class FileHelper {
         if (file == null)
             return null;
 
-        return file.getAbsolutePath().substring(base.getAbsolutePath().length() + 1).replace(File.separatorChar, '/');
+        String absolute = base.getAbsolutePath();
+        if (!file.getAbsolutePath().contains(absolute))
+            return null;
+
+        return file.getAbsolutePath().substring(absolute.length() + 1).replace(File.separatorChar, '/');
     }
 
     public static String removeFileExtension(String input) {

@@ -222,6 +222,7 @@ public class ClientScene extends Scene {
                     component.material.bind();
                     shader.loadEntitySpecificInformation(entity.getTransformationMatrix(), component.material.getNumberOfRows(), component.getTextureOffset());
 
+                    GL11.glDisable(GL11.GL_CULL_FACE);
                     Renderer.render(entry.getKey());
                 }
 
@@ -263,6 +264,7 @@ public class ClientScene extends Scene {
 
         Renderer.bind(component.model);
         shader.start();
+
         component.material.bind();
         shader.loadEntitySpecificInformation(entity);
         Renderer.render(component.model);

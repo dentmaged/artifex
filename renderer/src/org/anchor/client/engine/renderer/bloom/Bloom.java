@@ -34,6 +34,7 @@ public class Bloom {
         QuadRenderer.bind();
         Graphics.bind2DTexture(scene, 0);
         Graphics.bind2DTexture(bloomTexture, 1);
+        Graphics.bind2DTexture(autoExposure.getExposureTexture(), 2);
 
         outputFBO.bindFramebuffer();
         QuadRenderer.render();

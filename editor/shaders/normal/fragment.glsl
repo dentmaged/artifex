@@ -1,6 +1,8 @@
 #version 330
 
-in mat3 tbn;
+in vec3 s_tangent;
+in vec3 s_bitangent;
+in vec3 s_normal;
 in vec2 tc;
 
 FS_OUT(diffuse)
@@ -27,8 +29,10 @@ void main(void) {
 
 	float metallic = texture2D(metallic, tc).r;
 	float roughness = texture2D(roughness, tc).r;
-	float ao = usesAOMap ? texture2D(ao, tc).r : 1;
+	float ao = usesAOMap ? texture2D(ao, tc).r : 1.0;
 
-	vec3 mappedNormal = texture2D(normal, tc).xyz * 2 - 1;
-	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), normalize(tbn * mappedNormal), texture2D(specular, tc).r, metallic, roughness, ao);
+	mat3 tbn = mat3(s_tangent, s_bitangent, s_normal);
+
+	vec3 mappedNormal = normalize(texture2D(normal, tc).xyz * 2.0 - 1.0);
+	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1.0), normalize(tbn * mappedNormal), texture2D(specular, tc).r, metallic, roughness, ao);
 }

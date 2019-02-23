@@ -10,8 +10,13 @@ import org.anchor.engine.shared.entity.IComponent;
 public class SunComponent implements IComponent {
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         entity.getComponent(LightComponent.class).type = LightType.DIRECTIONAL;
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

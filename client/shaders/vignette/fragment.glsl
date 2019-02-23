@@ -16,5 +16,6 @@ void main(void) {
 
 	float len = length(position);
 	float vignette = smoothstep(radius, radius - softness, len);
-	out_colour.rgb = mix(out_colour.rgb, out_colour.rgb * vignette, intensity);
+	out_colour.xyz = pow(out_colour.xyz, vec3(1.0 / GAMMA));
+	out_colour.xyz = mix(out_colour.xyz, out_colour.xyz * vignette, intensity);
 }

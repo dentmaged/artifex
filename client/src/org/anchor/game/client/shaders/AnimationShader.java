@@ -45,10 +45,16 @@ public class AnimationShader extends ModelShader {
 
     @Override
     protected void bindAttributes() {
-        super.bindAttributes();
+        bindFragOutput(0, "out_diffuse");
+        bindFragOutput(1, "out_other");
+        bindFragOutput(2, "out_normal");
+        bindFragOutput(3, "out_albedo");
 
-        super.bindAttribute(3, "jointIndices");
-        super.bindAttribute(4, "weights");
+        bindAttribute(0, "position");
+        bindAttribute(1, "textureCoordinates");
+        bindAttribute(2, "normal");
+        bindAttribute(3, "jointIndices");
+        bindAttribute(4, "weights");
     }
 
     public static AnimationShader getInstance() {

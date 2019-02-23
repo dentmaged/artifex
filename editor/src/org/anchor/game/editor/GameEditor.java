@@ -24,7 +24,6 @@ import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
-import org.anchor.client.engine.renderer.godrays.Godrays;
 import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
@@ -32,8 +31,9 @@ import org.anchor.client.engine.renderer.types.ibl.LightProbe;
 import org.anchor.client.engine.renderer.types.ibl.ReflectionProbe;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
+import org.anchor.client.engine.renderer.volumetrics.scattering.VolumetricScattering;
 import org.anchor.engine.common.Log;
-import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
@@ -44,6 +44,7 @@ import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.utils.EntityRaycast;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.utils.TerrainRaycast;
+import org.anchor.engine.shared.utils.TerrainUtils;
 import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
@@ -92,7 +93,7 @@ public class GameEditor extends Game {
 
     protected FXAA fxaa;
     protected Bloom bloom;
-    protected Godrays godrays;
+    protected VolumetricScattering volumetricScattering;
     protected Vignette vignette;
 
     protected float accumulator, snapAmount = 0.5f;
@@ -142,6 +143,7 @@ public class GameEditor extends Game {
 
     @Override
     public void init() {
+        VirtualFileSystem.init();
         if (!("false".equals(System.getProperty("sun.java2d.d3d")) || "false".equals(System.getenv("J2D_D3D"))))
             for (int i = 0; i < 10; i++)
                 Log.warning("Add -Dsun.java2d.d3d=false to your launch arguments or set the environment variable J2D_D3D to false in order to stop UI rendering bugs!");
@@ -156,7 +158,7 @@ public class GameEditor extends Game {
         ibl = new IBL(deferred);
         fog = new Fog();
         bloom = new Bloom();
-        godrays = new Godrays();
+        volumetricScattering = new VolumetricScattering();
         vignette = new Vignette();
 
         Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
@@ -224,7 +226,7 @@ public class GameEditor extends Game {
 
         for (TerrainCreate terrain : terrains) {
             Log.info("Creating terrain at " + terrain.x + ", " + terrain.z);
-            scene.getTerrains().add(new ClientTerrain(terrain.x, terrain.z, terrain.heightmap, new TerrainTexture("blendmap", "default", "default", "default", "default")));
+            scene.getTerrains().add(new ClientTerrain(terrain.x, terrain.z, terrain.heights, new TerrainTexture("blendmap", "default", "default", "default", "default")));
         }
 
         if (terrains.size() > 0)
@@ -476,14 +478,15 @@ public class GameEditor extends Game {
 
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-        fxaa.perform(deferred.getOutputFBO().getColourTexture());
-        bloom.perform(fxaa.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        godrays.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), bloom.getExposureTexture(), livingComponent.getViewMatrix(), lightComponent);
-        vignette.perform(godrays.getOutputFBO().getColourTexture());
+        bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
+        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
+        fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
         GL11.glEnable(GL11.GL_BLEND);
         GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount);
+
+        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls);
         FontRenderer.render(trianglesDrawn);
 
         GL11.glDisable(GL11.GL_BLEND);
@@ -501,7 +504,7 @@ public class GameEditor extends Game {
         deferred.shutdown();
         ibl.shutdown();
         bloom.shutdown();
-        godrays.shutdown();
+        volumetricScattering.shutdown();
 
         for (Shader shader : Shader.getShaders())
             shader.shutdown();
@@ -530,7 +533,7 @@ public class GameEditor extends Game {
         Entity light = new Entity(LightComponent.class, SunComponent.class);
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
-        lightComponent.colour.set(4, 4, 4);
+        lightComponent.colour.set(6, 6, 6);
         lightComponent.attenuation.set(1, 0, 0);
         light.getRotation().set(109, 23, 0);
         light.spawn();
@@ -590,6 +593,7 @@ public class GameEditor extends Game {
 
     public Entity addEntity(boolean select) {
         Entity entity = new Entity();
+        entity.precache();
         entity.spawn();
 
         scene.getEntities().add(entity);
@@ -612,12 +616,19 @@ public class GameEditor extends Game {
     }
 
     public void removeEntity(Entity entity) {
+        if (entity == null)
+            return;
+
         entity.destroy();
         editor.updateList();
     }
 
     public void addTerrain(String heightmap, int x, int z) {
-        terrains.add(new TerrainCreate(heightmap, x, z));
+        addTerrain(TerrainUtils.loadHeightsFromHeightmap(heightmap), x, z);
+    }
+
+    public void addTerrain(float[][] heights, int x, int z) {
+        terrains.add(new TerrainCreate(heights, x, z));
     }
 
     public void removeTerrain(ClientTerrain terrain) {
@@ -794,7 +805,7 @@ public class GameEditor extends Game {
         } else {
             Undo.saved();
 
-            FileHelper.write(getInstance().level, MapWriter.write(getInstance().scene));
+            MapWriter.write(getInstance().level, getInstance().scene);
             Log.info("Saved to " + getInstance().level.getAbsolutePath());
         }
     }
@@ -804,7 +815,7 @@ public class GameEditor extends Game {
             file = new File(file.getAbsolutePath() + ".asg");
         Undo.saved();
 
-        FileHelper.write(file, MapWriter.write(getInstance().scene));
+        MapWriter.write(file, getInstance().scene);
         getInstance().level = file;
 
         Window.getInstance().setTabName(file.getName());

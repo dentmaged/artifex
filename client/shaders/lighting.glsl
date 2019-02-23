@@ -156,11 +156,10 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 #if defined(PCF)
 				for (int x = -pcfCount; x <= pcfCount; x++)
 					for (int y = -pcfCount; y <= pcfCount; y++)
-						if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + vec2(x, y) * texelSize).r + bias)
+						if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + vec2(x, y) * texelSize).x + bias)
 #elif defined(POISSON)
-
 				for (int i = 0; i < poissonCount; i++)
-					if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + poissonDisk[int(16 * fract(sin(dot(vec4(floor(wPosition * 10000), i), vec4(12.9898, 78.233, 45.164, 94.673))) * 43758.5453)) % 16] * texelSize).r + bias)
+					if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + poissonDisk[int(16 * fract(sin(dot(vec4(floor(wPosition * 10000), i), vec4(12.9898, 78.233, 45.164, 94.673))) * 43758.5453)) % 16] * texelSize).x + bias)
 #endif
 							total += 1;
 

@@ -29,6 +29,7 @@ void main(void) {
 	vec4 gTextureColour = texture2D(gTexture, tiled) * blendMapColour.g;
 	vec4 bTextureColour = texture2D(bTexture, tiled) * blendMapColour.b;
 	vec4 albedo = backgroundTextureColour + rTextureColour + gTextureColour + bTextureColour;
+	albedo.xyz = mix(albedo.xyz, colour.xyz, colour.w);
 
 	emit(albedo, s_normal, 0, 0, 1, 1);
 }

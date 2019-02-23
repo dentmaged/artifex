@@ -8,7 +8,12 @@ import org.anchor.engine.shared.net.Redirect;
 public class EngineMeshComponent implements IComponent {
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
+
+    }
+
+    @Override
+    public void spawn() {
 
     }
 

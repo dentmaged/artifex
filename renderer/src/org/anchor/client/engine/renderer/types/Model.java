@@ -17,6 +17,10 @@ public class Model {
         return mesh.getMesh();
     }
 
+    public void setMesh(MeshRequest mesh) {
+        this.mesh = mesh;
+    }
+
     public String getName() {
         return mesh.getName();
     }

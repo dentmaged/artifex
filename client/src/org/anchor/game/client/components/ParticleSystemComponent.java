@@ -43,10 +43,15 @@ public class ParticleSystemComponent implements IComponent {
     protected Random random = new Random();
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
         if (texture == null && entity.containsKey("particleTexture"))
             texture = AssetLoader.loadParticle(entity.getValue("particleTexture"));
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

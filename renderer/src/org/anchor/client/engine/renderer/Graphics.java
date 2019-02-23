@@ -71,6 +71,7 @@ public class Graphics {
         }
 
         Renderer.triangleCount = 0;
+        Renderer.drawCalls = 0;
     }
 
     public static void checkForErrors() {

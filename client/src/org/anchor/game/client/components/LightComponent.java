@@ -28,14 +28,22 @@ public class LightComponent implements IComponent, Light {
     @Property("Outer cutoff (degrees)")
     public float outerCutoff = 45;
 
+    @Property("Volumetric Light")
+    public boolean volumetric = true;
+
     @Property("Type")
     public LightType type = LightType.POINT;
 
     private Entity entity;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override
@@ -77,6 +85,11 @@ public class LightComponent implements IComponent, Light {
     @Override
     public float getOuterCutoff() {
         return outerCutoff;
+    }
+
+    @Override
+    public boolean isVolumetricLight() {
+        return volumetric;
     }
 
     @Override

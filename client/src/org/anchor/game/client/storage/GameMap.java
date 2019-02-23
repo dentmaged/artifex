@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -38,12 +39,15 @@ public class GameMap {
     public GameMap(File file) {
         this.file = file;
 
+        scene = new ClientScene();
+        File storage = new File(file.getAbsolutePath().replace(".asg", ".ads"));
+        if (storage.exists())
+            scene.setVirtualFileSystem(new VirtualFileSystem(storage, 1));
+
         load();
     }
 
     public void load() {
-        scene = new ClientScene();
-
         String contents = FileHelper.read(file);
         String[] lines = contents.split("\n");
         int i = 0;
@@ -83,7 +87,7 @@ public class GameMap {
             if (parts.length > 3)
                 size = Float.parseFloat(parts[3]);
 
-            scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), parts[1], new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
+            scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
             i++;
         }
     }
@@ -133,6 +137,7 @@ public class GameMap {
     public static Entity parse(ClientScene scene, String line) {
         String[] parts = split(line, PARTS);
         Entity entity = new Entity();
+        entity.setLayer(scene.getDefaultLayer());
 
         try {
             for (Entry<String, String> entry : getValues(parts[0]).entrySet()) {

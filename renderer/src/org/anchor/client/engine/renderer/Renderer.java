@@ -21,6 +21,8 @@ public class Renderer {
 
     public static void bind(Model model) {
         Mesh mesh = model.getMesh();
+        if (mesh == null)
+            return;
 
         GL30.glBindVertexArray(mesh.getVAO());
         for (int i = 0; i < mesh.getDimensions(); i++)
@@ -28,6 +30,9 @@ public class Renderer {
     }
 
     public static void render(Model model) {
+        if (model.getMesh() == null)
+            return;
+
         triangleCount += model.getMesh().getVertexCount() / 3;
         drawCalls++;
 
@@ -35,6 +40,9 @@ public class Renderer {
     }
 
     public static void unbind(Model model) {
+        if (model.getMesh() == null)
+            return;
+
         for (int i = 0; i < model.getMesh().getDimensions(); i++)
             GL20.glDisableVertexAttribArray(i);
 

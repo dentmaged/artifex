@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.scene.Scene;
@@ -26,22 +27,37 @@ public class GameMap {
     public static String ENTITY_END = ((char) 3) + "";
     public static String TERRAIN_END = ((char) 4) + "";
     public static String SUBPARTS = ((char) 5) + "";
+    public static String INFO = ((char) 6) + "";
+
+    public static int MAP_VERSION = 1;
 
     public static Map<Entity, Integer> parents = new HashMap<Entity, Integer>();
 
     public GameMap(File file) {
         this.file = file;
 
+        scene = new Scene();
+        File storage = new File(file.getAbsolutePath().replace(".asg", ".ads"));
+        if (storage.exists())
+            scene.setVirtualFileSystem(new VirtualFileSystem(storage, 1));
+
         load();
     }
 
     public void load() {
         ServerEngine.ENTITY_ID = 1;
-        scene = new Scene();
 
         String contents = FileHelper.read(file);
         String[] lines = contents.split("\n");
         int i = 0;
+        if (lines[0].startsWith(INFO)) {
+            String[] parts = lines[0].split(PARTS);
+            int version = Integer.parseInt(parts[0].substring(1));
+            if (version != MAP_VERSION)
+                return;
+
+            i++;
+        }
         while (!lines[i].equals(ENTITY_END)) {
             Entity entity = parse(lines[i]);
             if (entity != null) {
@@ -61,7 +77,7 @@ public class GameMap {
             if (parts.length > 3)
                 size = Float.parseFloat(parts[3]);
 
-            scene.getTerrains().add(new Terrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), parts[1]));
+            scene.getTerrains().add(new Terrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1])));
             i++;
         }
     }

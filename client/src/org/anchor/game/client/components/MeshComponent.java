@@ -9,7 +9,9 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.CollisionMeshLoader;
 import org.anchor.engine.shared.utils.Property;
+import org.anchor.game.client.animation.AnimatedModel;
 import org.anchor.game.client.loaders.AssetLoader;
+import org.anchor.game.client.shaders.AnimationShader;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.StaticShader;
@@ -52,7 +54,7 @@ public class MeshComponent implements IComponent {
     protected Entity entity;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
         if (model == null && entity.containsKey("model"))
             model = AssetLoader.loadModel(entity.getValue("model"));
@@ -69,9 +71,18 @@ public class MeshComponent implements IComponent {
     }
 
     @Override
+    public void spawn() {
+        if (shader == null)
+            refreshShader();
+    }
+
+    @Override
     public void update() {
         if (shader == null)
             refreshShader();
+
+        if (shader != null && shader.getClass() == AnimationShader.class)
+            ((AnimatedModel) model).update();
     }
 
     public Vector2f getTextureOffset() {

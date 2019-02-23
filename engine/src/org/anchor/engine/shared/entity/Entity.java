@@ -21,7 +21,7 @@ import org.lwjgl.util.vector.Vector4f;
 public class Entity {
 
     protected int id, lineIndex = -1;
-    protected boolean hidden, spawned, updated;
+    protected boolean hidden, precached, spawned, updated;
     protected Layer layer;
 
     protected Entity parent;
@@ -54,13 +54,24 @@ public class Entity {
         Engine.getInstance().onEntityCreate(this);
     }
 
-    public void spawn() {
+    public void precache() {
         if (layer == null)
             layer = Engine.getDefaultLayer();
 
+        for (IComponent component : components)
+            component.precache(this);
+
+        precached = true;
+        Engine.getInstance().onEntityPrecache(this);
+    }
+
+    public void spawn() {
+        if (!precached)
+            precache();
+
         Engine.getInstance().onEntityPreSpawn(this);
         for (IComponent component : components)
-            component.spawn(this);
+            component.spawn();
 
         spawned = true;
         Engine.getInstance().onEntitySpawn(this);
@@ -252,8 +263,10 @@ public class Entity {
             updated = true;
         }
 
-        for (IComponent spawn : spawnComponents)
-            spawn.spawn(this);
+        for (IComponent spawn : spawnComponents) {
+            spawn.precache(this);
+            spawn.spawn();
+        }
 
         spawnComponents.clear();
         for (IComponent component : components)
@@ -269,8 +282,10 @@ public class Entity {
         if (parent != null)
             Matrix4f.mul(parent.getTransformationMatrix(), transformationMatrix, transformationMatrix);
 
-        for (IComponent spawn : spawnComponents)
-            spawn.spawn(this);
+        for (IComponent spawn : spawnComponents) {
+            spawn.precache(this);
+            spawn.spawn();
+        }
 
         spawnComponents.clear();
         for (IComponent component : components)

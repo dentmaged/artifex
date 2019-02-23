@@ -13,6 +13,7 @@ void main(void) {
 	Colour colour = getSkyColour(normalize(pos));
 
 	out_diffuse = colour.diffuse;
-	out_other = vec4(pos.xy, colour.emissive, colour.godrays);
+	out_diffuse.xyz *= 3;
+	out_other = vec4(0, 0, colour.emissive, 0);
 	out_albedo = colour.diffuse;
 }

@@ -2,6 +2,7 @@
 
 in vec3 s_normal;
 in vec2 tc;
+in vec3 debug;
 
 FS_OUT(diffuse)
 FS_OUT(other)
@@ -29,5 +30,5 @@ void main(void) {
 	float roughness = texture2D(roughness, tc).r;
 	float ao = usesAOMap ? texture2D(ao, tc).r : 1;
 
-	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), s_normal, texture2D(specular, tc).r * diffuse.xyz, metallic, roughness, ao);
+	emit(vec4(mix(diffuse.xyz, colour.xyz, colour.w), 1), s_normal, texture2D(specular, tc).r, metallic, roughness, ao);
 }

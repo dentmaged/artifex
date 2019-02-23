@@ -26,7 +26,7 @@ void main(void) {
 	vec4 diffuse = texture2D(diffuse, tc);
 	vec4 other = texture2D(other, tc);
 	vec4 normal = texture2D(normal, tc);
-	other.r = max(other.r, 0.001);
+	other.x = max(other.x, 0.001);
 
 	float metallic = other.y;
 	float specular = normal.w;

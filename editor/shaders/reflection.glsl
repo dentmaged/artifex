@@ -1,3 +1,5 @@
+#define DISABLE_SSR // unhappy with the quality
+
 const float step = 0.5;
 const float minRayStep = 0.25;
 const float maxSteps = 40;
@@ -45,7 +47,7 @@ vec4 raymarch(vec3 dir, inout vec3 hitCoord, out float dDepth) {
 			continue;
 
 		dDepth = hitCoord.z - depth;
-		if (dir.z - dDepth < 1.2)
+		if (dir.z - dDepth < 0.25)
 			if (dDepth <= 0)
 				return vec4(binarySearch(dir, hitCoord, dDepth), 1);
 

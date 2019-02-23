@@ -137,6 +137,10 @@ public class Engine {
 
     }
 
+    public void onEntityPrecache(Entity entity) {
+
+    }
+
     public void onEntityPreSpawn(Entity entity) {
 
     }

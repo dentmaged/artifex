@@ -11,7 +11,12 @@ public class ServerThreadComponent implements IComponent {
     public IUser user;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
+
+    }
+
+    @Override
+    public void spawn() {
 
     }
 

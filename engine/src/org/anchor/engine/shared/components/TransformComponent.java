@@ -20,7 +20,12 @@ public class TransformComponent implements IComponent {
     public Vector3f scale = new Vector3f(1, 1, 1);
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
+
+    }
+
+    @Override
+    public void spawn() {
 
     }
 

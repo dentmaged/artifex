@@ -86,6 +86,7 @@ import org.anchor.engine.shared.ui.swing.CustomCheckbox;
 import org.anchor.engine.shared.ui.swing.CustomDropdown;
 import org.anchor.engine.shared.ui.swing.CustomTextField;
 import org.anchor.engine.shared.utils.Layer;
+import org.anchor.engine.shared.utils.TerrainUtils;
 import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.app.AppManager;
@@ -531,7 +532,7 @@ public class LevelEditor extends JPanel {
                         return;
                     }
 
-                    gameEditor.addTerrain(selectedTerrain.getHeightmap(), parseInt(split[0]), parseInt(split[1]));
+                    gameEditor.addTerrain(selectedTerrain.getHeights(), parseInt(split[0]), parseInt(split[1]));
                 }
 
                 scenePopupMenu.setVisible(false);
@@ -706,7 +707,7 @@ public class LevelEditor extends JPanel {
                 if (selectedTerrain != null) {
                     File file = (File) ((CustomMutableTreeNode) assetBrowserFileSystem.getLastSelectedPathComponent()).getStorage();
                     if (file.isFile() && file.getParentFile().getName().equals("heightmap"))
-                        selectedTerrain.loadHeightsFromHeightmap(file.getName().replace(".png", ""));
+                        selectedTerrain.setHeights(TerrainUtils.loadHeightsFromHeightmap(file.getName().replace(".png", "")));
                 }
             }
 
@@ -762,13 +763,14 @@ public class LevelEditor extends JPanel {
 
         TextFieldBlueprint createGridX = new TextFieldBlueprint("Grid X: ", "0");
         TextFieldBlueprint createGridZ = new TextFieldBlueprint("Grid Z: ", "0");
-        DropdownBlueprint createHeightmaps = new DropdownBlueprint("Heightmap: ", AssetManager.getHeightmaps());
+        TextFieldBlueprint createVertices = new TextFieldBlueprint("Vertices: ", "256");
 
-        JScrollPane terrainCreatePanel = UIKit.createSubpanel("Terrain", Arrays.asList(createGridX, createGridZ, createHeightmaps, new ButtonBlueprint("Create", new ButtonListener() {
+        JScrollPane terrainCreatePanel = UIKit.createSubpanel("Terrain", Arrays.asList(createGridX, createGridZ, createVertices, new ButtonBlueprint("Create", new ButtonListener() {
 
             @Override
             public void onButtonClick(CustomButton field) {
-                gameEditor.addTerrain(createHeightmaps.getSelectedItem(), parseInt(createGridX.getText()), parseInt(createGridZ.getText()));
+                int vertices = parseInt(createVertices.getText());
+                gameEditor.addTerrain(new float[vertices][vertices], parseInt(createGridX.getText()), parseInt(createGridZ.getText()));
 
                 removeSubpanel();
             }
@@ -1191,27 +1193,6 @@ public class LevelEditor extends JPanel {
                     field.setEnabled(true);
                 } else {
                     field.setText("0");
-                }
-            }
-
-        }), new DropdownBlueprint("Heightmap: ", AssetManager.getHeightmaps(), new DropdownListener() {
-
-            @Override
-            public void onDropdownSelect(CustomDropdown field) {
-                if (field.isEnabled() && selectedTerrain != null)
-                    selectedTerrain.loadHeightsFromHeightmap((String) field.getSelectedItem());
-            }
-
-            @Override
-            public void onTerrainSelect(Terrain previous, Terrain current) {
-                CustomDropdown dropdown = (CustomDropdown) component;
-
-                dropdown.setEnabled(false);
-                if (current != null) {
-                    dropdown.setSelectedIndex(AssetManager.getIndex(dropdown, current.getHeightmap()));
-                    dropdown.setEnabled(true);
-                } else {
-                    dropdown.setSelectedIndex(0);
                 }
             }
 
@@ -1649,8 +1630,10 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null)
+                if (selectedEntity != null) {
                     selectedEntity.getComponent(MeshComponent.class).material.setAlbedo(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+                    selectedEntity.getComponent(MeshComponent.class).refreshShader();
+                }
             }
 
         }), AssetPicker.create("Normal Map: ", null, "png", new FilePickCallback() {
@@ -1673,8 +1656,10 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null)
+                if (selectedEntity != null) {
                     selectedEntity.getComponent(MeshComponent.class).material.setNormalMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+                    selectedEntity.getComponent(MeshComponent.class).refreshShader();
+                }
             }
 
         }), AssetPicker.create("Specular Map: ", null, "png", new FilePickCallback() {
@@ -1697,8 +1682,10 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null)
+                if (selectedEntity != null) {
                     selectedEntity.getComponent(MeshComponent.class).material.setSpecularMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+                    selectedEntity.getComponent(MeshComponent.class).refreshShader();
+                }
             }
 
         }), AssetPicker.create("Metallic: ", null, "png", new FilePickCallback() {
@@ -1721,8 +1708,10 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null)
+                if (selectedEntity != null) {
                     selectedEntity.getComponent(MeshComponent.class).material.setMetallicMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+                    selectedEntity.getComponent(MeshComponent.class).refreshShader();
+                }
             }
 
         }), AssetPicker.create("Roughness Map: ", null, "png", new FilePickCallback() {
@@ -1745,8 +1734,10 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null)
+                if (selectedEntity != null) {
                     selectedEntity.getComponent(MeshComponent.class).material.setRoughnessMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
+                    selectedEntity.getComponent(MeshComponent.class).refreshShader();
+                }
             }
 
         }), new TextFieldBlueprint("Rows: ", "1", new TextFieldListener() {
@@ -1871,7 +1862,8 @@ public class LevelEditor extends JPanel {
             tabbedPane.setSelectedIndex(1);
 
             ignoreTreeEvent = true;
-            tree.setSelectionRow(treePosition.get(entity));
+            if (tree != null && treePosition != null)
+                tree.setSelectionRow(treePosition.get(entity));
             refreshTransformationXYZ();
 
             MeshComponent render = entity.getComponent(MeshComponent.class);

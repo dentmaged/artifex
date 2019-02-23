@@ -25,8 +25,13 @@ public class SlidingDoorComponent implements IInteractable {
     private boolean open;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override

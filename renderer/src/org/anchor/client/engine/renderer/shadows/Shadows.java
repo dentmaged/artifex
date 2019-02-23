@@ -47,7 +47,7 @@ public class Shadows {
 
         frustums = new ShadowFrustum[Settings.shadowSplits];
         for (int i = 0; i < frustums.length; i++)
-            frustums[i] = new ShadowFrustum(lightViewMatrices[0], Settings.shadowExtents[i]);
+            frustums[i] = new ShadowFrustum(lightViewMatrices[i], Settings.shadowExtents[i]);
 
         this.sun = sun;
     }

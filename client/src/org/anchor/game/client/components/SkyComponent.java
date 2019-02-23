@@ -47,7 +47,7 @@ public class SkyComponent implements IComponent {
     protected LightComponent lightComponent;
 
     public float interp, interp_night, altitude, azimuth;
-    public Vector3f direction = new Vector3f(), sunColour = new Vector3f(), originalLightColour, baseColour = new Vector3f(NOON_BASE), topColour = new Vector3f(NOON_TOP);
+    public Vector3f direction = new Vector3f(), sunColour = new Vector3f(), baseColour = new Vector3f(NOON_BASE), topColour = new Vector3f(NOON_TOP);
     public CubemapRequest skybox;
     public BakedCubemap irradiance, prefilter;
 
@@ -67,7 +67,7 @@ public class SkyComponent implements IComponent {
     private static Vector3f NIGHT_SUN = new Vector3f(0, 0, 0);
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
 
         float scale = Settings.farPlane / 1.5f;
@@ -79,6 +79,11 @@ public class SkyComponent implements IComponent {
         entity.setHidden(false);
 
         skybox = Requester.requestCubemap(new String[] { Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz" });
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override
@@ -136,9 +141,9 @@ public class SkyComponent implements IComponent {
 
         if (light != null) {
             if (sunColour.equals(NIGHT_SUN))
-                lightComponent.colour.set(0, 0, 0);
+                lightComponent.attenuation.set(0, 0, 0);
             else
-                lightComponent.colour.set(originalLightColour);
+                lightComponent.attenuation.set(1, 0, 0);
         }
     }
 
@@ -174,7 +179,6 @@ public class SkyComponent implements IComponent {
 
         light = entity;
         lightComponent = entity.getComponent(LightComponent.class);
-        originalLightColour = new Vector3f(lightComponent.colour);
 
         updateSky();
     }

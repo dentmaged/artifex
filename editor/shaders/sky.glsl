@@ -35,22 +35,20 @@ uniform bool proceduralSky;
 struct Colour {
 	vec4 diffuse;
 	float emissive;
-	float godrays;
 };
 
 Colour getSkyProcedural(vec3 direction) {
 	Colour col;
 	float r = rand(direction.xy) * 0.005;
 
-	vec3 diffuse = mix(baseColour, topColour, max(dot(direction, vec3(0, 1, 0)), 0)) + vec3(r);
+	vec3 diffuse = mix(baseColour, topColour * 0.5, max(dot(direction, vec3(0, 1, 0)), 0)) + vec3(r);
 
 	float sunStrength = max(0, 100 * pow(max(dot(direction, normalize(sunDirection - 9 * direction / 10)), 0), 50));
 	float sunPostProcess = sunStrength > 0.8 ? 1 : 0;
 	vec3 sun = sunStrength * sunColour * sunColour;
 
-	col.diffuse = vec4(pow(diffuse.xyz, vec3(GAMMA)) + sun, 1);
-	col.emissive = sunPostProcess * 0.25;
-	col.godrays = sunPostProcess;
+	col.diffuse = vec4((pow(diffuse.xyz, vec3(GAMMA)) + sun) * 0.5, 1);
+	col.emissive = sunPostProcess;
 
 	return col;
 }
@@ -60,7 +58,6 @@ Colour getSkySample(vec3 direction) {
 
 	col.diffuse = vec4(pow(texture(skybox, direction).xyz, vec3(GAMMA)), 1);
 	col.emissive = 0;
-	col.godrays = 0;
 
 	return col;
 }

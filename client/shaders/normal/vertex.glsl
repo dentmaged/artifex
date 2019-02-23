@@ -5,7 +5,9 @@ in vec2 textureCoordinates;
 in vec3 normal;
 in vec3 tangent;
 
-out mat3 tbn;
+out vec3 s_tangent;
+out vec3 s_bitangent;
+out vec3 s_normal;
 out vec2 tc;
 
 uniform mat4 projectionViewTransformationMatrix;
@@ -17,11 +19,10 @@ uniform vec2 offset;
 void main(void) {
 	gl_Position = projectionViewTransformationMatrix * vec4(position, 1);
 
-	vec3 normal = normalize(mat3(normalMatrix) * normal);
-	vec3 tangent = normalize(mat3(normalMatrix) * tangent);
-	tangent = normalize(tangent - dot(tangent, normal) * normal);
-	vec3 bitangent = normalize(cross(normal, tangent));
-	tbn = mat3(tangent, bitangent, normal);
+	s_normal = normalize(mat3(normalMatrix) * normal);
+	s_tangent = normalize(mat3(normalMatrix) * tangent);
+	s_tangent = normalize(tangent - dot(tangent, normal) * normal);
+	s_bitangent = normalize(cross(s_normal, s_tangent));
 
 	tc = (textureCoordinates / numberOfRows) + offset;
 }

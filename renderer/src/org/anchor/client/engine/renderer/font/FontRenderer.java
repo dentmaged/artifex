@@ -5,6 +5,7 @@ import java.util.List;
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.engine.common.utils.CoreMaths;
+import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Vector2f;
 
 public class FontRenderer {
@@ -12,8 +13,8 @@ public class FontRenderer {
     protected static FontShader shader = FontShader.getInstance();
     public static Font defaultFont = new Font("segoe");
 
-    public static final float HORIZONTAL_PADDING = 0.0075f;
-    public static final float VERTICAL_PADDING = 0.045f;
+    public static final float HORIZONTAL_PADDING = 0.0075f / ((float) Display.getWidth() / 1280f);
+    public static final float VERTICAL_PADDING = 0.045f / ((float) Display.getHeight() / 720f);
     public static final int TAB_SIZE = 8;
 
     public static void render(List<Text> texts) {

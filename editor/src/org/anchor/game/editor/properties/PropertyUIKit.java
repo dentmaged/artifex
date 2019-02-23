@@ -30,6 +30,7 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.utils.Property;
+import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.particles.ParticleTexture;
 import org.anchor.game.client.utils.Sound;
@@ -138,6 +139,8 @@ public class PropertyUIKit {
                         entity.setValue("material", path);
 
                         Undo.fieldSet(field, icomponent, AssetLoader.loadMaterial(path));
+                        if (icomponent instanceof MeshComponent)
+                            ((MeshComponent) icomponent).refreshShader();
                     }
 
                 });

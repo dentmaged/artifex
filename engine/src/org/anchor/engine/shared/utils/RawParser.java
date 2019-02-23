@@ -50,6 +50,9 @@ public class RawParser {
     }
 
     public String encode(Object value) {
+        if (value == null)
+            return "null";
+
         if (value instanceof Vector2f) {
             Vector2f v = (Vector2f) value;
 

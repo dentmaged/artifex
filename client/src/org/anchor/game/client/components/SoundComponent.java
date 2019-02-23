@@ -29,12 +29,17 @@ public class SoundComponent implements IComponent {
     private Entity entity;
 
     @Override
-    public void spawn(Entity entity) {
+    public void precache(Entity entity) {
         this.entity = entity;
         source = new Source();
 
         if (sound == null && entity.containsKey("sound"))
             sound = new Sound(entity.getValue("sound"));
+    }
+
+    @Override
+    public void spawn() {
+
     }
 
     @Override
