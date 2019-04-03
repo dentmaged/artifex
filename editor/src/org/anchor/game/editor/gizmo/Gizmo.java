@@ -3,6 +3,7 @@ package org.anchor.game.editor.gizmo;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.VectorUtils;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.opengl.GL11;
@@ -58,7 +59,7 @@ public class Gizmo {
         return new Vector3f();
     }
 
-    public Vector3f getVector(Entity entity) {
+    public Vector3f getVector(TransformableObject object) {
         return new Vector3f();
     }
 

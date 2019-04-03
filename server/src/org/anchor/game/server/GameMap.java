@@ -58,6 +58,7 @@ public class GameMap {
 
             i++;
         }
+
         while (!lines[i].equals(ENTITY_END)) {
             Entity entity = parse(lines[i]);
             if (entity != null) {

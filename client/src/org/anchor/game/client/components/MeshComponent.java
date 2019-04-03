@@ -47,8 +47,12 @@ public class MeshComponent implements IComponent {
     @Property("UV Scale")
     public Vector2f uvScale = new Vector2f(1, 1);
 
+    @Property("Casts Shadows")
+    public boolean castsShadows = true;
+
     public ClientShader shader;
-    public boolean castsShadows = true, visible = true;
+
+    public boolean visible = true;
 
     public Vector4f colour = new Vector4f();
     protected Entity entity;

@@ -2,7 +2,7 @@ package org.anchor.game.editor.gizmo.types;
 
 import org.anchor.engine.common.utils.Raycast;
 import org.anchor.engine.common.utils.VectorUtils;
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.game.editor.gizmo.Gizmo;
 import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.opengl.GL11;
@@ -60,8 +60,8 @@ public class RotateGizmo extends Gizmo {
     }
 
     @Override
-    public Vector3f getVector(Entity entity) {
-        return entity.getRotation();
+    public Vector3f getVector(TransformableObject object) {
+        return object.getRotation();
     }
 
     @Override

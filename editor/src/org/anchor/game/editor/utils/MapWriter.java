@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
@@ -35,6 +36,7 @@ public class MapWriter {
 
                 text += layer.getName() + "@" + layer.getColour().getRed() + "@" + layer.getColour().getGreen() + "@" + layer.getColour().getBlue() + "@" + layer.isPickable() + "@" + layer.isVisible() + "@" + GameMap.SUBPARTS;
             }
+            text += GameMap.PARTS + Settings.density + GameMap.SUBPARTS + Settings.gradient + GameMap.SUBPARTS;
             text += "\n";
 
             for (Entity entity : scene.getEntities()) {

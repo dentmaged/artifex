@@ -5,7 +5,7 @@ import java.awt.Container;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.terrain.Terrain;
 
 public class UIListener {
@@ -23,7 +23,7 @@ public class UIListener {
             listeners.add(this);
     }
 
-    public void onEntitySelect(Entity previous, Entity current) {
+    public void onSelectionChange(TransformableObject object, boolean added) {
 
     }
 
@@ -74,9 +74,9 @@ public class UIListener {
         grandparent.repaint();
     }
 
-    public static void entitySelected(Entity previous, Entity current) {
+    public static void selectionChange(TransformableObject object, boolean added) {
         for (UIListener listener : listeners)
-            listener.onEntitySelect(previous, current);
+            listener.onSelectionChange(object, added);
     }
 
     public static void terrainSelected(Terrain previous, Terrain current) {

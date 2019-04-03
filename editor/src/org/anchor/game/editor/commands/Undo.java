@@ -30,6 +30,18 @@ public class Undo {
         addCommandToHistory(new AddComponentCallback(entity, component));
     }
 
+    public static void addComponentToEntities(List<Entity> entities, Class<?> clazz) {
+        for (Entity entity : entities) {
+            try {
+                entity.addComponent((IComponent) clazz.newInstance());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        addCommandToHistory(new AddComponentToEntitiesCallback(entities, clazz));
+    }
+
     public static void registerChange(Vector3f target, Vector3f difference) {
         addCommandToHistory(new VectorChangeCallback(target, difference));
     }
@@ -39,6 +51,28 @@ public class Undo {
         field.set(target, value);
 
         addCommandToHistory(new FieldSetCallback(field, target, value, previous));
+    }
+
+    public static void fieldsSet(JavaField field, List<Object> targets, Object value) {
+        List<Object> previous = new ArrayList<Object>();
+        for (Object target : targets) {
+            previous.add(field.get(target));
+            field.set(target, value);
+        }
+
+        addCommandToHistory(new FieldsSetCallback(field, targets, value, previous));
+    }
+    
+    public static void fieldsSetArray(JavaField field, List<Object> targets, List<Object> values) {
+        List<Object> previous = new ArrayList<Object>();
+        for (int i = 0; i < targets.size(); i++) {
+            Object target = targets.get(i);
+
+            previous.add(field.get(target));
+            field.set(target, values.get(i));
+        }
+
+        addCommandToHistory(new FieldsSetArrayCallback(field, targets, values, previous));
     }
 
     public static void addCommandToHistory(CommandCallback callback) {

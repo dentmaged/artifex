@@ -13,12 +13,13 @@ import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.utils.Layer;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-public class Entity {
+public class Entity implements TransformableObject {
 
     protected int id, lineIndex = -1;
     protected boolean hidden, precached, spawned, updated;
@@ -111,6 +112,7 @@ public class Entity {
         return layer;
     }
 
+    @Override
     public Vector3f getPosition() {
         return getComponent(TransformComponent.class).position;
     }
@@ -124,10 +126,12 @@ public class Entity {
         return new Vector3f(Matrix4f.transform(matrix, new Vector4f(position.x, position.y, position.z, 1), null));
     }
 
+    @Override
     public Vector3f getRotation() {
         return getComponent(TransformComponent.class).rotation;
     }
 
+    @Override
     public Vector3f getScale() {
         return getComponent(TransformComponent.class).scale;
     }

@@ -37,6 +37,7 @@ import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.profiler.Profiler;
@@ -124,7 +125,7 @@ public class GameEditor extends Game {
 
     public static final JFileChooser chooser = new JFileChooser(new File(new File("").getAbsolutePath()).getParent());
     private static final List<AcceleratorLink> links = new ArrayList<AcceleratorLink>();
-    private static Entity copy;
+    private static List<Entity> copies = new ArrayList<Entity>();
 
     static {
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Anchor Engine Map (*.asg)", "asg");
@@ -281,7 +282,7 @@ public class GameEditor extends Game {
                     }
                 }
 
-                editor.setSelectedEntity(null);
+                editor.unselectAll();
                 editor.setSelectedTerrain(null);
                 editor.updateList();
             } else {
@@ -332,10 +333,7 @@ public class GameEditor extends Game {
             TerrainRaycast terrainRaycast = picker.getTerrain(ray);
             EntityRaycast entityRaycast = picker.getEntity(scene, ray);
 
-            boolean ignore = false;
-            if (editor.getSelectedEntity() != null)
-                ignore = gizmo.update(editor.getSelectedEntity(), ray);
-
+            boolean ignore = gizmo.update(editor.getSelectedObjects(), ray);
             if (Mouse.isButtonDown(0)) {
                 if (editor.isEditingTerrain()) {
                     if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
@@ -347,8 +345,13 @@ public class GameEditor extends Game {
             }
 
             if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_BACK)) {
-                removeEntity(editor.getSelectedEntity());
-                editor.setSelectedEntity(null);
+                for (int i = 0; i < editor.getSelectedObjects().size(); i++) {
+                    TransformableObject object = editor.getSelectedObjects().get(i);
+                    if (object instanceof Entity)
+                        removeEntity((Entity) object);
+                }
+
+                editor.unselectAll();
             }
 
             if (MouseUtils.canLeftClick() || MouseUtils.canRightClick() || MouseUtils.canMiddleClick()) {
@@ -356,17 +359,19 @@ public class GameEditor extends Game {
 
                 if ((MouseUtils.canLeftClick() || MouseUtils.canMiddleClick()) && !ignore) {
                     if (terrainRaycast == null && entityRaycast == null) {
-                        editor.setSelectedEntity(null);
+                        editor.unselectAll();
                         editor.setSelectedTerrain(null);
                     } else {
                         if (!KeyboardUtils.isKeyDown(Keyboard.KEY_LMENU)) {
                             if (isEntityRaycast(terrainRaycast, entityRaycast)) {
-                                editor.setSelectedEntity(entityRaycast.getEntity());
+                                if (!KeyboardUtils.isKeyDown(Keyboard.KEY_LCONTROL))
+                                    editor.unselectAll();
+                                editor.addToSelection(entityRaycast.getEntity());
                             } else if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
                                 if (!editor.isEditingTerrain())
                                     editor.setSelectedTerrain((ClientTerrain) terrainRaycast.getTerrain());
                             }
-                        } else if (editor.getSelectedEntity() != null) {
+                        } else if (editor.getSelectedObjects().size() > 0) {
                             Vector3f point = null;
                             if (isEntityRaycast(terrainRaycast, entityRaycast))
                                 point = entityRaycast.getPoint();
@@ -374,7 +379,8 @@ public class GameEditor extends Game {
                                 point = terrainRaycast.getPoint();
 
                             if (point != null) {
-                                editor.getSelectedEntity().getPosition().set(point);
+                                for (TransformableObject object : editor.getSelectedObjects())
+                                    object.getPosition().set(point);
 
                                 editor.refreshComponentValues();
                             }
@@ -439,18 +445,28 @@ public class GameEditor extends Game {
                 for (Entity entity : scene.getEntities())
                     aabb.render(entity);
 
-            if (editor.getSelectedEntity() != null) {
+            if (editor.getSelectedObjects().size() > 0) {
                 gizmo.render();
                 if (!renderEveryAABB)
-                    aabb.render(editor.getSelectedEntity());
+                    for (TransformableObject object : editor.getSelectedObjects())
+                        if (object instanceof Entity)
+                            aabb.render((Entity) object);
 
-                if (editor.getSelectedEntity().getComponent(ReflectionProbeComponent.class) != null)
-                    DebugRenderer.box(livingComponent.getViewMatrix(), editor.getSelectedEntity().getPosition(), new Vector3f(), editor.getSelectedEntity().getScale(), new Vector3f(1, 0, 0));
+                for (TransformableObject object : editor.getSelectedObjects())
+                    if (object instanceof Entity)
+                        if (((Entity) object).getComponent(ReflectionProbeComponent.class) != null)
+                            DebugRenderer.box(livingComponent.getViewMatrix(), ((Entity) object).getPosition(), new Vector3f(), ((Entity) object).getScale(), new Vector3f(1, 0, 0));
 
-                LightComponent component = editor.getSelectedEntity().getComponent(LightComponent.class);
-                if (component != null) {
-                    float radius = component.getRadius();
-                    DebugRenderer.circle(livingComponent.getViewMatrix(), editor.getSelectedEntity().getPosition(), new Vector3f(), new Vector3f(radius, radius, radius), new Vector3f(1, 1, 1));
+                for (TransformableObject object : editor.getSelectedObjects()) {
+                    if (!(object instanceof Entity))
+                        continue;
+
+                    Entity entity = (Entity) object;
+                    LightComponent component = entity.getComponent(LightComponent.class);
+                    if (component != null) {
+                        float radius = component.getRadius();
+                        DebugRenderer.circle(livingComponent.getViewMatrix(), entity.getPosition(), new Vector3f(), new Vector3f(radius, radius, radius), new Vector3f(1, 1, 1));
+                    }
                 }
             }
         }
@@ -526,10 +542,12 @@ public class GameEditor extends Game {
 
     @Override
     public String getTitle() {
-        return "Anchor Engine Editor";
+        return "Anchor Editor";
     }
 
     public void createScene() {
+        editor.unselectAll();
+
         Entity light = new Entity(LightComponent.class, SunComponent.class);
         light.setValue("name", "Sun");
         lightComponent = light.getComponent(LightComponent.class);
@@ -558,6 +576,7 @@ public class GameEditor extends Game {
     }
 
     public void loadMap(File map) {
+        editor.unselectAll();
         if (!map.exists())
             return;
 
@@ -599,8 +618,10 @@ public class GameEditor extends Game {
         scene.getEntities().add(entity);
         editor.updateList();
 
-        if (select)
-            editor.setSelectedEntity(entity);
+        if (select) {
+            editor.unselectAll();
+            editor.addToSelection(entity);
+        }
 
         Undo.registerEntity(entity);
 
@@ -612,7 +633,8 @@ public class GameEditor extends Game {
         editor.updateList();
 
         Undo.registerEntity(entity);
-        editor.setSelectedEntity(entity);
+        editor.unselectAll();
+        editor.addToSelection(entity);
     }
 
     public void removeEntity(Entity entity) {
@@ -682,7 +704,6 @@ public class GameEditor extends Game {
     }
 
     public void setShowAllAABBs(boolean show) {
-        System.out.println("SET " + show);
         this.renderEveryAABB = show;
     }
 
@@ -707,22 +728,28 @@ public class GameEditor extends Game {
     }
 
     public static void copy() {
-        if (LevelEditor.getInstance() == null || LevelEditor.getInstance().getSelectedEntity() == null)
+        if (LevelEditor.getInstance() == null)
             return;
 
-        copy = LevelEditor.getInstance().getSelectedEntity().copy();
+        copies.clear();
+        for (TransformableObject object : LevelEditor.getInstance().getSelectedObjects()) {
+            if (!(object instanceof Entity))
+                continue;
+            Entity entity = (Entity) object;
+            Entity copy = entity.copy();
 
-        MeshComponent render = copy.getComponent(MeshComponent.class);
-        if (render != null)
-            render.colour.set(0, 0, 0, 0);
+            copies.add(copy);
+            MeshComponent render = copy.getComponent(MeshComponent.class);
+            if (render != null)
+                render.colour.set(0, 0, 0, 0);
+        }
     }
 
     public static void paste() {
-        if (copy == null)
-            return;
-
-        getInstance().scene.getEntities().add(copy.copy());
-        LevelEditor.getInstance().updateUI();
+        for (Entity copy : copies) {
+            getInstance().scene.getEntities().add(copy.copy());
+            LevelEditor.getInstance().updateUI();
+        }
     }
 
     public static void create() {
@@ -748,6 +775,9 @@ public class GameEditor extends Game {
             }).start();
         } else {
             Window.getInstance().setTabName("Untitled");
+            getInstance().level = null;
+            Undo.clearHistory();
+
             getInstance().createScene();
         }
     }
@@ -788,7 +818,7 @@ public class GameEditor extends Game {
             }).start();
         } else {
             if (Undo.hasChangedSinceSave()) {
-                if (JOptionPane.showConfirmDialog(null, "Do you want to save your changes to " + Window.getInstance().getTabName() + "?", "Anchor Engine Editor", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION)
+                if (JOptionPane.showConfirmDialog(null, "Do you want to save your changes to " + Window.getInstance().getTabName() + "?", "Anchor Editor", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION)
                     save();
                 else
                     getInstance().loadMap(file);

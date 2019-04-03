@@ -71,13 +71,13 @@ public class VirtualFileSystem {
     }
 
     public static void init() {
-        for (File file : new File(new File(FileHelper.game, "name").getAbsolutePath()).getParentFile().listFiles())
+        for (File file : new File(new File(FileHelper.game, "child-of-game-dir").getAbsolutePath()).getParentFile().listFiles())
             if (file.getName().toLowerCase().endsWith(".ads"))
                 new VirtualFileSystem(file);
     }
 
     public static IFile find(File file) {
-        String path = FileHelper.localFileName(file, new File(new File("name").getAbsolutePath()).getParentFile());
+        String path = FileHelper.localFileName(file, new File(new File("child-of-dir").getAbsolutePath()).getParentFile());
 
         if (path == null)
             return new DiskFile(file);

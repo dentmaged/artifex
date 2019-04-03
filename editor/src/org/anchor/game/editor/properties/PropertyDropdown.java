@@ -7,20 +7,18 @@ import java.util.List;
 import javax.swing.JComboBox;
 
 import org.anchor.engine.common.utils.JavaField;
-import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.editor.commands.Undo;
 
 public abstract class PropertyDropdown extends JComboBox<String> {
 
-    protected Entity entity;
     protected JavaField field;
-    protected Object object;
+    protected List<Object> objects;
 
     protected String previousValue;
 
     private static final long serialVersionUID = -586156248454660986L;
 
-    public PropertyDropdown(Entity entity, JavaField field, Object object, List<String> values) {
+    public PropertyDropdown(JavaField field, List<Object> objects, List<String> values) {
         for (String value : values)
             addItem(value);
 
@@ -37,16 +35,15 @@ public abstract class PropertyDropdown extends JComboBox<String> {
 
                 previousValue = value;
                 try {
-                    Undo.fieldSet(field, object, convert(value));
+                    Undo.fieldsSet(field, objects, convert(value));
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
         });
 
-        this.entity = entity;
         this.field = field;
-        this.object = object;
+        this.objects = objects;
     }
 
     public void update() {

@@ -18,9 +18,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
@@ -66,6 +68,7 @@ import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.ScriptComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.components.TransformComponent;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -142,7 +145,7 @@ public class LevelEditor extends JPanel {
 
     private Window window;
     private GameEditor gameEditor;
-    private Entity selectedEntity;
+    private List<TransformableObject> selected = new ArrayList<TransformableObject>();
     private ClientTerrain selectedTerrain;
     private JPanel components;
 
@@ -301,10 +304,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run() {
-                if (selectedEntity == null)
+                if (!xTransformField.isEnabled())
                     return;
 
-                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).x = parseFloat(xTransformField.getText());
+                for (TransformableObject object : selected)
+                    GameEditor.getInstance().getGizmoRenderer().getVector(object).x = parseFloat(xTransformField.getText());
             }
 
         });
@@ -320,10 +324,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run() {
-                if (selectedEntity == null)
+                if (!yTransformField.isEnabled())
                     return;
 
-                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).y = parseFloat(yTransformField.getText());
+                for (TransformableObject object : selected)
+                    GameEditor.getInstance().getGizmoRenderer().getVector(object).y = parseFloat(yTransformField.getText());
             }
 
         });
@@ -339,10 +344,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run() {
-                if (selectedEntity == null)
+                if (!zTransformField.isEnabled())
                     return;
 
-                GameEditor.getInstance().getGizmoRenderer().getVector(selectedEntity).z = parseFloat(zTransformField.getText());
+                for (TransformableObject object : selected)
+                    GameEditor.getInstance().getGizmoRenderer().getVector(object).z = parseFloat(zTransformField.getText());
             }
 
         });
@@ -519,9 +525,9 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent event) {
-                if (selectedEntity != null) {
-                    gameEditor.addEntity(selectedEntity.copy());
-                    selectedEntity.getPosition().set(5, 0, -8);
+                for (TransformableObject object : selected) {
+                    if (object instanceof Entity)
+                        gameEditor.addEntity(((Entity) object).copy());
                 }
 
                 if (selectedTerrain != null) {
@@ -545,9 +551,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                if (selectedEntity != null) {
-                    gameEditor.removeEntity(selectedEntity);
-                    setSelectedEntity(null);
+                for (int i = 0; i < selected.size(); i++) {
+                    TransformableObject object = selected.get(i);
+                    if (object instanceof Entity)
+                        gameEditor.removeEntity((Entity) object);
+                    unselectAll();
                 }
 
                 if (selectedTerrain != null) {
@@ -559,26 +567,16 @@ public class LevelEditor extends JPanel {
             }
 
         }));
-        scenePopupMenu.add(new JMenuItem(new AbstractAction("Set parent") {
+        scenePopupMenu.add(new JMenuItem(new AbstractAction("Group") {
 
             private static final long serialVersionUID = -7509797304178919452L;
 
             @Override
             public void actionPerformed(ActionEvent event) {
-                if (selectedEntity != null) {
-                    String name = JOptionPane.showInputDialog(null, "Type the name of the entity: ", "Set entity parent", JOptionPane.PLAIN_MESSAGE);
-                    selectedEntity.setParent(null);
-                    for (Entity entity : gameEditor.getScene().getEntities()) {
-                        if (entity.isHidden())
-                            continue;
-
-                        if (getEntityName(entity).equalsIgnoreCase(name)) {
-                            selectedEntity.setParent(entity);
-
-                            break;
-                        }
-                    }
-                }
+                Entity parent = new Entity();
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).setParent(parent);
 
                 scenePopupMenu.setVisible(false);
             }
@@ -619,9 +617,10 @@ public class LevelEditor extends JPanel {
                     return;
 
                 Object store = node.getStorage();
-                if (store instanceof Entity)
-                    setSelectedEntity((Entity) store);
-                else if (store instanceof ClientTerrain)
+                if (store instanceof Entity) {
+                    unselectAll();
+                    addToSelection((Entity) store);
+                } else if (store instanceof ClientTerrain)
                     setSelectedTerrain((ClientTerrain) store);
                 else if (store instanceof String)
                     updateList();
@@ -647,7 +646,9 @@ public class LevelEditor extends JPanel {
                     Entity entity = gameEditor.addEntity(false);
                     entity.setValue("model", model);
                     entity.addComponent(new MeshComponent());
-                    setSelectedEntity(entity);
+
+                    unselectAll();
+                    addToSelection(entity);
                 }
             }
 
@@ -658,7 +659,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent event) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+
+                    Entity selectedEntity = (Entity) object;
                     MeshComponent mesh = selectedEntity.getComponent(MeshComponent.class);
                     if (mesh != null) {
                         File file = (File) ((CustomMutableTreeNode) assetBrowserFileSystem.getLastSelectedPathComponent()).getStorage();
@@ -796,7 +801,9 @@ public class LevelEditor extends JPanel {
                 Entity entity = gameEditor.addEntity(false);
                 entity.setValue("model", path.get());
                 entity.addComponent(new MeshComponent());
-                setSelectedEntity(entity);
+
+                unselectAll();
+                addToSelection(entity);
 
                 removeSubpanel();
             }
@@ -893,28 +900,26 @@ public class LevelEditor extends JPanel {
 
                 @Override
                 public void onButtonClick(CustomButton field) {
-                    try {
-                        if (selectedEntity != null) {
-                            Undo.addComponent(selectedEntity, (IComponent) one.newInstance());
-                            reloadEntityComponents(selectedEntity);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    List<Entity> entities = new ArrayList<Entity>();
+                    for (TransformableObject object : selected)
+                        if (object instanceof Entity)
+                            entities.add((Entity) object);
+
+                    Undo.addComponentToEntities(entities, one);
+                    reloadEntityComponents(selected);
                 }
 
             }, new ButtonListener() {
 
                 @Override
                 public void onButtonClick(CustomButton field) {
-                    try {
-                        if (selectedEntity != null) {
-                            Undo.addComponent(selectedEntity, (IComponent) two.newInstance());
-                            reloadEntityComponents(selectedEntity);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    List<Entity> entities = new ArrayList<Entity>();
+                    for (TransformableObject object : selected)
+                        if (object instanceof Entity)
+                            entities.add((Entity) object);
+
+                    Undo.addComponentToEntities(entities, two);
+                    reloadEntityComponents(selected);
                 }
 
             }));
@@ -941,16 +946,13 @@ public class LevelEditor extends JPanel {
 
                     @Override
                     public void actionPerformed(ActionEvent arg0) {
-                        try {
-                            if (selectedEntity != null) {
-                                selectedEntity.addComponent((IComponent) component.newInstance());
+                        List<Entity> entities = new ArrayList<Entity>();
+                        for (TransformableObject object : selected)
+                            if (object instanceof Entity)
+                                entities.add((Entity) object);
 
-                                menu.setVisible(false);
-                                reloadEntityComponents(selectedEntity);
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        Undo.addComponentToEntities(entities, component);
+                        menu.setVisible(false);
                     }
 
                 }));
@@ -978,18 +980,22 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void onTextFieldEdit(CustomTextField field) {
-                if (selectedEntity != null)
-                    selectedEntity.setValue("name", field.getText());
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).setValue("name", field.getText());
                 updateList();
             }
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
                 CustomTextField field = (CustomTextField) component;
 
                 field.setEnabled(false);
-                if (current != null) {
-                    reloadEntityComponents(current);
+                if (added) {
+                    reloadEntityComponents(selected);
 
                     field.setText(getEntityName(current));
                     field.setEnabled(true);
@@ -1035,11 +1041,16 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void onDropdownSelect(CustomDropdown field) {
-                selectedEntity.setLayer(Engine.getLayerByName((String) field.getSelectedItem()));
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).setLayer(Engine.getLayerByName((String) field.getSelectedItem()));
             }
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
                 CustomDropdown field = (CustomDropdown) component;
                 field.setEnabled(false);
 
@@ -1047,8 +1058,8 @@ public class LevelEditor extends JPanel {
                 for (String item : Engine.getLayerNames())
                     field.addItem(item);
 
-                if (current != null) {
-                    reloadEntityComponents(current);
+                if (added) {
+                    reloadEntityComponents(selected);
 
                     field.setSelectedItem(current.getLayer().getName());
                     field.setEnabled(true);
@@ -1613,8 +1624,12 @@ public class LevelEditor extends JPanel {
         JScrollPane modelSettingsPanel = UIKit.createSubpanel("Material Settings", Arrays.asList(AssetPicker.create("Albedo: ", null, "png", new FilePickCallback() {
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                if (current != null) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
+
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         String albedo = mesh.material != null ? mesh.material.getAlbedoName() : null;
@@ -1630,7 +1645,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+                    Entity selectedEntity = (Entity) object;
+
                     selectedEntity.getComponent(MeshComponent.class).material.setAlbedo(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
                     selectedEntity.getComponent(MeshComponent.class).refreshShader();
                 }
@@ -1639,8 +1658,12 @@ public class LevelEditor extends JPanel {
         }), AssetPicker.create("Normal Map: ", null, "png", new FilePickCallback() {
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                if (current != null) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
+
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         String normalMap = mesh.material != null ? mesh.material.getNormalMapName() : null;
@@ -1656,7 +1679,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+                    Entity selectedEntity = (Entity) object;
+
                     selectedEntity.getComponent(MeshComponent.class).material.setNormalMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
                     selectedEntity.getComponent(MeshComponent.class).refreshShader();
                 }
@@ -1665,8 +1692,12 @@ public class LevelEditor extends JPanel {
         }), AssetPicker.create("Specular Map: ", null, "png", new FilePickCallback() {
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                if (current != null) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
+
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         String specularMap = mesh.material != null ? mesh.material.getSpecularMapName() : null;
@@ -1682,7 +1713,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+                    Entity selectedEntity = (Entity) object;
+
                     selectedEntity.getComponent(MeshComponent.class).material.setSpecularMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
                     selectedEntity.getComponent(MeshComponent.class).refreshShader();
                 }
@@ -1691,8 +1726,12 @@ public class LevelEditor extends JPanel {
         }), AssetPicker.create("Metallic: ", null, "png", new FilePickCallback() {
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                if (current != null) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
+
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         String metallicMap = mesh.material != null ? mesh.material.getMetallicMapName() : null;
@@ -1708,7 +1747,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+                    Entity selectedEntity = (Entity) object;
+
                     selectedEntity.getComponent(MeshComponent.class).material.setMetallicMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
                     selectedEntity.getComponent(MeshComponent.class).refreshShader();
                 }
@@ -1717,8 +1760,12 @@ public class LevelEditor extends JPanel {
         }), AssetPicker.create("Roughness Map: ", null, "png", new FilePickCallback() {
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
-                if (current != null) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
+
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         String roughnessMap = mesh.material != null ? mesh.material.getRoughnessMapName() : null;
@@ -1734,7 +1781,11 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void run(File file) {
-                if (selectedEntity != null) {
+                for (TransformableObject object : selected) {
+                    if (!(object instanceof Entity))
+                        continue;
+                    Entity selectedEntity = (Entity) object;
+
                     selectedEntity.getComponent(MeshComponent.class).material.setRoughnessMap(Requester.requestTexture(FileHelper.removeFileExtension(FileHelper.localFileName(file))));
                     selectedEntity.getComponent(MeshComponent.class).refreshShader();
                 }
@@ -1744,16 +1795,20 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void onTextFieldEdit(CustomTextField field) {
-                if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).material.setNumberOfRows(parseInt(field.getText(), 1));
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).getComponent(MeshComponent.class).material.setNumberOfRows(parseInt(field.getText(), 1));
             }
 
             @Override
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
                 CustomTextField field = (CustomTextField) component;
 
                 field.setEnabled(false);
-                if (current != null) {
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         field.setText(mesh.material.getNumberOfRows() + "");
@@ -1767,17 +1822,14 @@ public class LevelEditor extends JPanel {
         }), new CheckboxBlueprint("Backface culling: ", false, new CheckboxListener() {
 
             @Override
-            public void onCheckboxEdit(CustomCheckbox checkbox) {
-                if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).material.setCullingEnabled(checkbox.isSelected());
-            }
-
-            @Override
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
                 CustomCheckbox checkbox = (CustomCheckbox) component;
 
                 checkbox.setEnabled(false);
-                if (current != null) {
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         checkbox.setSelected(mesh.material.isCullingEnabled());
@@ -1788,20 +1840,24 @@ public class LevelEditor extends JPanel {
                 }
             }
 
+            @Override
+            public void onCheckboxEdit(CustomCheckbox checkbox) {
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).getComponent(MeshComponent.class).material.setCullingEnabled(checkbox.isSelected());
+            }
+
         }), new CheckboxBlueprint("Blending: ", false, new CheckboxListener() {
 
             @Override
-            public void onCheckboxEdit(CustomCheckbox checkbox) {
-                if (selectedEntity != null)
-                    selectedEntity.getComponent(MeshComponent.class).material.setBlendingEnabled(checkbox.isSelected());
-            }
-
-            @Override
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject change, boolean added) {
+                if (!(change instanceof Entity))
+                    return;
+                Entity current = (Entity) change;
                 CustomCheckbox checkbox = (CustomCheckbox) component;
 
                 checkbox.setEnabled(false);
-                if (current != null) {
+                if (added) {
                     MeshComponent mesh = current.getComponent(MeshComponent.class);
                     if (mesh != null && mesh.model != null && mesh.model.getMesh() != null) {
                         checkbox.setSelected(mesh.material.isBlendingEnabled());
@@ -1810,6 +1866,13 @@ public class LevelEditor extends JPanel {
                 } else {
                     checkbox.setSelected(false);
                 }
+            }
+
+            @Override
+            public void onCheckboxEdit(CustomCheckbox checkbox) {
+                for (TransformableObject object : selected)
+                    if (object instanceof Entity)
+                        ((Entity) object).getComponent(MeshComponent.class).material.setBlendingEnabled(checkbox.isSelected());
             }
 
         })), height);
@@ -1824,15 +1887,12 @@ public class LevelEditor extends JPanel {
         hideTitle(sceneFrame);
         hideTitle(actionFrame);
 
-        setSelectedEntity(null);
+        unselectAll();
         setSelectedTerrain(null);
     }
 
-    private static void entitySelected(Entity selected, Entity entity) {
-        if (selected != null && selected.hasComponent(MeshComponent.class))
-            selected.getComponent(MeshComponent.class).colour.w = 0;
-
-        UIListener.entitySelected(selected, entity);
+    private static void selectionChange(TransformableObject change, boolean added) {
+        UIListener.selectionChange(change, added);
     }
 
     private static void terrainSelected(ClientTerrain selected, ClientTerrain terrain) {
@@ -1842,43 +1902,78 @@ public class LevelEditor extends JPanel {
         UIListener.terrainSelected(selected, terrain);
     }
 
-    public void setSelectedEntity(Entity entity) {
-        if (entity != null) {
-            if (entity.isHidden())
-                entity = null;
-            else
-                tabbedPane.setSelectedIndex(1);
-        }
+    public void addAllToSelection(List<TransformableObject> objects) {
+        for (TransformableObject object : objects)
+            addToSelection(object);
+    }
 
-        if (entity == selectedEntity && entity != null)
+    public void addToSelection(TransformableObject object) {
+        if (selected.contains(object))
             return;
 
-        entitySelected(selectedEntity, entity);
-        this.selectedEntity = entity;
-        if (entity != null) {
-            terrainSelected(selectedTerrain, null);
+        if (object instanceof Entity) {
+            Entity entity = (Entity) object;
+            if (entity != null) {
+                if (entity.isHidden())
+                    entity = null;
+                else
+                    tabbedPane.setSelectedIndex(1);
+            }
+        }
 
-            selectedTerrain = null;
-            tabbedPane.setSelectedIndex(1);
+        selected.add(object);
+        selectionChange(object, true);
 
-            ignoreTreeEvent = true;
-            if (tree != null && treePosition != null)
-                tree.setSelectionRow(treePosition.get(entity));
-            refreshTransformationXYZ();
+        terrainSelected(selectedTerrain, null);
+        selectedTerrain = null;
 
+        tabbedPane.setSelectedIndex(1);
+        ignoreTreeEvent = true;
+        if (tree != null && treePosition != null) {
+            int[] rows = tree.getSelectionRows();
+            int[] selected = new int[rows.length + 1];
+            System.arraycopy(rows, 0, selected, 0, rows.length);
+            selected[rows.length] = treePosition.get(object);
+        }
+        refreshTransformationXYZ();
+
+        if (object instanceof Entity) {
+            Entity entity = (Entity) object;
             MeshComponent render = entity.getComponent(MeshComponent.class);
             if (render != null)
                 render.colour.set(1, 0, 0, 0.65f);
-
-            lblObjectsSelected.setText("1 Object Selected");
-            Log.info("Entity selected at " + entity.getPosition().x + ", " + entity.getPosition().y + ", " + entity.getPosition().z);
-        } else {
-            lblObjectsSelected.setText("0 Objects Selected");
-            refreshTransformationXYZ();
-
-            tree.setSelectionRow(-1);
-            tabbedPane.setSelectedIndex(0);
         }
+
+        lblObjectsSelected.setText(selected.size() + " Object" + (selected.size() == 1 ? "" : "s") + " Selected");
+        Log.info("Entity selected at " + object.getPosition().x + ", " + object.getPosition().y + ", " + object.getPosition().z);
+    }
+
+    public void unselectAll() {
+        removeAllFromSelection(new ArrayList<TransformableObject>(selected));
+    }
+
+    public void removeAllFromSelection(List<TransformableObject> objects) {
+        for (TransformableObject object : objects)
+            removeFromSelection(object);
+    }
+
+    public void removeFromSelection(TransformableObject object) {
+        selected.remove(object);
+
+        lblObjectsSelected.setText(selected.size() + " Object" + (selected.size() == 1 ? "" : "s") + " Selected");
+        selectionChange(object, false);
+        refreshTransformationXYZ();
+
+        if (object instanceof Entity) {
+            Entity entity = (Entity) object;
+            MeshComponent render = entity.getComponent(MeshComponent.class);
+            if (render != null)
+                render.colour.w = 0;
+        }
+
+        tree.setSelectionRow(-1);
+        if (selected.size() == 0)
+            tabbedPane.setSelectedIndex(0);
     }
 
     public void setSelectedTerrain(ClientTerrain terrain) {
@@ -1892,9 +1987,7 @@ public class LevelEditor extends JPanel {
         this.selectedTerrain = terrain;
 
         if (terrain != null) {
-            entitySelected(selectedEntity, null);
-
-            selectedEntity = null;
+            unselectAll();
             tabbedPane.setSelectedIndex(2);
 
             ignoreTreeEvent = true;
@@ -1937,15 +2030,62 @@ public class LevelEditor extends JPanel {
         }
     }
 
-    public void reloadEntityComponents(Entity entity) {
+    public void reloadEntityComponents(List<TransformableObject> objects) {
         Pointer<Integer> height = new Pointer<Integer>();
         int y = 0;
 
         components.removeAll();
+        Map<Class<?>, List<IComponent>> allComponents = new HashMap<Class<?>, List<IComponent>>();
+        for (TransformableObject object : objects) {
+            if (!(object instanceof Entity)) {
+                TransformComponent component = new TransformComponent();
 
-        for (IComponent component : entity.getComponents()) {
-            JPanel panel = PropertyUIKit.createPanel(entity, component, height);
-            JButton button = new JButton(component.getClass().getSimpleName().replace("Component", ""));
+                component.position = object.getPosition();
+                component.rotation = object.getRotation();
+                component.scale = object.getScale();
+
+                List<IComponent> value = allComponents.get(component.getClass());
+                if (value == null)
+                    allComponents.put(component.getClass(), value = new ArrayList<IComponent>());
+
+                value.add(component);
+            } else {
+                for (IComponent component : ((Entity) object).getComponents()) {
+                    List<IComponent> value = allComponents.get(component.getClass());
+                    if (value == null)
+                        allComponents.put(component.getClass(), value = new ArrayList<IComponent>());
+
+                    value.add(component);
+                }
+            }
+        }
+
+        for (TransformableObject object : objects) {
+            List<Class<?>> classes = new ArrayList<Class<?>>();
+            if (!(object instanceof Entity))
+                classes.add(TransformComponent.class);
+            else
+                for (IComponent current : ((Entity) object).getComponents())
+                    classes.add(current.getClass());
+
+            List<Class<?>> keys = new ArrayList<Class<?>>(allComponents.keySet());
+            for (int i = 0; i < keys.size(); i++)
+                if (!classes.contains(keys.get(i)))
+                    allComponents.remove(keys.get(i));
+        }
+
+        List<Entity> entities = new ArrayList<Entity>();
+        for (TransformableObject object : objects)
+            if (object instanceof Entity)
+                entities.add((Entity) object);
+
+        List<Entry<Class<?>, List<IComponent>>> entries = new ArrayList<Entry<Class<?>, List<IComponent>>>(allComponents.entrySet());
+        if (entries.get(0).getClass() != TransformComponent.class)
+            Collections.reverse(entries);
+
+        for (Entry<Class<?>, List<IComponent>> entry : entries) {
+            JPanel panel = PropertyUIKit.createPanel(entities, entry.getValue(), height);
+            JButton button = new JButton(entry.getKey().getSimpleName().replace("Component", ""));
             panels.put(button, panel);
             button.addActionListener(new ActionListener() {
 
@@ -1983,7 +2123,7 @@ public class LevelEditor extends JPanel {
             });
 
             int width = UIKit.SUBPANEL_WIDTH - 105;
-            if (component.getClass() == TransformComponent.class)
+            if (entry.getKey() == TransformComponent.class)
                 width = UIKit.SUBPANEL_WIDTH - 35;
             button.setBounds(10, y, width, 24);
             components.add(button);
@@ -1993,8 +2133,9 @@ public class LevelEditor extends JPanel {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    entity.removeComponent(component);
-                    reloadEntityComponents(entity);
+                    for (Entity entity : entities)
+                        entity.removeComponent(entity.getComponent((Class<IComponent>) entry.getKey()));
+                    reloadEntityComponents(selected);
                 }
 
             });
@@ -2012,16 +2153,45 @@ public class LevelEditor extends JPanel {
     }
 
     public void refreshTransformationXYZ() {
-        if (selectedEntity != null) {
-            Vector3f vector = gameEditor.getGizmoRenderer().getVector(selectedEntity);
-            xTransformField.setText(vector.x + "");
-            yTransformField.setText(vector.y + "");
-            zTransformField.setText(vector.z + "");
-        } else {
-            xTransformField.setText("0.0");
-            yTransformField.setText("0.0");
-            zTransformField.setText("0.0");
+        Vector3f average = new Vector3f();
+        boolean shouldCalculateAverage = gameEditor.getMode() == 1; // translation
+        if (!shouldCalculateAverage && selected.size() > 0)
+            average.set(gameEditor.getGizmoRenderer().getVector(selected.get(0)));
+
+        float count = 0;
+        for (TransformableObject object : selected) {
+            Vector3f vector = gameEditor.getGizmoRenderer().getVector(object);
+            if (shouldCalculateAverage) {
+                Vector3f.add(average, vector, average);
+                count++;
+            } else {
+                if (average.x != vector.x)
+                    average.x = 0;
+                if (average.y != vector.y)
+                    average.y = 0;
+                if (average.z != vector.z)
+                    average.z = 0;
+            }
         }
+
+        if (shouldCalculateAverage) {
+            average.x /= count;
+            average.y /= count;
+            average.z /= count;
+        }
+
+        xTransformField.setEnabled(false);
+        xTransformField.setText(average.x + "");
+        xTransformField.setEnabled(true);
+
+        yTransformField.setEnabled(false);
+        yTransformField.setText(average.y + "");
+        yTransformField.setEnabled(true);
+
+        zTransformField.setEnabled(false);
+        zTransformField.setText(average.z + "");
+        zTransformField.setEnabled(true);
+
     }
 
     public void refreshComponentValues() {
@@ -2060,8 +2230,8 @@ public class LevelEditor extends JPanel {
         return name;
     }
 
-    public Entity getSelectedEntity() {
-        return selectedEntity;
+    public List<TransformableObject> getSelectedObjects() {
+        return selected;
     }
 
     public Canvas getCanvas() {

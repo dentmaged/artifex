@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
@@ -48,47 +49,61 @@ public class GameMap {
     }
 
     public void load() {
-        String contents = FileHelper.read(file);
-        String[] lines = contents.split("\n");
-        int i = 0;
-        if (lines[0].startsWith(INFO)) {
-            String[] parts = lines[0].split(PARTS);
-            int version = Integer.parseInt(parts[0].substring(1));
-            if (version != MAP_VERSION)
-                return;
+        try {
+            String contents = FileHelper.read(file);
+            String[] lines = contents.split("\n");
+            int i = 0;
+            if (lines[0].startsWith(INFO)) {
+                String[] parts = lines[0].split(PARTS);
+                int version = Integer.parseInt(parts[0].substring(1));
+                if (version != MAP_VERSION)
+                    return;
 
-            if (parts.length > 1) {
-                String[] layers = parts[1].split(SUBPARTS);
-                for (String layer : layers) {
-                    String[] sections = layer.split("@");
+                if (parts.length > 1) {
+                    String[] layers = parts[1].split(SUBPARTS);
+                    for (String layer : layers) {
+                        if (layer == null || layer.equals(""))
+                            continue;
 
-                    scene.getLayers().add(new Layer(sections[0], new Color(Integer.parseInt(sections[1]), Integer.parseInt(sections[2]), Integer.parseInt(sections[3])), Boolean.parseBoolean(sections[4]), Boolean.parseBoolean(sections[5])));
+                        String[] sections = layer.split("@");
+
+                        scene.getLayers().add(new Layer(sections[0], new Color(Integer.parseInt(sections[1]), Integer.parseInt(sections[2]), Integer.parseInt(sections[3])), Boolean.parseBoolean(sections[4]), Boolean.parseBoolean(sections[5])));
+                    }
                 }
+
+                if (parts.length > 2) {
+                    String[] fogSettings = parts[2].split(SUBPARTS);
+
+                    Settings.density = Float.parseFloat(fogSettings[0]);
+                    Settings.gradient = Float.parseFloat(fogSettings[1]);
+                }
+
+                i++;
             }
-
-            i++;
-        }
-        while (!lines[i].equals(ENTITY_END)) {
-            Entity entity = parse(scene, lines[i]);
-            if (entity != null) {
-                scene.getEntities().add(entity);
-                entity.setLineIndex(i);
+            while (!lines[i].equals(ENTITY_END)) {
+                Entity entity = parse(scene, lines[i]);
+                if (entity != null) {
+                    scene.getEntities().add(entity);
+                    entity.setLineIndex(i);
+                }
+                i++;
             }
-            i++;
-        }
-        setParents(scene.getEntities());
+            setParents(scene.getEntities());
 
-        i++;
-        while (!lines[i].equals(TERRAIN_END)) {
-            String[] parts = lines[i].split(PARTS);
-            String[] coordinates = parts[0].split(SUBPARTS);
-            String[] textures = parts[2].split(SUBPARTS);
-            float size = Terrain.DEFAULT_SIZE;
-            if (parts.length > 3)
-                size = Float.parseFloat(parts[3]);
-
-            scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
             i++;
+            while (!lines[i].equals(TERRAIN_END)) {
+                String[] parts = lines[i].split(PARTS);
+                String[] coordinates = parts[0].split(SUBPARTS);
+                String[] textures = parts[2].split(SUBPARTS);
+                float size = Terrain.DEFAULT_SIZE;
+                if (parts.length > 3)
+                    size = Float.parseFloat(parts[3]);
+
+                scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
+                i++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

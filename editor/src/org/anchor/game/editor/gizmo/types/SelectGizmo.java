@@ -1,6 +1,6 @@
 package org.anchor.game.editor.gizmo.types;
 
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.lwjgl.util.vector.Vector3f;
 
 public class SelectGizmo extends ArrowGizmo {
@@ -12,8 +12,8 @@ public class SelectGizmo extends ArrowGizmo {
     }
 
     @Override
-    public Vector3f getVector(Entity entity) {
-        return entity.getPosition(); // default transformation
+    public Vector3f getVector(TransformableObject object) {
+        return object.getPosition(); // default transformation
     }
 
 }

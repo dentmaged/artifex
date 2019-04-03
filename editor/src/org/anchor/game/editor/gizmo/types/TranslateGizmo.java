@@ -3,7 +3,7 @@ package org.anchor.game.editor.gizmo.types;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.Raycast;
 import org.anchor.engine.common.utils.VectorUtils;
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.util.vector.Matrix4f;
@@ -19,8 +19,8 @@ public class TranslateGizmo extends ArrowGizmo {
     }
 
     @Override
-    public Vector3f getVector(Entity entity) {
-        return entity.getPosition();
+    public Vector3f getVector(TransformableObject object) {
+        return object.getPosition();
     }
 
     @Override

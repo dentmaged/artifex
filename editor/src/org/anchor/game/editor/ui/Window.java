@@ -38,6 +38,7 @@ import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 
 import org.anchor.engine.shared.Engine;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.scheduler.ScheduledRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
@@ -267,10 +268,9 @@ public class Window {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (LevelEditor.getInstance().getSelectedEntity() == null)
-                    return;
-
-                LevelEditor.getInstance().getSelectedEntity().getComponent(MeshComponent.class).visible = false;
+                for (TransformableObject object : LevelEditor.getInstance().getSelectedObjects())
+                    if (object instanceof Entity)
+                        ((Entity) object).getComponent(MeshComponent.class).visible = false;
             }
 
         });
@@ -283,7 +283,7 @@ public class Window {
             @Override
             public void actionPerformed(ActionEvent e) {
                 for (Entity entity : Engine.getEntitiesWithComponent(MeshComponent.class))
-                    if (entity != LevelEditor.getInstance().getSelectedEntity() && !entity.hasComponent(SkyComponent.class))
+                    if (!LevelEditor.getInstance().getSelectedObjects().contains(entity) && !entity.hasComponent(SkyComponent.class))
                         entity.getComponent(MeshComponent.class).visible = false;
             }
 
@@ -310,10 +310,9 @@ public class Window {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (LevelEditor.getInstance().getSelectedEntity() == null)
-                    return;
-
-                LevelEditor.getInstance().getSelectedEntity().setHidden(true);
+                for (TransformableObject object : LevelEditor.getInstance().getSelectedObjects())
+                    if (object instanceof Entity)
+                        ((Entity) object).setHidden(true);
             }
 
         });
@@ -326,7 +325,7 @@ public class Window {
             @Override
             public void actionPerformed(ActionEvent e) {
                 for (Entity entity : Engine.getEntitiesWithComponent(MeshComponent.class))
-                    if (entity != LevelEditor.getInstance().getSelectedEntity() && !entity.hasComponent(SkyComponent.class))
+                    if (!LevelEditor.getInstance().getSelectedObjects().contains(entity) && !entity.hasComponent(SkyComponent.class))
                         entity.setHidden(true);
             }
 

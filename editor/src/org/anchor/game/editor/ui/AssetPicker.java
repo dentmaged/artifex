@@ -13,7 +13,7 @@ import javax.swing.JPanel;
 import javax.swing.JTree;
 
 import org.anchor.engine.common.utils.FileHelper;
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.ui.blueprint.LabelledButtonBlueprint;
@@ -78,9 +78,9 @@ public class AssetPicker {
     public static LabelledButtonBlueprint create(String name, String current, String extension, FilePickCallback callback) {
         return new LabelledButtonBlueprint(name, current != null ? current : "Choose file", new ButtonListener() {
 
-            public void onEntitySelect(Entity previous, Entity current) {
+            public void onSelectionChange(TransformableObject object, boolean added) {
                 callback.component = component;
-                callback.onEntitySelect(previous, current);
+                callback.onSelectionChange(object, added);
             }
 
             public void onTerrainSelect(Terrain previous, Terrain current) {

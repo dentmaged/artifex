@@ -1,6 +1,6 @@
 package org.anchor.game.editor.gizmo.types;
 
-import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.lwjgl.util.vector.Vector3f;
 
 public class ScaleGizmo extends ArrowGizmo {
@@ -12,8 +12,8 @@ public class ScaleGizmo extends ArrowGizmo {
     }
 
     @Override
-    public Vector3f getVector(Entity entity) {
-        return entity.getScale();
+    public Vector3f getVector(TransformableObject object) {
+        return object.getScale();
     }
 
     @Override

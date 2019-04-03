@@ -58,7 +58,7 @@ public class Requester {
 
                     if (textureRequest != null) {
                         try {
-                            File file = FileHelper.newGameFile(Loader.RES_LOC, textureRequest.getName().replace(Loader.RES_LOC + "/", "").replace(Loader.RES_LOC, "") + ".png");
+                            File file = FileHelper.newGameFile(Loader.RES_LOC, removeResourcePath(textureRequest.getName()) + ".png");
                             if (!file.exists()) {
                                 Log.warning(file.getName() + " does not exist! Falling back on default texture.");
                                 file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
@@ -74,7 +74,7 @@ public class Requester {
                         try {
                             BufferedImage[] data = new BufferedImage[cubemapRequest.getTextures().length];
                             for (int i = 0; i < data.length; i++) {
-                                File file = FileHelper.newGameFile(Loader.RES_LOC, cubemapRequest.getTextures()[i].replace(Loader.RES_LOC + "/", "").replace(Loader.RES_LOC, "") + ".png");
+                                File file = FileHelper.newGameFile(Loader.RES_LOC, removeResourcePath(cubemapRequest.getTextures()[i]) + ".png");
                                 if (!file.exists()) {
                                     Log.warning(file.getName() + " does not exist! Falling back on default texture.");
                                     file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
@@ -186,6 +186,13 @@ public class Requester {
 
     public static void shutdown() {
         running = false;
+    }
+
+    private static String removeResourcePath(String path) {
+        if (path.startsWith("res/"))
+            return path.substring(4);
+
+        return path;
     }
 
 }

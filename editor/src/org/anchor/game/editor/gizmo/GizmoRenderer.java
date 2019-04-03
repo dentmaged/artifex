@@ -1,9 +1,15 @@
 package org.anchor.game.editor.gizmo;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
+import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.editor.GameEditor;
@@ -12,6 +18,7 @@ import org.anchor.game.editor.gizmo.types.RotateGizmo;
 import org.anchor.game.editor.gizmo.types.ScaleGizmo;
 import org.anchor.game.editor.gizmo.types.SelectGizmo;
 import org.anchor.game.editor.gizmo.types.TranslateGizmo;
+import org.anchor.game.editor.ui.LevelEditor;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -36,15 +43,42 @@ public class GizmoRenderer {
     protected Matrix4f xMatrix, yMatrix, zMatrix;
     protected boolean xAxis, yAxis, zAxis, xyPlane, xzPlane, yzPlane, dragging, copied;
     protected int startMouseX, startMouseY;
-    protected Vector3f axis, axisOffset, original, scale = new Vector3f();
+    protected Vector3f axis, axisOffset, scale = new Vector3f(), startPosition;
+    protected Map<TransformableObject, Vector3f> originals = new HashMap<TransformableObject, Vector3f>();
     protected GameEditor editor;
 
     public GizmoRenderer(GameEditor editor) {
         this.editor = editor;
     }
 
-    public boolean update(Entity entity, Vector3f ray) {
-        Vector3f position = entity.getPosition();
+    public boolean update(List<TransformableObject> objects, Vector3f ray) {
+        if (objects.size() == 0)
+            return false;
+
+        float count = 0;
+        Vector3f position = new Vector3f();
+        for (TransformableObject object : objects) {
+            Vector3f.add(position, object.getPosition(), position);
+            count++;
+        }
+
+        position.x /= count;
+        position.y /= count;
+        position.z /= count;
+        if (startPosition == null)
+            startPosition = new Vector3f(position);
+
+        count = 0;
+        Vector3f rotation = new Vector3f();
+        for (TransformableObject object : objects) {
+            Vector3f.add(rotation, object.getRotation(), rotation);
+            count++;
+        }
+
+        rotation.x /= count;
+        rotation.y /= count;
+        rotation.z /= count;
+
         float distance = Vector3f.sub(GameClient.getPlayer().getPosition(), position, null).length();
         distance *= 0.2f;
         scale.set(distance, distance, distance);
@@ -52,13 +86,13 @@ public class GizmoRenderer {
         Gizmo gizmo = gizmos[editor.getMode()];
         Vector3f origin = GameClient.getPlayer().getComponent(LivingComponent.class).getEyePosition();
 
-        xMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getXRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-        yMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getYRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-        zMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getZRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        xMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getXRotation(rotation, editor.getTransformationMode()), scale);
+        yMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getYRotation(rotation, editor.getTransformationMode()), scale);
+        zMatrix = CoreMaths.createTransformationMatrix(position, gizmo.getZRotation(rotation, editor.getTransformationMode()), scale);
 
-        Vector3f xAxisOffset = gizmo.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-        Vector3f yAxisOffset = gizmo.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-        Vector3f zAxisOffset = gizmo.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+        Vector3f xAxisOffset = gizmo.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(rotation, editor.getTransformationMode()), scale);
+        Vector3f yAxisOffset = gizmo.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(rotation, editor.getTransformationMode()), scale);
+        Vector3f zAxisOffset = gizmo.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(rotation, editor.getTransformationMode()), scale);
 
         xAxis = xAxisOffset != null;
         yAxis = yAxisOffset != null;
@@ -66,8 +100,20 @@ public class GizmoRenderer {
 
         if ((xAxis || yAxis || zAxis) && !dragging && Mouse.isButtonDown(0)) {
             if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
-                entity = entity.copy();
-                editor.addEntity(entity);
+                List<TransformableObject> copy = new ArrayList<TransformableObject>();
+                objects = new ArrayList<TransformableObject>(objects);
+                for (TransformableObject object : objects) {
+                    if (object instanceof Entity) {
+                        object = ((Entity) object).copy();
+                        editor.addEntity((Entity) object);
+
+                        copy.add(object);
+                    }
+                }
+                objects = copy;
+
+                LevelEditor.getInstance().unselectAll();
+                LevelEditor.getInstance().addAllToSelection(copy);
 
                 copied = true;
             }
@@ -75,7 +121,8 @@ public class GizmoRenderer {
             startMouseX = Mouse.getX();
             startMouseY = Mouse.getY();
 
-            original = new Vector3f(gizmo.getVector(entity));
+            for (TransformableObject object : objects)
+                originals.put(object, new Vector3f(gizmo.getVector(object)));
             dragging = true;
 
             if (xAxis) {
@@ -93,9 +140,9 @@ public class GizmoRenderer {
         if (gizmo.getPlane() != null) {
             Plane plane = gizmo.getPlane();
 
-            Vector3f xyPlaneOffset = plane.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-            Vector3f xzPlaneOffset = plane.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(entity.getRotation(), editor.getTransformationMode()), scale);
-            Vector3f yzPlaneOffset = plane.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(entity.getRotation(), editor.getTransformationMode()), scale);
+            Vector3f xyPlaneOffset = plane.intersection(zMatrix, origin, ray, position, gizmo.getZRotation(rotation, editor.getTransformationMode()), scale);
+            Vector3f xzPlaneOffset = plane.intersection(yMatrix, origin, ray, position, gizmo.getYRotation(rotation, editor.getTransformationMode()), scale);
+            Vector3f yzPlaneOffset = plane.intersection(xMatrix, origin, ray, position, gizmo.getXRotation(rotation, editor.getTransformationMode()), scale);
 
             xyPlane = xyPlaneOffset != null;
             xzPlane = xzPlaneOffset != null;
@@ -103,8 +150,20 @@ public class GizmoRenderer {
 
             if ((xyPlane || xzPlane || yzPlane) && !dragging && Mouse.isButtonDown(0)) {
                 if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
-                    entity = entity.copy();
-                    editor.addEntity(entity);
+                    List<TransformableObject> copy = new ArrayList<TransformableObject>();
+                    objects = new ArrayList<TransformableObject>(objects);
+                    for (TransformableObject object : objects) {
+                        if (object instanceof Entity) {
+                            object = ((Entity) object).copy();
+                            editor.addEntity((Entity) object);
+
+                            copy.add(object);
+                        }
+                    }
+                    objects = copy;
+
+                    LevelEditor.getInstance().unselectAll();
+                    LevelEditor.getInstance().addAllToSelection(copy);
 
                     copied = true;
                 }
@@ -112,7 +171,8 @@ public class GizmoRenderer {
                 startMouseX = Mouse.getX();
                 startMouseY = Mouse.getY();
 
-                original = new Vector3f(gizmo.getVector(entity));
+                for (TransformableObject object : objects)
+                    originals.put(object, new Vector3f(gizmo.getVector(object)));
                 dragging = true;
 
                 if (xyPlane) {
@@ -130,14 +190,17 @@ public class GizmoRenderer {
 
         if (!Mouse.isButtonDown(0)) {
             if (dragging) {
-                Vector3f vector = gizmo.getVector(entity);
-                if (!original.equals(vector))
-                    Undo.registerChange(vector, Vector3f.sub(vector, original, null));
+                for (TransformableObject object : objects) {
+                    Vector3f vector = gizmo.getVector(object);
+                    if (!originals.get(object).equals(vector))
+                        Undo.registerChange(vector, Vector3f.sub(vector, originals.remove(object), null));
+                }
             }
 
             copied = false;
             dragging = false;
             axis = null;
+            startPosition = null;
         }
 
         if (dragging) {
@@ -145,14 +208,21 @@ public class GizmoRenderer {
                 dragging = false;
                 axis = null;
 
-                if (!copied)
-                    gizmo.getVector(entity).set(original);
-                else
-                    editor.removeEntity(entity);
+                if (!copied) {
+                    for (TransformableObject object : objects)
+                        gizmo.getVector(object).set(originals.get(object));
+                } else {
+                    for (TransformableObject object : objects)
+                        if (object instanceof Entity)
+                            editor.removeEntity((Entity) object);
+                }
                 copied = false;
             } else {
-                gizmo.getVector(entity).set(VectorUtils.clamp(Vector3f.add(original, snap(gizmo.performMove(axis, Vector3f.add(original, axisOffset, null), position, entity.getRotation(), origin, ray, Mouse.getX() - startMouseX, Mouse.getY() - startMouseY, axisOffset), editor.getSnapAmount()), null), gizmo.getMin(), gizmo.getMax()));
-                editor.refreshComponenetValues();
+                Vector3f change = snap(gizmo.performMove(axis, Vector3f.add(startPosition, axisOffset, null), position, rotation, origin, ray, Mouse.getX() - startMouseX, Mouse.getY() - startMouseY, axisOffset), editor.getSnapAmount());
+                for (TransformableObject object : objects) {
+                    gizmo.getVector(object).set(VectorUtils.clamp(Vector3f.add(originals.get(object), change, null), gizmo.getMin(), gizmo.getMax()));
+                    editor.refreshComponenetValues();
+                }
             }
         }
 
@@ -213,8 +283,8 @@ public class GizmoRenderer {
         gizmos = new Gizmo[] { new SelectGizmo(), new TranslateGizmo(), new RotateGizmo(), new ScaleGizmo() };
     }
 
-    public Vector3f getVector(Entity entity) {
-        return gizmos[editor.getMode()].getVector(entity);
+    public Vector3f getVector(TransformableObject object) {
+        return gizmos[editor.getMode()].getVector(object);
     }
 
     public boolean isDragging() {
