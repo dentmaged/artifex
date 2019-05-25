@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.zip.ZipEntry;
@@ -19,10 +20,13 @@ import org.anchor.engine.shared.utils.Property;
 import org.anchor.engine.shared.utils.RawParser;
 import org.anchor.engine.shared.utils.TerrainUtils;
 import org.anchor.game.client.components.LightProbeComponent;
+import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
+import org.anchor.game.editor.GameEditor;
+import org.anchor.game.editor.editableMesh.EditableMesh;
 
 public class MapWriter {
 
@@ -71,6 +75,41 @@ public class MapWriter {
                 }
                 text = text.substring(0, text.length() - 1) + "\n";
             }
+            
+            for (EditableMesh editableMesh : GameEditor.getInstance().getEditableMeshes()) {
+                // key-values
+                text += "model:virt/" + editableMesh.resourceName + GameMap.SUBPARTS;
+                text += "material:white" + GameMap.SUBPARTS;
+                text += "AEeditableMesh:true";
+                text += GameMap.PARTS;
+
+                // components
+                MeshComponent meshComponent = new MeshComponent();
+                meshComponent.model = editableMesh.model;
+                meshComponent.material = editableMesh.material;
+                List<IComponent> components = Arrays.asList(editableMesh.transformComponent, meshComponent);
+                for (IComponent component : components)
+                    text += component.getClass().getName() + GameMap.SUBPARTS;
+                text = text.substring(0, text.length() - 1) + GameMap.PARTS;
+
+                // data
+                for (IComponent component : components) {
+                    boolean x = false;
+                    for (Field field : component.getClass().getFields()) {
+                        Property property = field.getAnnotation(Property.class);
+                        if (property != null) {
+                            x = true;
+                            text += property.value() + ":" + RawParser.getInstance().encode(field.get(component)) + GameMap.SUBPARTS;
+                        }
+                    }
+
+                    if (x)
+                        text = text.substring(0, text.length() - 1);
+                    text += GameMap.PARTS;
+                }
+                text = text.substring(0, text.length() - 1) + "\n";
+            }
+
             text += GameMap.ENTITY_END + "\n";
 
             for (Terrain shared : scene.getTerrains()) {
@@ -92,7 +131,7 @@ public class MapWriter {
         }
 
         FileHelper.write(file, text);
-        if (scene.getTerrains().size() > 0 || scene.getComponents(ReflectionProbeComponent.class).size() > 0 || scene.getComponents(LightProbeComponent.class).size() > 0) {
+        if (scene.getTerrains().size() > 0 || scene.getComponents(ReflectionProbeComponent.class).size() > 0 || scene.getComponents(LightProbeComponent.class).size() > 0 || GameEditor.getInstance().getEditableMeshes().size() > 0) {
             try {
                 File storage = new File(file.getAbsolutePath().replace(".asg", ".ads"));
                 ZipOutputStream stream = new ZipOutputStream(new FileOutputStream(storage));
@@ -106,6 +145,16 @@ public class MapWriter {
                     for (int i = 0; i < shared.getVerticesPerSide(); i++)
                         for (int j = 0; j < shared.getVerticesPerSide(); j++)
                             writer.write(shared.getHeightAt(i, j) + TerrainUtils.PARTS);
+                    writer.flush();
+
+                    stream.closeEntry();
+                }
+
+                for (EditableMesh editableMesh : GameEditor.getInstance().getEditableMeshes()) {
+                    stream.putNextEntry(new ZipEntry("virt/" + editableMesh.resourceName + ".obj"));
+
+                    OutputStreamWriter writer = new OutputStreamWriter(stream);
+                    writer.write(editableMesh.exportMesh());
                     writer.flush();
 
                     stream.closeEntry();

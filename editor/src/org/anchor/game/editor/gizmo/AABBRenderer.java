@@ -41,7 +41,10 @@ public class AABBRenderer {
         if (aabb == null)
             return;
 
-        Vector3f position = entity.getPosition();
+        render(entity.getPosition(), aabb);
+    }
+
+    public void render(Vector3f position, AABB aabb) {
         float distance = Vector3f.sub(GameClient.getPlayer().getPosition(), position, null).length();
         distance *= aabb.getFurthest() * 0.0005f;
         scale.set(distance, distance, distance);

@@ -46,6 +46,9 @@ public class VirtualFileSystem {
     }
 
     public boolean exists(String path) {
+        if (path.startsWith("res/"))
+            path = path.substring(4);
+
         for (ZipEntry entry : entries)
             if (entry.getName().equals(path))
                 return true;
@@ -54,6 +57,9 @@ public class VirtualFileSystem {
     }
 
     public VirtualFile getFile(String path) {
+        if (path.startsWith("res/"))
+            path = path.substring(4);
+
         for (ZipEntry entry : entries)
             if (entry.getName().equals(path))
                 return new VirtualFile(parent, entry);

@@ -11,7 +11,7 @@ import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
-import org.anchor.game.editor.utils.Filter;
+import org.anchor.game.editor.utils.file.Filter;
 
 public class FileSystemModel implements TreeModel {
 

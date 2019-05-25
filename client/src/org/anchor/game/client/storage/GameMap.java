@@ -33,7 +33,7 @@ public class GameMap {
     public static String SUBPARTS = ((char) 5) + "";
     public static String INFO = ((char) 6) + "";
 
-    public static int MAP_VERSION = 1;
+    public static int MAP_VERSION = 2;
 
     public static Map<Entity, Integer> parents = new HashMap<Entity, Integer>();
 
@@ -56,8 +56,10 @@ public class GameMap {
             if (lines[0].startsWith(INFO)) {
                 String[] parts = lines[0].split(PARTS);
                 int version = Integer.parseInt(parts[0].substring(1));
-                if (version != MAP_VERSION)
+                if (version != MAP_VERSION) {
+                    Log.warning(file.getName() + " is not supported (version " + version + ")");
                     return;
+                }
 
                 if (parts.length > 1) {
                     String[] layers = parts[1].split(SUBPARTS);

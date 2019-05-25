@@ -72,16 +72,24 @@ public class Graphics {
 
         Renderer.triangleCount = 0;
         Renderer.drawCalls = 0;
+        Renderer.tickTime += Window.getFrameTimeSeconds();
     }
 
     public static void checkForErrors() {
+        checkForErrors("OpenGL Error: %s");
+    }
+
+    public static void checkForErrors(String userMessage) {
+        if (!userMessage.contains("%s"))
+            userMessage += "%s";
+
         int error = GL11.glGetError();
         if (error != GL11.GL_NO_ERROR) {
             String message = "GL_TABLE_TOO_LARGE";
             if (error != 0x8031)
                 message = errors[error - 0x0500];
 
-            Log.warning("OpenGL Error: " + message);
+            Log.warning(String.format(userMessage, message));
         }
     }
 

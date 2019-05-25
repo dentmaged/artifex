@@ -54,7 +54,7 @@ public class ReflectionProbeComponent implements IComponent, ReflectionProbe {
                 prefilter.perform(cubemap.getTexture());
             }
 
-        }, 1);
+        }, 0);
     }
 
     @Override
@@ -81,6 +81,9 @@ public class ReflectionProbeComponent implements IComponent, ReflectionProbe {
 
     @Override
     public float getSize() {
+        if (entity == null)
+            return 0;
+
         return entity.getScale().x;
     }
 

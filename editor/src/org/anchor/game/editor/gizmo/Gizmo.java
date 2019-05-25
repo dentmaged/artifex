@@ -4,8 +4,6 @@ import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.editor.TransformableObject;
-import org.anchor.engine.shared.entity.Entity;
-import org.anchor.game.editor.utils.TransformationMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;

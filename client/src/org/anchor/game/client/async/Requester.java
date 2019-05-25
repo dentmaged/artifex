@@ -60,7 +60,7 @@ public class Requester {
                         try {
                             File file = FileHelper.newGameFile(Loader.RES_LOC, removeResourcePath(textureRequest.getName()) + ".png");
                             if (!file.exists()) {
-                                Log.warning(file.getName() + " does not exist! Falling back on default texture.");
+                                Log.warning(textureRequest.getName() + "(" + file.getName() + ") does not exist! Falling back on default texture.");
                                 file = FileHelper.newGameFile(Loader.RES_LOC, "missing_texture.png");
                             }
 
@@ -189,7 +189,7 @@ public class Requester {
     }
 
     private static String removeResourcePath(String path) {
-        if (path.startsWith("res/"))
+        if (path.startsWith("res/") || path.startsWith("res\\"))
             return path.substring(4);
 
         return path;

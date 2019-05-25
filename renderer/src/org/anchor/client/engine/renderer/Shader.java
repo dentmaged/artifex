@@ -77,6 +77,7 @@ public abstract class Shader {
 
     public void start() {
         GL20.glUseProgram(programId);
+        loadFloat("tickTime", Renderer.tickTime);
     }
 
     public void stop() {

@@ -46,7 +46,7 @@ import org.lwjgl.util.vector.Vector3f;
 public class GameServer extends App implements IPacketHandler {
 
     protected Server server;
-    protected String level = "test";
+    protected String level = "dev_terrain_edit_save";
 
     protected Scene scene;
     protected SceneMonitor monitor;

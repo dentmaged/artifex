@@ -37,6 +37,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 
+import org.anchor.engine.common.utils.JavaUtils;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
@@ -48,7 +49,7 @@ import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.commands.Undo;
 import org.anchor.game.editor.gizmo.Gizmo;
-import org.anchor.game.editor.utils.TransformationMode;
+import org.anchor.game.editor.gizmo.TransformationMode;
 import org.lwjgl.input.Keyboard;
 import org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel;
 
@@ -101,7 +102,7 @@ public class Window {
      * Initialize the contents of the frame.
      */
     private void initialize() {
-        frmEditor = new JFrame("Anchor Engine Editor");
+        frmEditor = new JFrame("Anchor Editor" + (JavaUtils.isDebuggerAttached() ? " (Debug)" : ""));
         frmEditor.setSize(1934, 1040);
         frmEditor.setLocation(-7, 0);
         frmEditor.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -405,7 +406,7 @@ public class Window {
                         GameEditor.getInstance().setModo(mntmModo.getState());
                     }
 
-                }, 1);
+                }, 0);
             }
 
         });

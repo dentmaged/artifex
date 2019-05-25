@@ -24,6 +24,7 @@ import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
+import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
@@ -42,7 +43,6 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.Scheduler;
-import org.anchor.engine.shared.utils.EntityRaycast;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.utils.TerrainRaycast;
 import org.anchor.engine.shared.utils.TerrainUtils;
@@ -59,6 +59,7 @@ import org.anchor.game.client.components.ParticleSystemComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SunComponent;
+import org.anchor.game.client.developer.debug.Debug;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.particles.ParticleRenderer;
 import org.anchor.game.client.shaders.ForwardStaticShader;
@@ -70,18 +71,22 @@ import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.client.types.TerrainTexture;
 import org.anchor.game.client.utils.FrustumCull;
-import org.anchor.game.client.utils.MousePicker;
 import org.anchor.game.client.utils.MouseUtils;
 import org.anchor.game.editor.commands.Undo;
 import org.anchor.game.editor.components.EditorInputComponent;
+import org.anchor.game.editor.editableMesh.EditableMesh;
+import org.anchor.game.editor.editableMesh.renderer.EditableMeshRenderer;
+import org.anchor.game.editor.editableMesh.types.SelectionMode;
 import org.anchor.game.editor.gizmo.AABBRenderer;
 import org.anchor.game.editor.gizmo.GizmoRenderer;
+import org.anchor.game.editor.gizmo.TransformationMode;
 import org.anchor.game.editor.ui.LevelEditor;
 import org.anchor.game.editor.ui.Window;
 import org.anchor.game.editor.utils.AcceleratorLink;
 import org.anchor.game.editor.utils.MapWriter;
 import org.anchor.game.editor.utils.TerrainCreate;
-import org.anchor.game.editor.utils.TransformationMode;
+import org.anchor.game.editor.utils.raycast.EditorMousePicker;
+import org.anchor.game.editor.utils.raycast.TransformableObjectRaycast;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -108,10 +113,11 @@ public class GameEditor extends Game {
     protected PhysicsEngine physics;
 
     private LevelEditor editor;
-    private MousePicker picker;
+    private EditorMousePicker picker;
     private Vector3f ray;
     private File level;
 
+    private List<EditableMesh> editableMeshes = new ArrayList<EditableMesh>();
     private ClientScene originalScene;
     private Vector3f originalPlayerPosition = new Vector3f();
     private float originalPlayerPitch, originalPlayerYaw;
@@ -192,7 +198,7 @@ public class GameEditor extends Game {
 
         trianglesDrawn = new TextBuilder().position(1, 0.98f).align(Alignment.RIGHT).build();
 
-        picker = new MousePicker();
+        picker = new EditorMousePicker();
         Log.info("App initialised.");
     }
 
@@ -331,12 +337,12 @@ public class GameEditor extends Game {
         if (!game) {
             ray = picker.getRay(Mouse.getX(), Mouse.getY());
             TerrainRaycast terrainRaycast = picker.getTerrain(ray);
-            EntityRaycast entityRaycast = picker.getEntity(scene, ray);
+            TransformableObjectRaycast transformableObjectRaycast = picker.getTransformableObject(ray);
 
             boolean ignore = gizmo.update(editor.getSelectedObjects(), ray);
             if (Mouse.isButtonDown(0)) {
                 if (editor.isEditingTerrain()) {
-                    if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
+                    if (isTerrainRaycast(terrainRaycast, transformableObjectRaycast)) {
                         ignore = true;
 
                         editor.editTerrain(terrainRaycast.getPoint());
@@ -358,24 +364,24 @@ public class GameEditor extends Game {
                 editor.hidePopupMenu();
 
                 if ((MouseUtils.canLeftClick() || MouseUtils.canMiddleClick()) && !ignore) {
-                    if (terrainRaycast == null && entityRaycast == null) {
+                    if (terrainRaycast == null && transformableObjectRaycast == null) {
                         editor.unselectAll();
                         editor.setSelectedTerrain(null);
                     } else {
                         if (!KeyboardUtils.isKeyDown(Keyboard.KEY_LMENU)) {
-                            if (isEntityRaycast(terrainRaycast, entityRaycast)) {
+                            if (isTransformableObjectRaycast(terrainRaycast, transformableObjectRaycast)) {
                                 if (!KeyboardUtils.isKeyDown(Keyboard.KEY_LCONTROL))
                                     editor.unselectAll();
-                                editor.addToSelection(entityRaycast.getEntity());
-                            } else if (isTerrainRaycast(terrainRaycast, entityRaycast)) {
+                                editor.addToSelection(transformableObjectRaycast.getTransformableObject());
+                            } else if (isTerrainRaycast(terrainRaycast, transformableObjectRaycast)) {
                                 if (!editor.isEditingTerrain())
                                     editor.setSelectedTerrain((ClientTerrain) terrainRaycast.getTerrain());
                             }
                         } else if (editor.getSelectedObjects().size() > 0) {
                             Vector3f point = null;
-                            if (isEntityRaycast(terrainRaycast, entityRaycast))
-                                point = entityRaycast.getPoint();
-                            else if (isTerrainRaycast(terrainRaycast, entityRaycast))
+                            if (isTransformableObjectRaycast(terrainRaycast, transformableObjectRaycast))
+                                point = transformableObjectRaycast.getPoint();
+                            else if (isTerrainRaycast(terrainRaycast, transformableObjectRaycast))
                                 point = terrainRaycast.getPoint();
 
                             if (point != null) {
@@ -426,6 +432,7 @@ public class GameEditor extends Game {
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 
         scene.render();
+        EditableMeshRenderer.render(editableMeshes);
         deferred.decals();
         scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
@@ -441,16 +448,22 @@ public class GameEditor extends Game {
         ParticleRenderer.render(scene.getComponents(ParticleSystemComponent.class));
 
         if (!game) {
-            if (renderEveryAABB)
+            if (renderEveryAABB) {
                 for (Entity entity : scene.getEntities())
                     aabb.render(entity);
+                for (EditableMesh mesh : editableMeshes)
+                    aabb.render(mesh.getPosition(), mesh.getAABB());
+            }
 
             if (editor.getSelectedObjects().size() > 0) {
                 gizmo.render();
-                if (!renderEveryAABB)
+                if (!renderEveryAABB) {
                     for (TransformableObject object : editor.getSelectedObjects())
                         if (object instanceof Entity)
                             aabb.render((Entity) object);
+                        else if (object instanceof EditableMesh && EditableMesh.editableMeshComponent.selectionMode != SelectionMode.VERTEX)
+                            aabb.render(object.getPosition(), ((EditableMesh) object).getAABB());
+                }
 
                 for (TransformableObject object : editor.getSelectedObjects())
                     if (object instanceof Entity)
@@ -470,6 +483,7 @@ public class GameEditor extends Game {
                 }
             }
         }
+        Debug.render();
 
         List<ReflectionProbeComponent> reflectionProbeComponents = scene.getComponents(ReflectionProbeComponent.class);
         List<LightProbeComponent> lightProbeComponents = scene.getComponents(LightProbeComponent.class);
@@ -487,7 +501,7 @@ public class GameEditor extends Game {
         ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes);
 
         deferred.fog();
-        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour);
+        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour, lightComponent, livingComponent.getViewMatrix());
 
         deferred.output();
         Profiler.end("Scene");
@@ -504,6 +518,9 @@ public class GameEditor extends Game {
 
         trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls);
         FontRenderer.render(trianglesDrawn);
+
+        if (Keyboard.isKeyDown(Keyboard.KEY_M))
+            GUIRenderer.perform(deferred.getAmbientOcclusionTexture());
 
         GL11.glDisable(GL11.GL_BLEND);
         Profiler.end("Post processing");
@@ -569,9 +586,13 @@ public class GameEditor extends Game {
 
         scene = new ClientScene();
         Engine.scene = scene;
+        editableMeshes.clear();
 
         scene.getEntities().add(skydome);
         scene.getEntities().add(light);
+
+        checkForEditableMeshes();
+
         editor.updateList();
     }
 
@@ -586,6 +607,7 @@ public class GameEditor extends Game {
 
         scene = new GameMap(map).getScene();
         Engine.scene = scene;
+        editableMeshes.clear();
         for (Entity entity : scene.getEntitiesWithComponent(SkyComponent.class))
             sky = entity.getComponent(SkyComponent.class);
 
@@ -601,6 +623,8 @@ public class GameEditor extends Game {
         for (Entity entity : scene.getEntities())
             if (entity.hasComponent(SkyComponent.class))
                 entity.setHidden(true);
+
+        checkForEditableMeshes();
 
         editor.updateList();
         Log.info("Loaded " + map.getAbsolutePath());
@@ -645,6 +669,40 @@ public class GameEditor extends Game {
         editor.updateList();
     }
 
+    public void addEditableMesh(EditableMesh mesh) {
+        editableMeshes.add(mesh);
+        editor.updateList();
+    }
+
+    public void removeEditableMesh(EditableMesh mesh) {
+        if (mesh == null)
+            return;
+
+        editableMeshes.remove(mesh);
+        editor.updateList();
+    }
+
+    private void checkForEditableMeshes() {
+        for (Entity entity : scene.getEntities()) {
+            if (entity.containsKey("AEeditableMesh") && entity.getValue("AEeditableMesh").equals("true")) {
+                try {
+                    if (!entity.getComponent(MeshComponent.class).model.isLoaded())
+                        Log.info("Model for editable mesh " + entity.getValue("model") + " isn't loaded! Waiting...");
+
+                    while (!entity.getComponent(MeshComponent.class).model.isLoaded()) {
+                        Requester.perform();
+                        Thread.sleep(20L);
+                    }
+                } catch (Exception e) {
+
+                }
+
+                editableMeshes.add(new EditableMesh(entity));
+                entity.destroy();
+            }
+        }
+    }
+
     public void addTerrain(String heightmap, int x, int z) {
         addTerrain(TerrainUtils.loadHeightsFromHeightmap(heightmap), x, z);
     }
@@ -669,6 +727,10 @@ public class GameEditor extends Game {
 
     public ClientScene getScene() {
         return scene;
+    }
+
+    public List<EditableMesh> getEditableMeshes() {
+        return editableMeshes;
     }
 
     public float getSnapAmount() {
@@ -852,26 +914,26 @@ public class GameEditor extends Game {
         Log.info("Saved to " + getInstance().level.getAbsolutePath());
     }
 
-    public boolean isEntityRaycast(TerrainRaycast terrainRaycast, EntityRaycast entityRaycast) {
+    public boolean isTransformableObjectRaycast(TerrainRaycast terrainRaycast, TransformableObjectRaycast transformableObjectRaycast) {
         if (terrainRaycast == null) {
-            return entityRaycast != null;
-        } else if (entityRaycast == null) {
+            return transformableObjectRaycast != null;
+        } else if (transformableObjectRaycast == null) {
             return terrainRaycast == null;
         } else {
-            if (entityRaycast.getDistance() < terrainRaycast.getDistance())
+            if (transformableObjectRaycast.getDistance() < terrainRaycast.getDistance())
                 return true;
             else
                 return false;
         }
     }
 
-    public boolean isTerrainRaycast(TerrainRaycast terrainRaycast, EntityRaycast entityRaycast) {
-        if (entityRaycast == null) {
+    public boolean isTerrainRaycast(TerrainRaycast terrainRaycast, TransformableObjectRaycast transformableObjectRaycast) {
+        if (transformableObjectRaycast == null) {
             return terrainRaycast != null;
         } else if (terrainRaycast == null) {
-            return entityRaycast == null;
+            return transformableObjectRaycast == null;
         } else {
-            if (terrainRaycast.getDistance() < entityRaycast.getDistance())
+            if (terrainRaycast.getDistance() < transformableObjectRaycast.getDistance())
                 return true;
             else
                 return false;

@@ -53,7 +53,7 @@ public class LightProbeComponent implements IComponent, LightProbe {
                 irradiance.perform(cubemap.getTexture());
             }
 
-        }, 1);
+        }, 0);
     }
 
     @Override

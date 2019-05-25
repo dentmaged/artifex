@@ -29,9 +29,8 @@ public class Vertex {
     }
 
     public void averageTangents() {
-        if (tangents.isEmpty()) {
+        if (tangents.isEmpty())
             return;
-        }
 
         for (Vector3f tangent : tangents)
             Vector3f.add(averagedTangent, tangent, averagedTangent);

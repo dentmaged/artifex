@@ -5,6 +5,8 @@ import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.UIManager;
+
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
@@ -87,6 +89,7 @@ import org.anchor.game.client.components.SunComponent;
 import org.anchor.game.client.developer.ConsoleRenderer;
 import org.anchor.game.client.developer.LogRenderer;
 import org.anchor.game.client.developer.ProfilerRenderer;
+import org.anchor.game.client.developer.debug.Debug;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.loaders.dae.AnimatedModelLoader;
 import org.anchor.game.client.loaders.dae.AnimationLoader;
@@ -134,6 +137,12 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void init() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         VirtualFileSystem.init();
         ClientGameVariables.init(); // should already be initialised by GameStart
         Engine.init(Side.CLIENT, new ClientEngine());
@@ -490,6 +499,7 @@ public class GameClient extends Game implements IPacketHandler {
 
         scene.renderBlending();
         ParticleRenderer.render(scene.getComponents(ParticleSystemComponent.class));
+        Debug.render();
 
         List<ReflectionProbeComponent> reflectionProbeComponents = scene.getComponents(ReflectionProbeComponent.class);
         List<LightProbeComponent> lightProbeComponents = scene.getComponents(LightProbeComponent.class);
@@ -507,7 +517,7 @@ public class GameClient extends Game implements IPacketHandler {
         ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes);
 
         deferred.fog();
-        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour);
+        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour, lightComponent, livingComponent.getViewMatrix());
 
         deferred.output();
         Profiler.end("Scene");

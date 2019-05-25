@@ -14,6 +14,7 @@ public class Renderer {
     private static Model cube;
 
     public static int triangleCount, drawCalls;
+    public static float tickTime;
 
     static {
         createProjectionMatrix();

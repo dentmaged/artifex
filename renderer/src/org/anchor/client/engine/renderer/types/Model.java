@@ -34,8 +34,8 @@ public class Model {
             return;
 
         GL30.glDeleteVertexArrays(mesh.getMesh().getVAO());
-        for (int i = 0; i < mesh.getMesh().getDimensions(); i++)
-            GL15.glDeleteBuffers(mesh.getMesh().getFirstVBO() + i);
+        for (int i = -1; i < mesh.getMesh().getDimensions(); i++)
+            GL15.glDeleteBuffers(mesh.getMesh().getVBO(i));
     }
 
 }

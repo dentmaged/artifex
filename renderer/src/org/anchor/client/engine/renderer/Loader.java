@@ -50,55 +50,59 @@ public class Loader {
         return vaoID;
     }
 
-    public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices, int[] jointIds, float[] weights) {
-        int vaoID = createVAO();
-
-        bindIndicesBuffer(indices);
-        storeDataInAttributeList(0, 3, positions);
-        storeDataInAttributeList(1, 2, textureCoords);
-        storeDataInAttributeList(2, 3, normals);
-        storeDataInAttributeList(3, 3, jointIds);
-        storeDataInAttributeList(4, 3, weights);
-        unbindVAO();
-
-        return new Mesh(vaoID, vbos.size() - 4, indices.length, 3);
-    }
-
     public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices) {
         int vaoID = createVAO();
+        int[] vbos = new int[4];
 
-        bindIndicesBuffer(indices);
-        storeDataInAttributeList(0, 3, positions);
-        storeDataInAttributeList(1, 2, textureCoords);
-        storeDataInAttributeList(2, 3, normals);
+        vbos[0] = bindIndicesBuffer(indices);
+        vbos[1] = storeDataInAttributeList(0, 3, positions);
+        vbos[2] = storeDataInAttributeList(1, 2, textureCoords);
+        vbos[3] = storeDataInAttributeList(2, 3, normals);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size() - 2, indices.length, 3);
+        return new Mesh(vaoID, vbos, indices.length, 3);
     }
 
     public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, float[] tangents, int[] indices) {
         int vaoID = createVAO();
+        int[] vbos = new int[5];
 
-        bindIndicesBuffer(indices);
-        storeDataInAttributeList(0, 3, positions);
-        storeDataInAttributeList(1, 2, textureCoords);
-        storeDataInAttributeList(2, 3, normals);
-        storeDataInAttributeList(3, 3, tangents);
+        vbos[0] = bindIndicesBuffer(indices);
+        vbos[1] = storeDataInAttributeList(0, 3, positions);
+        vbos[2] = storeDataInAttributeList(1, 2, textureCoords);
+        vbos[3] = storeDataInAttributeList(2, 3, normals);
+        vbos[4] = storeDataInAttributeList(3, 3, tangents);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size() - 3, indices.length, 3);
+        return new Mesh(vaoID, vbos, indices.length, 3);
+    }
+
+    public Mesh loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices, int[] jointIds, float[] weights) {
+        int vaoID = createVAO();
+        int[] vbos = new int[6];
+
+        vbos[0] = bindIndicesBuffer(indices);
+        vbos[1] = storeDataInAttributeList(0, 3, positions);
+        vbos[2] = storeDataInAttributeList(1, 2, textureCoords);
+        vbos[3] = storeDataInAttributeList(2, 3, normals);
+        vbos[4] = storeDataInAttributeList(3, 3, jointIds);
+        vbos[5] = storeDataInAttributeList(4, 3, weights);
+        unbindVAO();
+
+        return new Mesh(vaoID, vbos, indices.length, 3);
     }
 
     public Mesh loadToVAO(float[] positions, int dimensions) {
         int vaoID = createVAO();
+        int[] vbos = new int[1];
 
-        storeDataInAttributeList(0, dimensions, positions);
+        vbos[0] = storeDataInAttributeList(0, dimensions, positions);
         unbindVAO();
 
-        return new Mesh(vaoID, vbos.size(), positions.length / dimensions, dimensions);
+        return new Mesh(vaoID, vbos, positions.length / dimensions, dimensions);
     }
 
-    public void updateVbo(int vbo, int[] data, IntBuffer buffer) {
+    public void updateVBO(int vbo, int[] data, IntBuffer buffer) {
         buffer.clear();
         buffer.put(data);
         buffer.flip();
@@ -122,11 +126,21 @@ public class Loader {
 
     public int createEmptyVBO(int floatCount) {
         int vbo = GL15.glGenBuffers();
-
         vbos.add(vbo);
+
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, floatCount * 4, GL15.GL_STREAM_DRAW);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+
+        return vbo;
+    }
+
+    public int createEmptyIndexBuffer(int intCount) {
+        int vbo = GL15.glGenBuffers();
+        vbos.add(vbo);
+
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vbo);
+        GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, intCount * 4, GL15.GL_DYNAMIC_DRAW);
 
         return vbo;
     }
@@ -277,7 +291,7 @@ public class Loader {
         return id;
     }
 
-    private int createVAO() {
+    public int createVAO() {
         int vaoID = GL30.glGenVertexArrays();
         GL30.glBindVertexArray(vaoID);
         vaos.add(vaoID);
@@ -285,41 +299,47 @@ public class Loader {
         return vaoID;
     }
 
-    private void storeDataInAttributeList(int attributeNumber, int coordinateSize, float[] data) {
-        int vboID = GL15.glGenBuffers();
-        vbos.add(vboID);
+    private int storeDataInAttributeList(int attributeNumber, int coordinateSize, float[] data) {
+        int vbo = GL15.glGenBuffers();
+        vbos.add(vbo);
 
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboID);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         FloatBuffer buffer = storeDataInFloatBuffer(data);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer, GL15.GL_DYNAMIC_DRAW);
 
         GL20.glVertexAttribPointer(attributeNumber, coordinateSize, GL11.GL_FLOAT, false, coordinateSize * 4, 0); // 4 bytes per float
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+
+        return vbo;
     }
 
-    private void storeDataInAttributeList(int attributeNumber, int coordinateSize, int[] data) {
-        int vboID = GL15.glGenBuffers();
-        vbos.add(vboID);
+    private int storeDataInAttributeList(int attributeNumber, int coordinateSize, int[] data) {
+        int vbo = GL15.glGenBuffers();
+        vbos.add(vbo);
 
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboID);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         IntBuffer buffer = storeDataInIntBuffer(data);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer, GL15.GL_DYNAMIC_DRAW);
 
         GL30.glVertexAttribIPointer(attributeNumber, coordinateSize, GL11.GL_INT, coordinateSize * 4, 0); // 4 bytes per int
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+
+        return vbo;
     }
 
-    private void unbindVAO() {
+    public void unbindVAO() {
         GL30.glBindVertexArray(0);
     }
 
-    private void bindIndicesBuffer(int[] indices) {
-        int vboID = GL15.glGenBuffers();
-        vbos.add(vboID);
+    private int bindIndicesBuffer(int[] indices) {
+        int vbo = GL15.glGenBuffers();
+        vbos.add(vbo);
 
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vboID);
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vbo);
         IntBuffer buffer = storeDataInIntBuffer(indices);
         GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, GL15.GL_DYNAMIC_DRAW);
+
+        return vbo;
     }
 
     public static IntBuffer storeDataInIntBuffer(int[] data) {

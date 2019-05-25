@@ -137,19 +137,19 @@ public class ClientTerrain extends Terrain {
         }
 
         FloatBuffer buffer = BufferUtils.createFloatBuffer(vertices.length);
-        Loader.getInstance().updateVBO(mesh.getFirstVBO(), vertices, buffer);
+        Loader.getInstance().updateVBO(mesh.getVBO(0), vertices, buffer);
 
         buffer = BufferUtils.createFloatBuffer(normals.length);
-        Loader.getInstance().updateVBO(mesh.getFirstVBO() + 2, normals, buffer);
+        Loader.getInstance().updateVBO(mesh.getVBO(2), normals, buffer);
     }
 
     public void loadHeights() {
         refresh = false;
         if (mesh != null) {
             GL30.glDeleteVertexArrays(mesh.getVAO());
-            GL15.glDeleteBuffers(mesh.getFirstVBO());
-            GL15.glDeleteBuffers(mesh.getFirstVBO() + 1);
-            GL15.glDeleteBuffers(mesh.getFirstVBO() + 2);
+            GL15.glDeleteBuffers(mesh.getVBO(0));
+            GL15.glDeleteBuffers(mesh.getVBO(1));
+            GL15.glDeleteBuffers(mesh.getVBO(2));
 
             mesh = null;
         }
@@ -199,9 +199,10 @@ public class ClientTerrain extends Terrain {
         super.unload();
 
         GL30.glDeleteVertexArrays(mesh.getVAO());
-        GL15.glDeleteBuffers(mesh.getFirstVBO());
-        GL15.glDeleteBuffers(mesh.getFirstVBO() + 1);
-        GL15.glDeleteBuffers(mesh.getFirstVBO() + 2);
+        GL15.glDeleteBuffers(mesh.getVBO(-1));
+        GL15.glDeleteBuffers(mesh.getVBO(0));
+        GL15.glDeleteBuffers(mesh.getVBO(1));
+        GL15.glDeleteBuffers(mesh.getVBO(2));
 
         mesh = null;
     }

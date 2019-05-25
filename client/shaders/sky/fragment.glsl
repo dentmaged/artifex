@@ -10,7 +10,8 @@ FS_OUT(albedo)
 #include "sky.glsl"
 
 void main(void) {
-	Colour colour = getSkyColour(normalize(pos));
+	vec3 position = normalize(pos);
+	Colour colour = getSkyColour(position);
 
 	out_diffuse = colour.diffuse;
 	out_diffuse.xyz *= 3;

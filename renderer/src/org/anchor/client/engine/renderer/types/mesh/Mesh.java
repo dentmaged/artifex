@@ -5,13 +5,13 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class Mesh {
 
-    protected int vao, firstVBO, vertexCount, dimensions;
+    protected int vao, vbos[], vertexCount, dimensions;
     protected AABB aabb;
     protected Vector3f furthestVertex;
 
-    public Mesh(int vao, int firstVBO, int vertexCount, int dimensions) {
+    public Mesh(int vao, int[] vbos, int vertexCount, int dimensions) {
         this.vao = vao;
-        this.firstVBO = firstVBO;
+        this.vbos = vbos;
         this.vertexCount = vertexCount;
         this.dimensions = dimensions;
         this.furthestVertex = new Vector3f();
@@ -21,8 +21,8 @@ public class Mesh {
         return vao;
     }
 
-    public int getFirstVBO() {
-        return firstVBO;
+    public int getVBO(int attribute) {
+        return vbos[attribute + 1];
     }
 
     public int getVertexCount() {

@@ -14,6 +14,8 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.commands.Undo;
+import org.anchor.game.editor.editableMesh.EditableMesh;
+import org.anchor.game.editor.editableMesh.types.OpenGLData;
 import org.anchor.game.editor.gizmo.types.RotateGizmo;
 import org.anchor.game.editor.gizmo.types.ScaleGizmo;
 import org.anchor.game.editor.gizmo.types.SelectGizmo;
@@ -25,6 +27,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 public class GizmoRenderer {
 
@@ -43,7 +46,7 @@ public class GizmoRenderer {
     protected Matrix4f xMatrix, yMatrix, zMatrix;
     protected boolean xAxis, yAxis, zAxis, xyPlane, xzPlane, yzPlane, dragging, copied;
     protected int startMouseX, startMouseY;
-    protected Vector3f axis, axisOffset, scale = new Vector3f(), startPosition;
+    protected Vector3f axis, axisOffset, scale = new Vector3f(), startPosition, lastChange = new Vector3f();
     protected Map<TransformableObject, Vector3f> originals = new HashMap<TransformableObject, Vector3f>();
     protected GameEditor editor;
 
@@ -58,7 +61,7 @@ public class GizmoRenderer {
         float count = 0;
         Vector3f position = new Vector3f();
         for (TransformableObject object : objects) {
-            Vector3f.add(position, object.getPosition(), position);
+            Vector3f.add(position, new Vector3f(Matrix4f.transform(object.getTransformationMatrix(), new Vector4f(0, 0, 0, 1), null)), position);
             count++;
         }
 
@@ -98,6 +101,16 @@ public class GizmoRenderer {
         yAxis = yAxisOffset != null;
         zAxis = zAxisOffset != null;
 
+        int m = 0;
+        if (xAxis)
+            m++;
+        if (yAxis)
+            m++;
+        if (zAxis)
+            m++;
+        if (m > 1)
+            xAxis = yAxis = zAxis = false;
+
         if ((xAxis || yAxis || zAxis) && !dragging && Mouse.isButtonDown(0)) {
             if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
                 List<TransformableObject> copy = new ArrayList<TransformableObject>();
@@ -108,18 +121,27 @@ public class GizmoRenderer {
                         editor.addEntity((Entity) object);
 
                         copy.add(object);
+                    } else if (object instanceof EditableMesh) {
+                        object = new EditableMesh((EditableMesh) object);
+                        editor.addEditableMesh((EditableMesh) object);
+
+                        copy.add(object);
                     }
                 }
-                objects = copy;
 
-                LevelEditor.getInstance().unselectAll();
-                LevelEditor.getInstance().addAllToSelection(copy);
+                if (copy.size() > 0) {
+                    objects = copy;
 
-                copied = true;
+                    LevelEditor.getInstance().unselectAll();
+                    LevelEditor.getInstance().addAllToSelection(copy);
+
+                    copied = true;
+                }
             }
 
             startMouseX = Mouse.getX();
             startMouseY = Mouse.getY();
+            lastChange.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
 
             for (TransformableObject object : objects)
                 originals.put(object, new Vector3f(gizmo.getVector(object)));
@@ -148,6 +170,16 @@ public class GizmoRenderer {
             xzPlane = xzPlaneOffset != null;
             yzPlane = yzPlaneOffset != null;
 
+            m = 0;
+            if (xyPlane)
+                m++;
+            if (xzPlane)
+                m++;
+            if (yzPlane)
+                m++;
+            if (m > 1)
+                xyPlane = xzPlane = yzPlane = false;
+
             if ((xyPlane || xzPlane || yzPlane) && !dragging && Mouse.isButtonDown(0)) {
                 if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
                     List<TransformableObject> copy = new ArrayList<TransformableObject>();
@@ -158,18 +190,27 @@ public class GizmoRenderer {
                             editor.addEntity((Entity) object);
 
                             copy.add(object);
+                        } else if (object instanceof EditableMesh) {
+                            object = new EditableMesh((EditableMesh) object);
+                            editor.addEditableMesh((EditableMesh) object);
+
+                            copy.add(object);
                         }
                     }
-                    objects = copy;
 
-                    LevelEditor.getInstance().unselectAll();
-                    LevelEditor.getInstance().addAllToSelection(copy);
+                    if (copy.size() > 0) {
+                        objects = copy;
 
-                    copied = true;
+                        LevelEditor.getInstance().unselectAll();
+                        LevelEditor.getInstance().addAllToSelection(copy);
+
+                        copied = true;
+                    }
                 }
 
                 startMouseX = Mouse.getX();
                 startMouseY = Mouse.getY();
+                lastChange.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
 
                 for (TransformableObject object : objects)
                     originals.put(object, new Vector3f(gizmo.getVector(object)));
@@ -190,27 +231,45 @@ public class GizmoRenderer {
 
         if (!Mouse.isButtonDown(0)) {
             if (dragging) {
+                Map<EditableMesh, Byte> meshes = new HashMap<EditableMesh, Byte>(); // use map to avoid duplicates
                 for (TransformableObject object : objects) {
+                    if (object instanceof OpenGLData)
+                        meshes.put(((OpenGLData) object).getMesh(), (byte) 0);
+
                     Vector3f vector = gizmo.getVector(object);
                     if (!originals.get(object).equals(vector))
                         Undo.registerChange(vector, Vector3f.sub(vector, originals.remove(object), null));
                 }
+
+                for (EditableMesh mesh : meshes.keySet())
+                    mesh.updateMesh(true);
             }
 
+            originals.clear();
             copied = false;
             dragging = false;
             axis = null;
             startPosition = null;
+            lastChange.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         }
 
         if (dragging) {
             if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_ESCAPE)) {
                 dragging = false;
                 axis = null;
+                startPosition = null;
 
                 if (!copied) {
-                    for (TransformableObject object : objects)
+                    Map<EditableMesh, Byte> meshes = new HashMap<EditableMesh, Byte>(); // use map to avoid duplicates
+                    for (TransformableObject object : objects) {
+                        if (object instanceof OpenGLData)
+                            meshes.put(((OpenGLData) object).getMesh(), (byte) 0);
                         gizmo.getVector(object).set(originals.get(object));
+                    }
+
+                    originals.clear();
+                    for (EditableMesh mesh : meshes.keySet())
+                        mesh.updateMesh(true);
                 } else {
                     for (TransformableObject object : objects)
                         if (object instanceof Entity)
@@ -219,9 +278,20 @@ public class GizmoRenderer {
                 copied = false;
             } else {
                 Vector3f change = snap(gizmo.performMove(axis, Vector3f.add(startPosition, axisOffset, null), position, rotation, origin, ray, Mouse.getX() - startMouseX, Mouse.getY() - startMouseY, axisOffset), editor.getSnapAmount());
-                for (TransformableObject object : objects) {
-                    gizmo.getVector(object).set(VectorUtils.clamp(Vector3f.add(originals.get(object), change, null), gizmo.getMin(), gizmo.getMax()));
-                    editor.refreshComponenetValues();
+                if (!lastChange.equals(change)) {
+                    lastChange.set(change);
+
+                    Map<EditableMesh, Byte> meshes = new HashMap<EditableMesh, Byte>(); // use map to avoid duplicates
+                    for (TransformableObject object : objects) {
+                        if (object instanceof OpenGLData)
+                            meshes.put(((OpenGLData) object).getMesh(), (byte) 0);
+
+                        gizmo.getVector(object).set(VectorUtils.clamp(Vector3f.add(originals.get(object), change, null), gizmo.getMin(), gizmo.getMax()));
+                        editor.refreshComponenetValues();
+                    }
+
+                    for (EditableMesh mesh : meshes.keySet())
+                        mesh.updateMesh(false);
                 }
             }
         }

@@ -1,9 +1,9 @@
-#define DISABLE_SSR // unhappy with the quality
+// #define DISABLE_SSR // unhappy with the quality
 
-const float step = 0.5;
+const float step = 0.1;
 const float minRayStep = 0.25;
 const float maxSteps = 40;
-const int numBinarySearchSteps = 5;
+const int numBinarySearchSteps = 10;
 
 vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth) {
 	float depth;
@@ -47,7 +47,7 @@ vec4 raymarch(vec3 dir, inout vec3 hitCoord, out float dDepth) {
 			continue;
 
 		dDepth = hitCoord.z - depth;
-		if (dir.z - dDepth < 0.25)
+		if (dir.z - dDepth < 1.2)
 			if (dDepth <= 0)
 				return vec4(binarySearch(dir, hitCoord, dDepth), 1);
 
@@ -63,9 +63,9 @@ vec3 getReflection(vec3 hitPosition, vec3 reflected, float otherFactors) {
 #else
 	float dDepth;
 	vec4 coords = raymarch(reflected * max(minRayStep, -hitPosition.z), vec3(hitPosition), dDepth);
-	vec2 dCoords = smoothstep(0.3, 0.6, abs(vec2(0.5) - coords.xy));
+	float screenEdge = 1 - clamp(length(getPosition(coords.xy)) * 0.1, 0, 1);
 
-	return vec3(coords.xy, clamp(otherFactors * clamp(1.0 - (dCoords.x + dCoords.y), 0, 1) * -reflected.z, 0, 1));
+	return vec3(coords.xy, clamp(otherFactors * screenEdge * -reflected.z, 0, 1));
 #endif
 }
 

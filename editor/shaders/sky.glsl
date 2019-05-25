@@ -31,6 +31,7 @@ uniform vec3 topColour;
 
 texCube skybox;
 uniform bool proceduralSky;
+uniform float tickTime;
 
 struct Colour {
 	vec4 diffuse;
@@ -40,6 +41,7 @@ struct Colour {
 Colour getSkyProcedural(vec3 direction) {
 	Colour col;
 	float r = rand(direction.xy) * 0.005;
+	float time = tickTime * 0.002 + 1.8879;
 
 	vec3 diffuse = mix(baseColour, topColour * 0.5, max(dot(direction, vec3(0, 1, 0)), 0)) + vec3(r);
 

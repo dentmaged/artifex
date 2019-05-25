@@ -29,12 +29,13 @@ public class GameMap {
     public static String SUBPARTS = ((char) 5) + "";
     public static String INFO = ((char) 6) + "";
 
-    public static int MAP_VERSION = 1;
+    public static int MAP_VERSION = 2;
 
     public static Map<Entity, Integer> parents = new HashMap<Entity, Integer>();
 
     public GameMap(File file) {
         this.file = file;
+        System.out.println("Loading " + (file) + "...");
 
         scene = new Scene();
         File storage = new File(file.getAbsolutePath().replace(".asg", ".ads"));

@@ -136,6 +136,7 @@ public class Entity implements TransformableObject {
         return getComponent(TransformComponent.class).scale;
     }
 
+    @Override
     public Matrix4f getTransformationMatrix() {
         return transformationMatrix;
     }

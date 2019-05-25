@@ -1,4 +1,4 @@
-package org.anchor.game.editor.utils;
+package org.anchor.game.editor.utils.file;
 
 import java.awt.Component;
 

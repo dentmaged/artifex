@@ -43,7 +43,7 @@ public class FileHelper {
     public static String read(IFile file) {
         try {
             if (!file.exists()) {
-                Log.warning("File not found: " + file.getName());
+                Log.warning("File not found: " + file.getName() + " (" + file.getAbsolutePath() + ")");
                 return "";
             }
 

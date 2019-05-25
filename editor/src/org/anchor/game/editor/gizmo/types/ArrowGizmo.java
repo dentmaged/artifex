@@ -3,7 +3,7 @@ package org.anchor.game.editor.gizmo.types;
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.game.editor.gizmo.Gizmo;
 import org.anchor.game.editor.gizmo.Plane;
-import org.anchor.game.editor.utils.TransformationMode;
+import org.anchor.game.editor.gizmo.TransformationMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;

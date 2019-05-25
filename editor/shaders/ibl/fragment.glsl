@@ -127,5 +127,5 @@ void main(void) {
 	float roughness = other.x;
 	float ao = texture2D(ssao, tc).r * normal.w;
 
-	out_colour = vec4(performLighting(getPosition(tc), albedo, normal.xyz, metallic, 0.5, roughness, normal.w), 1);
+	out_colour = vec4(performLighting(getPosition(tc), albedo, normal.xyz, metallic, 0.5, roughness, ao), 1);
 }

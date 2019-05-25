@@ -101,4 +101,38 @@ public class Mathf {
         return x;
     }
 
+    public static float max(float a, float b) {
+        if (a > b)
+            return a;
+
+        return b;
+    }
+
+    public static float min(float a, float b) {
+        if (a < b)
+            return a;
+
+        return b;
+    }
+
+    public static float nsMax(float a, float b) { // no-sign max
+        float largest = max(abs(a), abs(b));
+        if (-largest == a)
+            return a;
+        if (-largest == b)
+            return b;
+
+        return largest;
+    }
+
+    public static float nsMin(float a, float b) { // no-sign min
+        float smallest = min(abs(a), abs(b));
+        if (-smallest == a)
+            return a;
+        if (-smallest == b)
+            return b;
+
+        return smallest;
+    }
+
 }

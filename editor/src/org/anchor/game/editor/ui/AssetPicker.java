@@ -19,9 +19,9 @@ import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.ui.blueprint.LabelledButtonBlueprint;
 import org.anchor.engine.shared.ui.listener.ButtonListener;
 import org.anchor.engine.shared.ui.swing.CustomButton;
-import org.anchor.game.editor.utils.FileCallback;
-import org.anchor.game.editor.utils.FilePickCallback;
-import org.anchor.game.editor.utils.Filter;
+import org.anchor.game.editor.utils.file.FileCallback;
+import org.anchor.game.editor.utils.file.FilePickCallback;
+import org.anchor.game.editor.utils.file.Filter;
 
 public class AssetPicker {
 

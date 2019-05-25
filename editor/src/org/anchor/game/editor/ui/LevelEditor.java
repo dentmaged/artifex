@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +59,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.TextureType;
+import org.anchor.engine.common.utils.ArrayUtils;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.utils.Pointer;
 import org.anchor.engine.shared.Engine;
@@ -71,6 +71,8 @@ import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
+import org.anchor.engine.shared.scheduler.ScheduledRunnable;
+import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.ui.UIKit;
 import org.anchor.engine.shared.ui.blueprint.ButtonBlueprint;
@@ -107,16 +109,20 @@ import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.editor.GameEditor;
 import org.anchor.game.editor.commands.Undo;
+import org.anchor.game.editor.editableMesh.EditableMesh;
+import org.anchor.game.editor.editableMesh.components.EditableMeshComponent;
+import org.anchor.game.editor.editableMesh.components.VertexComponent;
+import org.anchor.game.editor.editableMesh.types.Vertex;
 import org.anchor.game.editor.properties.PropertyUIKit;
 import org.anchor.game.editor.terrain.brush.IncreaseDecreaseHeightBrush;
 import org.anchor.game.editor.terrain.brush.SetHeightBrush;
 import org.anchor.game.editor.terrain.brush.SmoothBrush;
 import org.anchor.game.editor.terrain.brush.TerrainBrush;
 import org.anchor.game.editor.terrain.shape.Shape;
-import org.anchor.game.editor.utils.AssetManager;
-import org.anchor.game.editor.utils.FilePickCallback;
 import org.anchor.game.editor.utils.LogRedirector;
 import org.anchor.game.editor.utils.RenderSettings;
+import org.anchor.game.editor.utils.file.AssetManager;
+import org.anchor.game.editor.utils.file.FilePickCallback;
 import org.lwjgl.util.vector.Vector3f;
 
 /*
@@ -528,6 +534,8 @@ public class LevelEditor extends JPanel {
                 for (TransformableObject object : selected) {
                     if (object instanceof Entity)
                         gameEditor.addEntity(((Entity) object).copy());
+                    else if (object instanceof EditableMesh)
+                        gameEditor.addEditableMesh(new EditableMesh((EditableMesh) object));
                 }
 
                 if (selectedTerrain != null) {
@@ -555,6 +563,9 @@ public class LevelEditor extends JPanel {
                     TransformableObject object = selected.get(i);
                     if (object instanceof Entity)
                         gameEditor.removeEntity((Entity) object);
+                    else if (object instanceof EditableMesh)
+                        gameEditor.removeEditableMesh((EditableMesh) object);
+
                     unselectAll();
                 }
 
@@ -567,6 +578,7 @@ public class LevelEditor extends JPanel {
             }
 
         }));
+        scenePopupMenu.addSeparator();
         scenePopupMenu.add(new JMenuItem(new AbstractAction("Group") {
 
             private static final long serialVersionUID = -7509797304178919452L;
@@ -577,6 +589,69 @@ public class LevelEditor extends JPanel {
                 for (TransformableObject object : selected)
                     if (object instanceof Entity)
                         ((Entity) object).setParent(parent);
+                updateList();
+
+                scenePopupMenu.setVisible(false);
+            }
+
+        }));
+        scenePopupMenu.addSeparator();
+        scenePopupMenu.add(new JMenuItem(new AbstractAction("Convert to Editable Mesh") {
+
+            private static final long serialVersionUID = -1302586824769432105L;
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                for (int i = 0; i < selected.size(); i++) {
+                    TransformableObject object = selected.get(i);
+                    if (object instanceof Entity) {
+                        Scheduler.schedule(new ScheduledRunnable() {
+
+                            @Override
+                            public void tick(float time, float percentage) {
+
+                            }
+
+                            @Override
+                            public void finish() {
+                                gameEditor.addEditableMesh(new EditableMesh((Entity) object));
+                                gameEditor.removeEntity((Entity) object);
+                            }
+
+                        }, 0);
+                    }
+                    unselectAll();
+                }
+
+                scenePopupMenu.setVisible(false);
+            }
+
+        }));
+        scenePopupMenu.add(new JMenuItem(new AbstractAction("Refresh editable mesh") {
+
+            private static final long serialVersionUID = 1968181078779498279L;
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                for (int i = 0; i < selected.size(); i++) {
+                    TransformableObject object = selected.get(i);
+                    if (object instanceof EditableMesh) {
+                        Scheduler.schedule(new ScheduledRunnable() {
+
+                            @Override
+                            public void tick(float time, float percentage) {
+
+                            }
+
+                            @Override
+                            public void finish() {
+                                ((EditableMesh) object).updateMesh(true);
+                            }
+
+                        }, 0);
+                    }
+                    unselectAll();
+                }
 
                 scenePopupMenu.setVisible(false);
             }
@@ -617,13 +692,14 @@ public class LevelEditor extends JPanel {
                     return;
 
                 Object store = node.getStorage();
-                if (store instanceof Entity) {
+                if (store instanceof TransformableObject) {
                     unselectAll();
-                    addToSelection((Entity) store);
-                } else if (store instanceof ClientTerrain)
+                    addToSelection((TransformableObject) store);
+                } else if (store instanceof ClientTerrain) {
                     setSelectedTerrain((ClientTerrain) store);
-                else if (store instanceof String)
+                } else if (store instanceof String) {
                     updateList();
+                }
             }
 
         });
@@ -988,6 +1064,7 @@ public class LevelEditor extends JPanel {
 
             @Override
             public void onSelectionChange(TransformableObject change, boolean added) {
+                reloadEntityComponents(selected);
                 if (!(change instanceof Entity))
                     return;
                 Entity current = (Entity) change;
@@ -995,7 +1072,6 @@ public class LevelEditor extends JPanel {
 
                 field.setEnabled(false);
                 if (added) {
-                    reloadEntityComponents(selected);
 
                     field.setText(getEntityName(current));
                     field.setEnabled(true);
@@ -1059,8 +1135,6 @@ public class LevelEditor extends JPanel {
                     field.addItem(item);
 
                 if (added) {
-                    reloadEntityComponents(selected);
-
                     field.setSelectedItem(current.getLayer().getName());
                     field.setEnabled(true);
                 } else {
@@ -1929,12 +2003,12 @@ public class LevelEditor extends JPanel {
 
         tabbedPane.setSelectedIndex(1);
         ignoreTreeEvent = true;
-        if (tree != null && treePosition != null) {
-            int[] rows = tree.getSelectionRows();
-            int[] selected = new int[rows.length + 1];
-            System.arraycopy(rows, 0, selected, 0, rows.length);
-            selected[rows.length] = treePosition.get(object);
-        }
+//        if (tree != null && treePosition != null) {
+//            int[] rows = tree.getSelectionRows();
+//            int[] selected = new int[rows.length + 1];
+//            System.arraycopy(rows, 0, selected, 0, rows.length);
+//            selected[rows.length] = treePosition.get(object);
+//        }
         refreshTransformationXYZ();
 
         if (object instanceof Entity) {
@@ -1942,6 +2016,8 @@ public class LevelEditor extends JPanel {
             MeshComponent render = entity.getComponent(MeshComponent.class);
             if (render != null)
                 render.colour.set(1, 0, 0, 0.65f);
+        } else if (object instanceof EditableMesh) {
+            ((EditableMesh) object).colour.set(1, 0, 0, 0.65f);
         }
 
         lblObjectsSelected.setText(selected.size() + " Object" + (selected.size() == 1 ? "" : "s") + " Selected");
@@ -1969,6 +2045,8 @@ public class LevelEditor extends JPanel {
             MeshComponent render = entity.getComponent(MeshComponent.class);
             if (render != null)
                 render.colour.w = 0;
+        } else if (object instanceof EditableMesh) {
+            ((EditableMesh) object).colour.w = 0;
         }
 
         tree.setSelectionRow(-1);
@@ -2038,17 +2116,30 @@ public class LevelEditor extends JPanel {
         Map<Class<?>, List<IComponent>> allComponents = new HashMap<Class<?>, List<IComponent>>();
         for (TransformableObject object : objects) {
             if (!(object instanceof Entity)) {
-                TransformComponent component = new TransformComponent();
+                List<IComponent> components = new ArrayList<IComponent>();
+                if (object instanceof EditableMesh) {
+                    components.add(((EditableMesh) object).transformComponent);
+                    components.add(EditableMesh.editableMeshComponent);
+                } else {
+                    TransformComponent component = new TransformComponent();
 
-                component.position = object.getPosition();
-                component.rotation = object.getRotation();
-                component.scale = object.getScale();
+                    component.position = object.getPosition();
+                    component.rotation = object.getRotation();
+                    component.scale = object.getScale();
 
-                List<IComponent> value = allComponents.get(component.getClass());
-                if (value == null)
-                    allComponents.put(component.getClass(), value = new ArrayList<IComponent>());
+                    components.add(component);
 
-                value.add(component);
+                    if (object instanceof Vertex)
+                        components.add(new VertexComponent());
+                }
+
+                for (IComponent component : components) {
+                    List<IComponent> value = allComponents.get(component.getClass());
+                    if (value == null)
+                        allComponents.put(component.getClass(), value = new ArrayList<IComponent>());
+
+                    value.add(component);
+                }
             } else {
                 for (IComponent component : ((Entity) object).getComponents()) {
                     List<IComponent> value = allComponents.get(component.getClass());
@@ -2062,11 +2153,17 @@ public class LevelEditor extends JPanel {
 
         for (TransformableObject object : objects) {
             List<Class<?>> classes = new ArrayList<Class<?>>();
-            if (!(object instanceof Entity))
-                classes.add(TransformComponent.class);
-            else
+            if (object instanceof Entity) {
                 for (IComponent current : ((Entity) object).getComponents())
                     classes.add(current.getClass());
+            } else if (object instanceof EditableMesh) {
+                classes.add(TransformComponent.class);
+                classes.add(EditableMeshComponent.class);
+            } else {
+                classes.add(TransformComponent.class);
+                if (object instanceof Vertex)
+                    classes.add(VertexComponent.class);
+            }
 
             List<Class<?>> keys = new ArrayList<Class<?>>(allComponents.keySet());
             for (int i = 0; i < keys.size(); i++)
@@ -2080,8 +2177,14 @@ public class LevelEditor extends JPanel {
                 entities.add((Entity) object);
 
         List<Entry<Class<?>, List<IComponent>>> entries = new ArrayList<Entry<Class<?>, List<IComponent>>>(allComponents.entrySet());
-        if (entries.get(0).getClass() != TransformComponent.class)
-            Collections.reverse(entries);
+        Entry<Class<?>, List<IComponent>> transformEntry = null;
+        for (Entry<Class<?>, List<IComponent>> entry : entries) {
+            if (entry.getKey() == TransformComponent.class) {
+                transformEntry = entry;
+                break;
+            }
+        }
+        entries = ArrayUtils.rearrange(entries, transformEntry);
 
         for (Entry<Class<?>, List<IComponent>> entry : entries) {
             JPanel panel = PropertyUIKit.createPanel(entities, entry.getValue(), height);
@@ -2174,7 +2277,7 @@ public class LevelEditor extends JPanel {
             }
         }
 
-        if (shouldCalculateAverage) {
+        if (shouldCalculateAverage && count > 0) {
             average.x /= count;
             average.y /= count;
             average.z /= count;
@@ -2191,7 +2294,6 @@ public class LevelEditor extends JPanel {
         zTransformField.setEnabled(false);
         zTransformField.setText(average.z + "");
         zTransformField.setEnabled(true);
-
     }
 
     public void refreshComponentValues() {
@@ -2306,6 +2408,14 @@ public class LevelEditor extends JPanel {
                     node.add(childNode);
                 }
 
+                root.add(node);
+            }
+
+            for (EditableMesh mesh : gameEditor.getEditableMeshes()) {
+                CustomMutableTreeNode node = new CustomMutableTreeNode("Editable Mesh");
+                node.setStorage(mesh);
+
+                i++;
                 root.add(node);
             }
         } else {

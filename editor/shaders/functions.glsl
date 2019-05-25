@@ -8,3 +8,7 @@ vec3 hash(vec3 a) {
 
 	return fract((a.xxy + a.yxx) * a.zyx);
 }
+
+float hash(float n) {
+	return fract(sin(n) * 758.5453123);
+}
