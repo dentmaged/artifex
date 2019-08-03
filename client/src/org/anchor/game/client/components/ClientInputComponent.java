@@ -1,12 +1,11 @@
 package org.anchor.game.client.components;
 
-import org.anchor.client.engine.renderer.KeyboardUtils;
+import org.anchor.client.engine.renderer.keyboard.Keys;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.game.client.audio.Audio;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -30,15 +29,15 @@ public class ClientInputComponent extends LivingComponent {
             yaw += mouseDX;
 
             forwards = 0;
-            if (KeyboardUtils.isKeyDown(Keyboard.KEY_W))
+            if (Keys.isKeyPressed("forward"))
                 forwards = selectedSpeed;
-            if (KeyboardUtils.isKeyDown(Keyboard.KEY_S))
+            if (Keys.isKeyPressed("back"))
                 forwards -= selectedSpeed;
 
             sideways = 0;
-            if (KeyboardUtils.isKeyDown(Keyboard.KEY_A))
+            if (Keys.isKeyPressed("left"))
                 sideways = selectedSpeed;
-            if (KeyboardUtils.isKeyDown(Keyboard.KEY_D))
+            if (Keys.isKeyPressed("right"))
                 sideways -= selectedSpeed;
 
             if (forwards != 0 && sideways != 0) {
@@ -47,7 +46,7 @@ public class ClientInputComponent extends LivingComponent {
             }
 
             fire = Mouse.isButtonDown(0);
-            reload = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_R);
+            reload = Keys.isKeyPressed("reload");
 
             if (!isInLiquid) {
                 Vector3f accelerateDirection = new Vector3f(Mathf.sinDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY + Mathf.sinDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY, 0, -Mathf.cosDegrees(yaw) * forwards * PhysicsEngine.TICK_DELAY - Mathf.cosDegrees(yaw - 90) * sideways * PhysicsEngine.TICK_DELAY);
@@ -67,20 +66,21 @@ public class ClientInputComponent extends LivingComponent {
             }
 
             if (!gravity) {
-                if (KeyboardUtils.isKeyDown(Keyboard.KEY_SPACE)) {
+                if (Keys.isKeyPressed("jump")) {
                     entity.getPosition().y += 2 * JUMP_POWER;
                     isInAir = true;
-                } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
+                } else if (Keys.isKeyPressed("sprint")) {
                     entity.getPosition().y -= 2 * JUMP_POWER;
                 }
             } else if (isInLiquid) {
-                if (KeyboardUtils.isKeyDown(Keyboard.KEY_SPACE)) {
+                if (Keys.isKeyPressed("jump")) {
                     entity.getPosition().y += 0.5f * JUMP_POWER;
-                } else if (KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT)) {
+                } else if (Keys.isKeyPressed("sprint")) {
                     entity.getPosition().y -= 0.5f * JUMP_POWER;
                 }
             } else {
-                space = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_SPACE);
+                space = Keys.isKeyPressed("jump");
+                Keys.setPressed("jump", false);
                 if (space && !isInAir) {
                     entity.getVelocity().y += JUMP_POWER;
                     isInAir = true;
@@ -90,6 +90,22 @@ public class ClientInputComponent extends LivingComponent {
         } else {
             forwards = 0;
             sideways = 0;
+        }
+
+        {
+            Vector3f right = getRightVector();
+            float side = Vector3f.dot(entity.getVelocity(), right) * ROLL_MULTIPLIER;
+
+            float sign = side < 0 ? -1 : 1;
+            side = Mathf.abs(side);
+            float value = ROLL_ANGLE;
+
+            if (side < ROLL_SPEED)
+                side = side * value / ROLL_SPEED;
+            else
+                side = value;
+
+            roll = side * sign;
         }
     }
 

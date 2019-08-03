@@ -27,7 +27,7 @@ public class BaseNetworkable {
         if (!isConnected())
             return;
 
-        handler.disconnect(this);
+        handler.handleDisconnect(this);
         try {
             socket.close();
         } catch (Exception e) {

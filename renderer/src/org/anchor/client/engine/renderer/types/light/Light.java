@@ -16,7 +16,9 @@ public interface Light {
 
     public float getOuterCutoff();
 
-    public boolean isVolumetricLight();
+    public float getVolumetricStrength();
+
+    public boolean castsShadows();
 
     public LightType getLightType();
 

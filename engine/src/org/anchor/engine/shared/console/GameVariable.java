@@ -4,7 +4,7 @@ import org.anchor.engine.common.console.CoreGameVariableManager;
 import org.anchor.engine.common.console.GameVariableType;
 import org.anchor.engine.common.console.IGameVariable;
 import org.anchor.engine.shared.Engine;
-import org.anchor.engine.shared.net.packet.GameVariablePacket;
+import org.anchor.engine.shared.events.GameVariableUpdateEvent;
 
 public class GameVariable implements IGameVariable {
 
@@ -34,7 +34,7 @@ public class GameVariable implements IGameVariable {
 
         }
 
-        return 0;
+        return Integer.valueOf(defaultValue);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class GameVariable implements IGameVariable {
 
         }
 
-        return 0;
+        return Float.valueOf(defaultValue);
     }
 
     @Override
@@ -55,19 +55,11 @@ public class GameVariable implements IGameVariable {
 
     @Override
     public void setValue(String value) {
-        if (type == GameVariableType.CHEAT && !GameVariableManager.sv_cheats.getValueAsBool() && Engine.getInstance().isConnected())
+        if (type == GameVariableType.CHEAT && !EngineGameVariables.sv_cheats.getValueAsBool())
             return;
-
-        if (Engine.isClientSide() && type == GameVariableType.GAMEMODE && Engine.getInstance().isConnected()) {
-            Engine.getInstance().broadcast(new GameVariablePacket(name, value));
-
-            return;
-        }
 
         this.value = value;
-
-        if (Engine.isServerSide())
-            Engine.getInstance().broadcast(new GameVariablePacket(name, value));
+        Engine.bus.fireEvent(new GameVariableUpdateEvent(this));
     }
 
     @Override

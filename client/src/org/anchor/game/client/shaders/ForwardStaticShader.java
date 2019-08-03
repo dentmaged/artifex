@@ -62,6 +62,9 @@ public class ForwardStaticShader extends ModelShader {
                 else
                     v.w = 2;
 
+                if (light.castsShadows())
+                    v.w += 3;
+
                 loadVector("lightPosition[" + i + "]", v);
                 loadVector("lightColour[" + i + "]", light.getColour());
                 loadVector("attenuation[" + i + "]", light.getAttenuation());

@@ -1,6 +1,9 @@
 void emit(vec4 diffuse, vec3 normal, float emissive, float metallic, float roughness, float ao) {
 #ifdef LIGHTING_GLSL
-	out_diffuse = vec4(performLighting(viewPosition, normal, diffuse.xyz, metallic, 0.5, roughness), diffuse.w);
+	vec3 colour = diffuse.xyz;
+	if (emissive == 0)
+		colour = performLighting(viewPosition, normal, colour, metallic, 0.5, roughness);
+	out_diffuse = vec4(colour, diffuse.w);
 #else
 	out_diffuse = vec4(pow(diffuse.xyz, vec3(GAMMA)), diffuse.w);
 #endif

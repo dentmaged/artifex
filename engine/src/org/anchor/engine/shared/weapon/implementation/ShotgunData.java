@@ -21,9 +21,6 @@ public class ShotgunData extends GunData {
 
     @Override
     public void perform(Weapon weapon, Entity owner) {
-        if (Engine.isClientSide()) // TODO: Play particle effect on client
-            return;
-
         LivingComponent livingComponent = owner.getComponent(LivingComponent.class);
         Vector3f origin = livingComponent.getEyePosition();
         Vector3f ray = livingComponent.getForwardVector();

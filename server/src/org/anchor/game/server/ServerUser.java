@@ -49,4 +49,14 @@ public class ServerUser implements IUser {
         return player;
     }
 
+    @Override
+    public void setGameVariable(GameVariable var, String value) {
+        var.setValue(value);
+    }
+
+    @Override
+    public void runCommand(String command, GameCommand cmd, String[] args) {
+        cmd.run(this, args);
+    }
+
 }

@@ -2,8 +2,8 @@ package org.anchor.engine.common.net.client;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.anchor.engine.common.Log;
@@ -43,17 +43,18 @@ public class Client extends BaseNetworkable {
                             }
                         }
 
-                        handler.disconnect(Client.this);
+                        handler.handleDisconnect(Client.this);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        handler.handleException(e);
+                        disconnect();
                     }
                 }
 
-            });
+            }, "Networking (client)");
 
             thread.start();
         } catch (Exception e) {
-            if (e instanceof ConnectException) {
+            if (e instanceof SocketException) {
                 handler.handleException(e);
             } else {
                 e.printStackTrace();

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.anchor.engine.common.utils.ObjectUtils;
 import org.anchor.engine.shared.Engine;
+import org.anchor.engine.shared.events.MonitorVariableChangeEvent;
 import org.anchor.engine.shared.monitoring.cache.Vector3fCacheInformation;
 import org.anchor.engine.shared.utils.Property;
 import org.lwjgl.util.vector.Vector3f;
@@ -37,7 +38,7 @@ public class InstanceMonitor {
                     Object previous = cache.get(field.getName());
 
                     if (!ObjectUtils.compare(previous, current)) {
-                        Engine.getInstance().onMonitorVariableChange(parent, target, field, previous, current);
+                        Engine.bus.fireEvent(new MonitorVariableChangeEvent(parent, target, field, previous, current));
                         cache.put(field.getName(), current);
                     }
                 }

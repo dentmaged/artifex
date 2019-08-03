@@ -25,7 +25,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
 void main(void) {
 	vec3 hdrColour = texture2D(ldr, tc).xyz;
 	vec3 bloomColour = texture2D(bloomOne, tc).xyz + texture2D(bloomTwo, tc).xyz + texture2D(bloomThree, tc).xyz;
-	hdrColour += bloomColour * 0.5;
+	hdrColour += bloomColour;
 
 	float exposure = texture2D(exposure, vec2(0.5)).x;
 	vec3 curr = Uncharted2Tonemap(2 * exposure * hdrColour);

@@ -1,49 +1,13 @@
 #define LIGHTING_GLSL
 
-tex shadowMaps[SHADOW_SPLITS];
-
 uniform bool showLightmaps;
 uniform bool diffuseOnly;
-
-uniform mat4 toShadowMapSpaces[SHADOW_SPLITS];
-uniform float shadowDistances[SHADOW_SPLITS];
 
 uniform vec4 lightPosition[MAX_LIGHTS];
 uniform vec3 lightColour[MAX_LIGHTS];
 uniform vec3 attenuation[MAX_LIGHTS];
 uniform vec3 lightDirection[MAX_LIGHTS];
 uniform vec2 lightCutoff[MAX_LIGHTS];
-
-const float transitionDistance = 8;
-
-#define PCF
-
-#if defined(PCF)
-	const int pcfCount = 4;
-	const int totalTexels = (pcfCount * 2 + 1) * (pcfCount * 2 + 1);
-	const vec2 texelSize = vec2(1.0 / 2048.0);
-#elif defined(POISSON)
-	const int poissonCount = 8;
-	const vec2 poissonDisk[16] = vec2[](
-		vec2(-0.94201624, -0.39906216),
-		vec2(0.94558609, -0.76890725),
-		vec2(-0.094184101, -0.92938870),
-		vec2(0.34495938, 0.29387760),
-		vec2(-0.91588581, 0.45771432),
-		vec2(-0.81544232, -0.87912464),
-		vec2(-0.38277543, 0.27676845),
-		vec2(0.97484398, 0.75648379),
-		vec2(0.44323325, -0.97511554),
-		vec2(0.53742981, -0.47373420),
-		vec2(-0.26496911, -0.41893023),
-		vec2(0.79197514, 0.19090188),
-		vec2(-0.24188840, 0.99706507),
-		vec2(-0.81409955, 0.91437590),
-		vec2(0.19984126, 0.78641367),
-		vec2(0.14383161, -0.14100790)
-	);
-	const vec2 texelSize = vec2(0.5 / 2048.0);
-#endif
 
 vec3 fresnel(float cosTheta, vec3 F0) {
 	return F0 + (1.0 - F0) * pow(1 - cosTheta, 5.0); // schlick
@@ -78,16 +42,12 @@ float geometrySmith(float NdotV, float NdotL, float roughness) {
 	return ggx1 * ggx2;
 }
 
-float chebyshev(float distance, vec2 moments) {
-	if (distance <= moments.x)
-		return 1;
-
-	float variance = max(moments.y - (moments.x * moments.x), 0.000075);
-	float d = distance - moments.x;
-	return smoothstep(0.2, 1.0, variance / (variance + d * d));
-}
-
+#if defined(SHADOWS_GLSL)
 vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic, float materialSpecular, float roughness) {
+	vec4 shadowInfo = vec4(performShadows(viewPosition), 1, 1, 1);
+#else
+vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic, float materialSpecular, float roughness, vec4 shadowInfo) {
+#endif
 	if (diffuseOnly)
 		return albedo;
 
@@ -101,40 +61,31 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 
 	float NdotV = max(dot(N, V), 0.0);
 
-	int map = 0;
-	for (int i = 0; i < SHADOW_SPLITS; i++)
-		if (shadowDistances[i] < distance)
-			map = i;
-
-	mat4 toShadowMapSpace = toShadowMapSpaces[map];
-	float shadowDistance = shadowDistances[map] * 2.0;
-
-	vec3 wPosition = (inverseViewMatrix * vec4(viewPosition, 1.0)).xyz;
-	vec4 shadowCoords = toShadowMapSpace * vec4(viewPosition, 1.0);
-	if (map == SHADOW_SPLITS - 1) {
-		float shadowCoordinatesDistance = distance - (shadowDistance - transitionDistance);
-		shadowCoordinatesDistance = shadowCoordinatesDistance / transitionDistance;
-		shadowCoords.w = clamp(1.0 - shadowCoordinatesDistance, 0.0, 1.0);
-	}
-
 	vec3 F0 = vec3(0.08 * materialSpecular);
 	F0 = mix(F0, albedo, metallic);
 
 	vec3 Lo = vec3(0.0);
+	int shadowedCount = 0;
 	for (int i = 0; i < MAX_LIGHTS; i++) {
 		if (dot(lightColour[i], lightColour[i]) == 0)
 			continue;
 
-		float shadow = 1.0;
+		float lightType = lightPosition[i].w;
+		bool castsShadows = false;
+		if (lightType >= 3) {
+			lightType -= 3;
+			castsShadows = true;
+		}
 
+		float shadow = 1.0;
 		vec3 L = normalize(lightPosition[i].xyz - viewPosition);
-		if (lightPosition[i].w == 1)
+		if (lightType == 1)
 			L = normalize(lightDirection[i].xyz);
 		vec3 H = normalize(V + L);
 
 		float distance = length(lightPosition[i].xyz - viewPosition);
 		float attenuation = 1.0 / (attenuation[i].x + (attenuation[i].y * distance) + (attenuation[i].z * distance * distance));
-		if (lightPosition[i].w == 1.0)
+		if (lightType == 1.0)
 			attenuation = 1;
 
 		vec3 radiance = lightColour[i] * attenuation;
@@ -148,36 +99,22 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 		vec3 kD = 1 - fresnel;
 		kD *= 1 - metallic;
 
-		if (lightPosition[i].w == 1 && shadow == 1) {
-			float total = 0.0;
-			if (map > 0) {
-				float bias = 0.003;
+		if (castsShadows) {
+			if (shadowedCount == 0)
+				shadow = shadowInfo.r;
+			else if (shadowedCount == 1)
+					shadow = shadowInfo.g;
+			else if (shadowedCount == 2)
+					shadow = shadowInfo.b;
+			else if (shadowedCount == 3)
+					shadow = shadowInfo.a;
 
-#if defined(PCF)
-				for (int x = -pcfCount; x <= pcfCount; x++)
-					for (int y = -pcfCount; y <= pcfCount; y++)
-						if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + vec2(x, y) * texelSize).x + bias)
-#elif defined(POISSON)
-				for (int i = 0; i < poissonCount; i++)
-					if (shadowCoords.z > texture2D(shadowMaps[map], shadowCoords.xy + poissonDisk[int(16 * fract(sin(dot(vec4(floor(wPosition * 10000), i), vec4(12.9898, 78.233, 45.164, 94.673))) * 43758.5453)) % 16] * texelSize).x + bias)
-#endif
-							total += 1;
-
-#if defined(PCF)
-				total /= totalTexels;
-#elif defined(POISSON)
-				total /= poissonCount;
-#endif
-				shadow = 1.0 - (total * shadowCoords.w);
-			} else {
-				vec2 moments = texture2D(shadowMaps[map], shadowCoords.xy).xy;
-				shadow = chebyshev(shadowCoords.z, moments);
-			}
+			shadowedCount++;
 		}
 
 		float intensity = 1.0;
 		vec2 cutoff = lightCutoff[i];
-		if (lightPosition[i].w == 2)
+		if (lightType == 2)
 			intensity = clamp((dot(L, normalize(-lightDirection[i])) - cutoff.y) / (cutoff.x - cutoff.y), 0, 1);
 
 		if (shadow > 0 && NdotL > 0 && intensity > 0)

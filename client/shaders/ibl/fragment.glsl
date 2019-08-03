@@ -58,7 +58,7 @@ vec3 pcc(vec3 wDir, vec3 pccPosition, vec3 pccSize, vec3 wPosition, out float st
 
 vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic, float materialSpecular, float roughness, float ao) {
 	float distance = length(viewPosition);
-	if (distance > 1000) // skybox
+	if (distance > 1000 || (normal.x == 1 && normal.y == 1 && normal.z == 1)) // skybox
 		discard;
 
 	vec3 V = normalize(-viewPosition);

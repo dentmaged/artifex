@@ -21,6 +21,8 @@ import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.shaders.DecalShader;
 import org.anchor.game.client.shaders.ForwardStaticShader;
+import org.anchor.game.client.shaders.SkyShader;
+import org.anchor.game.client.shaders.SkyTextureShader;
 import org.anchor.game.client.utils.FrustumCull;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -37,7 +39,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || !component.visible || !entity.getLayer().isVisible())
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || !component.visible || !entity.getLayer().isVisible() || component.shader == SkyTextureShader.getInstance())
                 continue;
 
             if (!component.material.isBlendingEnabled()) {
@@ -55,6 +57,9 @@ public class ClientScene extends Scene {
 
             for (Entity entity : entry.getValue()) {
                 MeshComponent component = entity.getComponent(MeshComponent.class);
+                if (component == null)
+                    continue;
+
                 ClientShader shader = component.shader;
                 component.material.bind();
                 shader.start();
@@ -114,7 +119,7 @@ public class ClientScene extends Scene {
             if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
-            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
+            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class) || component.shader == SkyTextureShader.getInstance()) {
                 if (!FrustumCull.isVisible(entity))
                     continue;
 
@@ -158,7 +163,7 @@ public class ClientScene extends Scene {
             if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
                 continue;
 
-            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class)) {
+            if (component.material.isBlendingEnabled() || entity.hasComponent(SkyComponent.class) || component.shader == SkyTextureShader.getInstance()) {
                 if (!FrustumCull.isVisible(entity))
                     continue;
 
@@ -198,7 +203,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.castsShadows || !component.visible || !entity.getLayer().isVisible())
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.castsShadows || !component.visible || !entity.getLayer().isVisible() || entity.hasComponent(SkyComponent.class) || component.shader == SkyShader.getInstance())
                 continue;
 
             if (!renderables.containsKey(component.model))

@@ -11,6 +11,7 @@ tex diffuse;
 tex other;
 tex normal;
 tex depthMap;
+tex shadow;
 
 uniform mat4 projectionMatrix;
 uniform mat4 inverseProjectionMatrix;
@@ -26,6 +27,7 @@ void main(void) {
 	vec4 diffuse = texture2D(diffuse, tc);
 	vec4 other = texture2D(other, tc);
 	vec4 normal = texture2D(normal, tc);
+	vec4 shadowInfo = texture2D(shadow, tc);
 	other.x = max(other.x, 0.001);
 
 	float metallic = other.y;
@@ -36,7 +38,7 @@ void main(void) {
 	if (emissive > 0)
 		out_diffuse = vec4(diffuse.xyz, 1);
 	else
-		out_diffuse = vec4(performLighting(getPosition(tc), normal.xyz, diffuse.xyz, metallic, 0.5, roughness), 1);
+		out_diffuse = vec4(performLighting(getPosition(tc), normal.xyz, diffuse.xyz, metallic, 0.5, roughness, shadowInfo), 1);
 
 	out_other = vec4(other);
 	out_normal = vec4(normal);

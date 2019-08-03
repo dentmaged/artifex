@@ -10,7 +10,6 @@ import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.ssao.SSAOBlurShader;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.light.Light;
-import org.anchor.client.engine.renderer.types.light.LightType;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL40;
@@ -31,7 +30,7 @@ public class VolumetricScattering {
         blur.setShader(SSAOBlurShader.getInstance());
     }
 
-    public void perform(int scene, int depthMap, int exposure, List<Light> lights, Matrix4f viewMatrix, Shadows shadows) {
+    public void perform(int scene, int depthMap, int exposure, int normal, List<Light> lights, Matrix4f viewMatrix, Shadows shadows) {
         calculationFBO.bindFramebuffer();
         shader.start();
         QuadRenderer.bind();
@@ -42,10 +41,11 @@ public class VolumetricScattering {
         Graphics.bind2DTexture(depthMap, 0);
         Graphics.bind2DTexture(shadows.getShadowMap(0), 1);
         Graphics.bind2DTexture(exposure, 2);
+        Graphics.bind2DTexture(normal, 3);
 
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
         for (Light light : lights) {
-            if (!light.isVolumetricLight() || light.getLightType() == LightType.POINT)
+            if (light.getVolumetricStrength() <= 0)
                 continue;
 
             shader.loadInformation(light, viewMatrix, shadows.getToShadowMapSpaceMatrix(0));

@@ -44,8 +44,8 @@ public class Bloom {
         bloomShader.stop();
 
         blurOne.perform(outputFBO.getColourTexture());
-        blurTwo.perform(outputFBO.getColourTexture());
-        blurThree.perform(outputFBO.getColourTexture());
+        blurTwo.perform(blurOne.getOutputFBO().getColourTexture());
+        blurThree.perform(blurTwo.getOutputFBO().getColourTexture());
 
         combineShader.start();
         QuadRenderer.bind();

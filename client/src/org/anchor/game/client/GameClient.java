@@ -1,14 +1,12 @@
 package org.anchor.game.client;
 
 import java.io.File;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.UIManager;
 
 import org.anchor.client.engine.renderer.Graphics;
-import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
@@ -23,6 +21,10 @@ import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.gui.GUI;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.ibl.IBL;
+import org.anchor.client.engine.renderer.keyboard.Binds;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
+import org.anchor.client.engine.renderer.keyboard.Keys;
+import org.anchor.client.engine.renderer.keyboard.RunCommandCallback;
 import org.anchor.client.engine.renderer.menu.Menu;
 import org.anchor.client.engine.renderer.menu.MenuItem;
 import org.anchor.client.engine.renderer.shadows.Shadows;
@@ -42,7 +44,6 @@ import org.anchor.engine.common.utils.StringUtils;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
-import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.console.EngineGameCommands;
 import org.anchor.engine.shared.console.GameCommand;
 import org.anchor.engine.shared.console.GameCommandManager;
@@ -73,7 +74,6 @@ import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.weapon.Gun;
 import org.anchor.engine.shared.weapon.Weapon;
-import org.anchor.game.client.animation.AnimatedModel;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
@@ -90,19 +90,19 @@ import org.anchor.game.client.developer.ConsoleRenderer;
 import org.anchor.game.client.developer.LogRenderer;
 import org.anchor.game.client.developer.ProfilerRenderer;
 import org.anchor.game.client.developer.debug.Debug;
+import org.anchor.game.client.events.RedirectListener;
 import org.anchor.game.client.loaders.AssetLoader;
-import org.anchor.game.client.loaders.dae.AnimatedModelLoader;
-import org.anchor.game.client.loaders.dae.AnimationLoader;
 import org.anchor.game.client.particles.ParticleRenderer;
-import org.anchor.game.client.shaders.AnimationShader;
 import org.anchor.game.client.shaders.ViewmodelShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
 import org.anchor.game.client.utils.FrustumCull;
 import org.anchor.game.client.utils.MouseUtils;
+import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.util.vector.Matrix4f;
@@ -123,20 +123,21 @@ public class GameClient extends Game implements IPacketHandler {
 
     protected List<Text> texts;
     protected List<GUI> guis;
-    protected Vector3f spawn = new Vector3f();
 
-    protected Text gpuTime, cpuTime, yetAnother, crosshair, health, ammo, reserveAmmo, pressAnyKey, playerPosition, playerRotation;
+    protected Text gpuTime, cpuTime, dead, crosshair, health, ammo, reserveAmmo, pressAnyKey, playerPosition, playerRotation;
     protected boolean loaded;
     protected State state;
 
-    protected Menu mainMenu, pauseMenu;
+    protected Menu mainMenu, optionsMenu, pauseMenu, previousMenu;
     protected boolean console;
-    protected IUser user;
 
-    protected Entity man;
+    protected String currentLevel, mainMenuPath = FileHelper.newGameFile("maps", "main-menu.asg").getAbsolutePath();
+
+    public static Thread mainThread;
 
     @Override
     public void init() {
+        mainThread = Thread.currentThread();
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
         } catch (Exception e) {
@@ -145,7 +146,8 @@ public class GameClient extends Game implements IPacketHandler {
 
         VirtualFileSystem.init();
         ClientGameVariables.init(); // should already be initialised by GameStart
-        Engine.init(Side.CLIENT, new ClientEngine());
+        Engine.init(Side.CLIENT);
+        Engine.bus.registerEvents(new RedirectListener());
         Graphics.init();
         Audio.init();
 
@@ -154,7 +156,16 @@ public class GameClient extends Game implements IPacketHandler {
         ProfilerRenderer.init();
         ParticleRenderer.init();
 
-        user = new ClientUser();
+        Binds.getInstance().init(new RunCommandCallback() {
+
+            @Override
+            public void runCommand(String cmd) {
+                GameClient.runCommand(cmd);
+            }
+
+        });
+
+        user = new LocalUser();
         fxaa = new FXAA();
         deferred = new DeferredShading();
         ibl = new IBL(deferred);
@@ -168,6 +179,7 @@ public class GameClient extends Game implements IPacketHandler {
         physics = new PhysicsEngine();
 
         player = new Entity(ClientInputComponent.class);
+        player.setLineIndex(-1);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
         player.spawn();
@@ -184,18 +196,12 @@ public class GameClient extends Game implements IPacketHandler {
         gun.getComponent(MeshComponent.class).disableFrustumCulling = true;
         gun.getComponent(MeshComponent.class).shader = ViewmodelShader.getInstance();
 
-        man = new Entity(MeshComponent.class);
-        man.getComponent(MeshComponent.class).model = AnimatedModelLoader.loadAnimatedModel("man");
-        man.spawn();
-        man.getComponent(MeshComponent.class).shader = AnimationShader.getInstance();
-        ((AnimatedModel) (man.getComponent(MeshComponent.class).model)).animate(AnimationLoader.loadAnimation("man"));
-
         texts = new ArrayList<Text>();
 
         texts.add(gpuTime = new TextBuilder().position(0.985f, 0.97f).align(Alignment.RIGHT).build());
         texts.add(cpuTime = new TextBuilder().position(0.985f, 0.92f).align(Alignment.RIGHT).build());
 
-        yetAnother = new TextBuilder().text("YET ANOTHER").size(6).colour(1, 1, 1).align(Alignment.CENTER).build();
+        texts.add(dead = new TextBuilder().text("DIED").size(6).colour(1, 1, 1, 0).align(Alignment.CENTER).build());
         texts.add(crosshair = new TextBuilder().text("+").size(1.3f).align(Alignment.CENTER).build());
 
         texts.add(health = new TextBuilder().position(-0.97f, -0.9265f).size(2).colour(0.75f, 0, 0).align(Alignment.LEFT).build());
@@ -212,9 +218,19 @@ public class GameClient extends Game implements IPacketHandler {
 
             @Override
             public void run(Menu parent) {
-                GameClient.runCommand("connect localhost");
+                GameClient.runCommand("connect 127.0.0.1");
 
                 parent.close();
+            }
+
+        }, new MenuItem("Options") {
+
+            @Override
+            public void run(Menu parent) {
+                parent.close();
+                previousMenu = parent;
+
+                optionsMenu.show();
             }
 
         }, new MenuItem("Quit") {
@@ -227,12 +243,57 @@ public class GameClient extends Game implements IPacketHandler {
 
         });
 
+        optionsMenu = new Menu("Options", new Menu("Display", new MenuItem("Fullscreen") {
+
+            @Override
+            public void run(Menu parent) {
+                try {
+                    Display.setFullscreen(!Display.isFullscreen());
+                } catch (LWJGLException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public float renderExtra(Text text, float x, float y, float longest) {
+                text.setText(Display.isFullscreen() ? "Yes" : "No");
+                text.getPosition().x += longest + 0.0f;
+                text.setAlignment(Alignment.RIGHT);
+
+                FontRenderer.render(text);
+
+                text.setAlignment(Alignment.LEFT);
+
+                return text.getLength();
+            }
+
+        }), new MenuItem("Back") {
+
+            @Override
+            public void run(Menu parent) {
+                parent.close();
+                previousMenu.show();
+            }
+
+        });
+
         pauseMenu = new Menu("Paused", new MenuItem("Resume") {
 
             @Override
             public void run(Menu parent) {
                 state = State.IN_GAME;
+
                 parent.close();
+            }
+
+        }, new MenuItem("Options") {
+
+            @Override
+            public void run(Menu parent) {
+                parent.close();
+                previousMenu = parent;
+
+                optionsMenu.show();
             }
 
         }, new MenuItem("Exit to main menu") {
@@ -240,19 +301,10 @@ public class GameClient extends Game implements IPacketHandler {
             @Override
             public void run(Menu parent) {
                 parent.close();
-                GameClient.runCommand("disconnect");
+                disconnect();
             }
 
         });
-
-        new GameCommand("r_reloadShaders", "Reloads shaders") {
-
-            @Override
-            public void run(IUser sender, String[] args) {
-                Renderer.reloadShaders();
-            }
-
-        };
 
         new GameCommand("connect", "Connects to the specified server") {
 
@@ -264,7 +316,7 @@ public class GameClient extends Game implements IPacketHandler {
                 }
 
                 if (client != null)
-                    GameCommandManager.run(sender, "disconnect");
+                    disconnect();
 
                 pressAnyKey.setAlpha(0);
                 crosshair.setText("+");
@@ -281,29 +333,14 @@ public class GameClient extends Game implements IPacketHandler {
 
             @Override
             public void run(IUser sender, String[] args) {
-                if (client == null)
-                    return;
-
-                state = State.MAIN_MENU;
-
-                client.disconnect();
-                client = null;
-
-                loadMap(FileHelper.newGameFile("maps", "main-menu.asg"));
+                disconnect();
             }
 
         };
 
-        new GameCommand("quit", "Quits the game") {
-
-            @Override
-            public void run(IUser sender, String[] args) {
-                shutdown();
-                System.exit(0);
-            }
-
-        };
+        ClientGameCommands.init();
         EngineGameCommands.init();
+        runCommand("exec autoexec");
 
         CorePacketManager.register();
         Log.info("App initialised.");
@@ -311,16 +348,17 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void update() {
-        man.getPosition().set(Vector3f.add(player.getPosition(), new Vector3f(0, -5, -5), null));
-        man.update();
-
         Profiler.start("Game Update");
         Requester.perform();
         MouseUtils.update();
         KeyboardUtils.update();
+        Binds.getInstance().update();
 
         if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_PAUSE) || KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_END)) {
             console = !console;
+            Binds.inUI = console;
+            if (!Binds.inUI)
+                Binds.inUI = Menu.isAnyMenuVisible();
 
             if (console)
                 KeyboardUtils.getPressedCharacters().clear();
@@ -346,12 +384,22 @@ public class GameClient extends Game implements IPacketHandler {
 
             crosshair.setText("");
         } else if (state == State.IN_GAME) {
-            if (!Mouse.isGrabbed())
-                Mouse.setGrabbed(true);
+            if (!Binds.inUI) {
+                if (!Mouse.isGrabbed())
+                    Mouse.setGrabbed(true);
+            } else {
+                if (Mouse.isGrabbed())
+                    Mouse.setGrabbed(false);
+            }
 
             client.handle();
 
             boolean interacting = KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_E);
+            if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_1))
+                livingComponent.selectedIndex = 0;
+            else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_2))
+                livingComponent.selectedIndex = 1;
+
             Profiler.start("Physics");
             accumulator += AppManager.getFrameTimeSeconds();
             while (accumulator >= PhysicsEngine.TICK_DELAY) {
@@ -370,40 +418,8 @@ public class GameClient extends Game implements IPacketHandler {
 
                 FrustumCull.update();
 
-                client.sendPacket(new PlayerMovementPacket(KeyboardUtils.isKeyDown(Keyboard.KEY_W), KeyboardUtils.isKeyDown(Keyboard.KEY_A), KeyboardUtils.isKeyDown(Keyboard.KEY_S), KeyboardUtils.isKeyDown(Keyboard.KEY_D), player.getComponent(ClientInputComponent.class).space, KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT), interacting, livingComponent.fire, livingComponent.reload, livingComponent.getSelectedIndex(), livingComponent.pitch, livingComponent.yaw));
-
-                if (livingComponent.health <= 0) {
-                    livingComponent.health = 100;
-
-                    player.getVelocity().set(0, 0, 0);
-                    player.getPosition().set(spawn);
-
-                    texts.add(yetAnother);
-                    texts.remove(crosshair);
-
-                    Scheduler.schedule(new ScheduledRunnable() {
-
-                        @Override
-                        public void tick(float time, float percentage) {
-                            yetAnother.setAlpha(Math.min(percentage * 6, 1));
-                        }
-
-                        @Override
-                        public void finish() {
-                            texts.remove(yetAnother);
-                            texts.add(crosshair);
-                        }
-
-                    }, 2);
-                }
+                client.sendPacket(new PlayerMovementPacket(Keys.isKeyPressed("forward"), Keys.isKeyPressed("left"), Keys.isKeyPressed("back"), Keys.isKeyPressed("right"), player.getComponent(ClientInputComponent.class).space, KeyboardUtils.isKeyDown(Keyboard.KEY_LSHIFT), interacting, livingComponent.fire, livingComponent.reload, livingComponent.getSelectedIndex(), livingComponent.pitch, livingComponent.yaw));
             }
-
-            if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_1))
-                livingComponent.selectedIndex = 0;
-            else if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_2))
-                livingComponent.selectedIndex = 1;
-
-            checkForInteractions(interacting);
             Profiler.end("Physics");
 
             Profiler.start("Scene Update");
@@ -413,6 +429,7 @@ public class GameClient extends Game implements IPacketHandler {
                 scene.update();
             Profiler.end("Scene Update");
 
+            dead.setAlpha(livingComponent.health <= 0 ? 1 : 0);
             health.setText((int) livingComponent.health + "");
             Weapon weapon = livingComponent.getSelectedWeapon();
             if (weapon instanceof Gun) {
@@ -484,7 +501,6 @@ public class GameClient extends Game implements IPacketHandler {
         if (state == State.IN_GAME || state == State.PAUSED)
             ClientScene.renderEntity(gun);
         GL11.glDepthRange(0, 1);
-        ClientScene.renderEntity(man);
 
         deferred.decals();
         scene.renderDecals(deferred.getOutputFBO().getDepthTexture());
@@ -525,7 +541,7 @@ public class GameClient extends Game implements IPacketHandler {
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
+        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
         fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
         vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
@@ -552,6 +568,10 @@ public class GameClient extends Game implements IPacketHandler {
         Profiler.end("GUI");
 
         ProfilerRenderer.render(ClientGameVariables.cl_showProfiler.getValueAsInt());
+
+        if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_G)) {
+            Profiler.dump();
+        }
 
         GL11.glDisable(GL11.GL_BLEND);
         Profiler.frameEnd();
@@ -658,12 +678,11 @@ public class GameClient extends Game implements IPacketHandler {
         } else if (receivedPacket.getId() == CorePacketManager.GAME_VARIABLE_PACKET) {
             GameVariablePacket packet = (GameVariablePacket) receivedPacket;
 
-            System.out.println("X" + packet.name);
             GameVariable variable = GameVariableManager.getByName(packet.name);
             if (variable == null)
                 return;
 
-            variable.setValue(packet.value); // value is trusted - could be modified via MIDM
+            variable.setValue(packet.value); // value is trusted - could be modified via MITM
         } else if (receivedPacket.getId() == CorePacketManager.RUN_COMMAND_PACKET) {
             GameCommandManager.run(user, ((RunCommandPacket) receivedPacket).command);
         } else if (receivedPacket.getId() == CorePacketManager.SEND_MESSAGE_PACKET) {
@@ -678,19 +697,17 @@ public class GameClient extends Game implements IPacketHandler {
 
     @Override
     public void handleException(Exception e) {
-        if (e instanceof ConnectException) {
-            Log.info("Connection refused.");
-
-            client.disconnect();
-            client = null;
-
-            state = State.MAIN_MENU;
-        }
+        Log.info(e.getMessage());
+        disconnect();
     }
 
     @Override
-    public void disconnect(BaseNetworkable net) {
+    public void handleDisconnect(BaseNetworkable net) {
+        state = State.MAIN_MENU;
 
+        client = null;
+        if (!currentLevel.equals(mainMenuPath))
+            loadMap(FileHelper.newGameFile("maps", "main-menu.asg"));
     }
 
     public Entity getNetworkedEntityFromId(int id) {
@@ -699,6 +716,19 @@ public class GameClient extends Game implements IPacketHandler {
                 return entity;
 
         return null;
+    }
+
+    public void disconnect() {
+        if (client == null)
+            return;
+
+        state = State.MAIN_MENU;
+
+        client.disconnect();
+        client = null;
+
+        if (!currentLevel.equals(mainMenuPath))
+            loadMap(FileHelper.newGameFile("maps", "main-menu.asg"));
     }
 
     @Override
@@ -754,8 +784,12 @@ public class GameClient extends Game implements IPacketHandler {
         return ((Game) AppManager.getInstance()).client;
     }
 
+    public static void shutdownGame() {
+        ((Game) AppManager.getInstance()).shutdown();
+    }
+
     public static void runCommand(String command) {
-        GameCommandManager.run(getInstance().user, command);
+        GameCommandManager.run(((Game) AppManager.getInstance()).user, command);
     }
 
     public static Terrain getTerrainByPoint(Vector3f point) {
@@ -772,17 +806,62 @@ public class GameClient extends Game implements IPacketHandler {
     }
 
     public void loadMap(File map) {
+        currentLevel = map.getAbsolutePath();
+
+        boolean wait = false;
         if (scene != null) {
-            for (Entity entity : scene.getEntitiesWithComponent(MeshComponent.class)) {
-                entity.getComponent(MeshComponent.class).model.unload();
-                AssetLoader.removeModel(entity.getComponent(MeshComponent.class).model);
+            List<Entity> entities = scene.getEntitiesWithComponent(MeshComponent.class);
+            List<Terrain> terrains = scene.getTerrains();
+            VirtualFileSystem vfs = scene.getVirtualFileSystem();
+
+            if (Thread.currentThread() != mainThread) {
+                wait = true;
+
+                Scheduler.schedule(new ScheduledRunnable() {
+
+                    @Override
+                    public void tick(float time, float percentage) {
+
+                    }
+
+                    @Override
+                    public void finish() {
+                        for (Entity entity : entities) {
+                            entity.getComponent(MeshComponent.class).model.unload();
+                            AssetLoader.removeModel(entity.getComponent(MeshComponent.class).model);
+                        }
+
+                        for (Terrain terrain : terrains)
+                            ((ClientTerrain) terrain).unload();
+
+                        if (vfs != null)
+                            vfs.unload();
+                        scene = null;
+                    }
+
+                }, 0);
+            } else {
+                for (Entity entity : entities) {
+                    entity.getComponent(MeshComponent.class).model.unload();
+                    AssetLoader.removeModel(entity.getComponent(MeshComponent.class).model);
+                }
+
+                for (Terrain terrain : terrains)
+                    ((ClientTerrain) terrain).unload();
+
+                if (vfs != null)
+                    vfs.unload();
+                scene = null;
             }
+        }
 
-            for (Terrain terrain : scene.getTerrains())
-                ((ClientTerrain) terrain).unload();
+        if (wait) {
+            try {
+                while (scene != null)
+                    Thread.sleep(10);
+            } catch (Exception e) {
 
-            if (scene.getVirtualFileSystem() != null)
-                scene.getVirtualFileSystem().unload();
+            }
         }
 
         scene = new GameMap(map).getScene();
@@ -798,9 +877,8 @@ public class GameClient extends Game implements IPacketHandler {
             shadows = new Shadows(lightComponent);
         }
 
-        for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
-            spawn.set(entity.getPosition());
-        player.getPosition().set(spawn);
+        player.getPosition().set(scene.getSpawn());
+        player.getVelocity().set(0, 0, 0);
         loaded = false;
     }
 

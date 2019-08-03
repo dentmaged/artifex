@@ -39,6 +39,10 @@ public class VectorUtils {
         return new Vector2f(a.x * b.x, a.y * b.y);
     }
 
+    public static Vector3f mul(Matrix4f m, Vector4f a) {
+        return new Vector3f(Matrix4f.transform(m, a, a));
+    }
+
     public static Vector3f div(Vector3f v, Vector3f b) {
         return new Vector3f(v.x / b.x, v.y / b.y, v.z / b.z);
     }
@@ -69,6 +73,10 @@ public class VectorUtils {
 
     public static boolean anyZero(Vector3f v) {
         return v.x == 0 || v.y == 0 || v.z == 0;
+    }
+
+    public static Vector3f abs(Vector3f v) {
+        return new Vector3f(Mathf.abs(v.x), Mathf.abs(v.y), Mathf.abs(v.z));
     }
 
     public static void set(Matrix4f a, Matrix4f b) {

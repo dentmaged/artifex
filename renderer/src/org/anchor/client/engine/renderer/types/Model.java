@@ -1,5 +1,6 @@
 package org.anchor.client.engine.renderer.types;
 
+import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.types.mesh.Mesh;
 import org.anchor.client.engine.renderer.types.mesh.MeshRequest;
 import org.lwjgl.opengl.GL15;
@@ -30,6 +31,9 @@ public class Model {
     }
 
     public void unload() {
+        if (Renderer.getCubeModel() == this)
+            return;
+
         if (!isLoaded())
             return;
 

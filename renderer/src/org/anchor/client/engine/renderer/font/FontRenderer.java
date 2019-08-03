@@ -13,7 +13,7 @@ public class FontRenderer {
     protected static FontShader shader = FontShader.getInstance();
     public static Font defaultFont = new Font("segoe");
 
-    public static final float HORIZONTAL_PADDING = 0.0075f / ((float) Display.getWidth() / 1280f);
+    public static final float HORIZONTAL_PADDING = 0.0075f;
     public static final float VERTICAL_PADDING = 0.045f / ((float) Display.getHeight() / 720f);
     public static final int TAB_SIZE = 8;
 
@@ -21,6 +21,7 @@ public class FontRenderer {
         shader.start();
         QuadRenderer.bind();
 
+        float horizontalMultiplier = 1280f / (float) Display.getWidth();
         for (Text text : texts) {
             if (text.getColour().w == 0)
                 continue;
@@ -35,7 +36,7 @@ public class FontRenderer {
             float startX = x;
             for (char c : text.getText().toCharArray()) {
                 if (c == ' ' || c == '\t') {
-                    x += (font.getSpaceWidth() * (c == '\t' ? TAB_SIZE : 1) + HORIZONTAL_PADDING) * size;
+                    x += (font.getSpaceWidth() * (c == '\t' ? TAB_SIZE : 1) + HORIZONTAL_PADDING) * size * horizontalMultiplier;
 
                     continue;
                 } else if (c == '\n') {
@@ -48,7 +49,7 @@ public class FontRenderer {
                 Character character = font.getCharacter((int) c);
                 shader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(text.getPosition().x + x + character.getXOffset() * size, y - character.getYOffset() * size), new Vector2f(character.getSizeX() * size, character.getSizeY() * size), 180, 0), text.getColour(), character.getUV());
 
-                x += (character.getXAdvance() + HORIZONTAL_PADDING) * size;
+                x += (character.getXAdvance() + HORIZONTAL_PADDING) * size * horizontalMultiplier;
                 QuadRenderer.render();
             }
         }
@@ -61,6 +62,7 @@ public class FontRenderer {
         if (text.getColour().w == 0)
             return;
 
+        float horizontalMultiplier = 1280f / (float) Display.getWidth();
         shader.start();
         QuadRenderer.bind();
 
@@ -74,7 +76,7 @@ public class FontRenderer {
         float startX = x;
         for (char c : text.getText().toCharArray()) {
             if (c == ' ' || c == '\t') {
-                x += (font.getSpaceWidth() * (c == '\t' ? TAB_SIZE : 1) + HORIZONTAL_PADDING) * size;
+                x += (font.getSpaceWidth() * (c == '\t' ? TAB_SIZE : 1) + HORIZONTAL_PADDING) * size * horizontalMultiplier;
 
                 continue;
             } else if (c == '\n') {
@@ -90,7 +92,7 @@ public class FontRenderer {
 
             shader.loadInformation(CoreMaths.createTransformationMatrix(new Vector2f(text.getPosition().x + x + character.getXOffset() * size, y - character.getYOffset() * size), new Vector2f(character.getSizeX() * size, character.getSizeY() * size), 180, 0), text.getColour(), character.getUV());
 
-            x += (character.getXAdvance() + HORIZONTAL_PADDING) * size;
+            x += (character.getXAdvance() + HORIZONTAL_PADDING) * size * horizontalMultiplier;
             QuadRenderer.render();
         }
 

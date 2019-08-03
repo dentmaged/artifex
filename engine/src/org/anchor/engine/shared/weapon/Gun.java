@@ -1,5 +1,6 @@
 package org.anchor.engine.shared.weapon;
 
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
 
 public class Gun extends Weapon {
@@ -32,7 +33,8 @@ public class Gun extends Weapon {
         ammo--;
         lastAttackTime = time;
 
-        data.perform(this, owner);
+        if (!Engine.isClientSide())
+            data.perform(this, owner);
 
         if (ammo == 0)
             reload();

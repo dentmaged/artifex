@@ -1,28 +1,19 @@
-package org.anchor.game.client;
+package org.anchor.game.client.events;
 
-import org.anchor.engine.common.net.packet.IPacket;
-import org.anchor.engine.shared.Engine;
+import org.anchor.engine.common.events.Listener;
+import org.anchor.engine.common.events.handler.EventHandler;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
+import org.anchor.engine.shared.events.component.AddComponentEvent;
+import org.anchor.engine.shared.events.entity.EntityCreateEvent;
 import org.anchor.engine.shared.net.Redirect;
 
-public class ClientEngine extends Engine {
+public class RedirectListener implements Listener {
 
-    @Override
-    public void broadcast(IPacket packet) {
-        if (!isConnected())
-            return;
+    @EventHandler
+    public void onEntityCreate(EntityCreateEvent event) {
+        Entity entity = event.getEntity();
 
-        GameClient.getClient().sendPacket(packet);
-    }
-
-    @Override
-    public boolean isConnected() {
-        return GameClient.getClient() != null;
-    }
-
-    @Override
-    public void onEntityCreate(Entity entity) {
         try {
             for (IComponent component : entity.getComponents()) {
                 Redirect redirect = component.getClass().getAnnotation(Redirect.class);
@@ -36,8 +27,11 @@ public class ClientEngine extends Engine {
         }
     }
 
-    @Override
-    public void onComponentAdd(Entity entity, IComponent component) {
+    @EventHandler
+    public void onComponentAdd(AddComponentEvent event) {
+        Entity entity = event.getEntity();
+        IComponent component = event.getComponent();
+
         try {
             Redirect redirect = component.getClass().getAnnotation(Redirect.class);
             if (redirect != null) {

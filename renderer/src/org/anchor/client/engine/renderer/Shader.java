@@ -199,7 +199,15 @@ public abstract class Shader {
         if (GL20.glGetShaderi(shaderId, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
             String error = GL20.glGetShaderInfoLog(shaderId, 500);
             String[] lines = shaderSource.toString().split("\n");
-            int location = Integer.parseInt(error.substring(error.indexOf('(') + 1, error.indexOf(')')));
+            System.out.println(error);
+
+            int location;
+            try {
+                location = Integer.parseInt(error.substring(error.indexOf('(') + 1, error.indexOf(')')));
+            } catch (StringIndexOutOfBoundsException e) {
+                String[] errorDots = error.split(":");
+                location = Integer.parseInt(errorDots[2]);
+            }
 
             String before = "", middle = "", after = lines[location];
             if (location > 1)

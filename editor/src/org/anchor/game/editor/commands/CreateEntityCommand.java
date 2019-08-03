@@ -2,6 +2,7 @@ package org.anchor.game.editor.commands;
 
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.engine.shared.events.entity.EntityCreateEvent;
 import org.anchor.game.editor.ui.LevelEditor;
 
 public class CreateEntityCommand implements CommandCallback {
@@ -20,7 +21,7 @@ public class CreateEntityCommand implements CommandCallback {
 
     @Override
     public void redo() {
-        Engine.getInstance().onEntityCreate(entity);
+        Engine.bus.fireEvent(new EntityCreateEvent(entity));
         Engine.getEntities().add(entity);
         LevelEditor.getInstance().updateList();
     }

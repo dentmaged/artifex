@@ -3,6 +3,7 @@ package org.anchor.game.client.app;
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.Window;
 import org.anchor.engine.common.app.App;
+import org.anchor.engine.common.utils.JavaUtils;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL33;
 
@@ -15,7 +16,7 @@ public class AppManager {
     private static final float NANO_TO_MILLI = 1f / 1000000f;
 
     public static void create(App app) {
-        Window.create(app.getTitle());
+        Window.create(app.getTitle() + (JavaUtils.isDebuggerAttached() ? " (Debug)" : ""));
         instance = app;
 
         app.init();

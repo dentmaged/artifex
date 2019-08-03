@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.util.Map.Entry;
 
+import org.anchor.engine.common.Log;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.entity.Entity;
@@ -40,12 +41,12 @@ public class EntitySpawnPacket implements IPacket {
             stream.writeUTF(entry.getValue());
         }
 
-        int skip = 0;
+        int count = 0;
         for (IComponent component : entity.getComponents())
-            if (component.getClass().getName().startsWith("org.anchor.game.server"))
-                skip++;
+            if (!component.getClass().getName().startsWith("org.anchor.game.server"))
+                count++;
 
-        stream.writeInt(entity.getComponents().size() - skip);
+        stream.writeInt(count);
         for (IComponent component : entity.getComponents()) {
             Class<? extends IComponent> clazz = component.getClass();
             if (clazz.getName().startsWith("org.anchor.game.server"))
@@ -80,7 +81,22 @@ public class EntitySpawnPacket implements IPacket {
 
         count = stream.readInt();
         for (int i = 0; i < count; i++) {
-            Class<? extends IComponent> clazz = (Class<? extends IComponent>) Class.forName(stream.readUTF());
+            String className = stream.readUTF();
+            if (className.length() == 0) {
+                Log.warning("Invalid component name (zero length)!");
+                continue;
+            }
+
+            Log.debug(className);
+            Class<? extends IComponent> clazz = null;
+
+            try {
+                clazz = (Class<? extends IComponent>) Class.forName(className);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+                Log.error("Component " + className + " not found!");
+            }
+
             IComponent component = clazz.newInstance();
             entity.addComponent(component);
 

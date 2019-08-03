@@ -13,6 +13,7 @@ import org.anchor.client.engine.renderer.types.cubemap.CubemapFramebuffer;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
+import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.shaders.ForwardStaticShader;
@@ -27,6 +28,9 @@ public class CubemapGenerator {
 
     public static void generate(ClientScene scene) {
         for (Entity entity : scene.getEntitiesWithComponent(ReflectionProbeComponent.class)) // Performance doesn't matter
+            generate(entity);
+
+        for (Entity entity : scene.getEntitiesWithComponent(LightProbeComponent.class))
             generate(entity);
     }
 
@@ -92,7 +96,7 @@ public class CubemapGenerator {
         Settings.fov = fov;
         Settings.width = Display.getWidth();
         Settings.height = Display.getHeight();
-        Settings.bakedGeneration = true;
+        Settings.bakedGeneration = false;
         Renderer.refreshProjectionMatrix();
         GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
 

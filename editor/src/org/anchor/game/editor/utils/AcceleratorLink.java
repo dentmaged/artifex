@@ -5,7 +5,7 @@ import java.awt.event.InputEvent;
 import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 
-import org.anchor.client.engine.renderer.KeyboardUtils;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
 import org.lwjgl.input.Keyboard;
 
 public class AcceleratorLink {

@@ -1,10 +1,9 @@
 package org.anchor.engine.shared;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.engine.common.net.packet.IPacket;
+import org.anchor.engine.common.events.EventBus;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
@@ -18,19 +17,14 @@ import org.lwjgl.util.vector.Vector3f;
 public class Engine {
 
     private static Side side;
-    private static Engine instance;
 
     public static Scene scene;
+    public static EventBus bus = new EventBus();
 
     public static int PROTOCOL_VERSION = 1;
 
     public static void init(Side side) {
-        init(side, new Engine());
-    }
-
-    public static void init(Side side, Engine instance) {
         Engine.side = side;
-        Engine.instance = instance;
     }
 
     public static Scene getScene() {
@@ -93,6 +87,10 @@ public class Engine {
         return scene.getDefaultLayer();
     }
 
+    public static Vector3f getSpawn() {
+        return scene.getSpawn();
+    }
+
     public static EntityRaycast raycast(Vector3f origin, Vector3f ray) {
         ray.normalise();
 
@@ -113,60 +111,8 @@ public class Engine {
         return new EntityRaycast(closest, distance, ray, origin);
     }
 
-    public static Engine getInstance() {
-        return instance;
-    }
-
     public static boolean isClientSide() {
         return side == Side.CLIENT;
-    }
-
-    public static boolean isServerSide() {
-        return side == Side.SERVER;
-    }
-
-    public void broadcast(IPacket packet) {
-
-    }
-
-    public boolean isConnected() {
-        return isServerSide();
-    }
-
-    public void onEntityCreate(Entity entity) {
-
-    }
-
-    public void onEntityPrecache(Entity entity) {
-
-    }
-
-    public void onEntityPreSpawn(Entity entity) {
-
-    }
-
-    public void onEntitySpawn(Entity entity) {
-
-    }
-
-    public void onComponentAdd(Entity entity, IComponent component) {
-
-    }
-
-    public void onComponentRemove(Entity entity, IComponent component) {
-
-    }
-
-    public void onEntityKeyValueChange(Entity entity, String key, String value) {
-
-    }
-
-    public void onMonitorVariableChange(Object parent, Object target, Field field, Object previous, Object current) {
-
-    }
-
-    public void onEntityDestroy(Entity entity) {
-
     }
 
 }

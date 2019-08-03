@@ -19,9 +19,6 @@ public class CrossbowData extends GunData {
 
     @Override
     public void perform(Weapon weapon, Entity owner) {
-        if (Engine.isClientSide())
-            return;
-
         LivingComponent livingComponent = owner.getComponent(LivingComponent.class);
 
         Entity projectile = new Entity(PhysicsComponent.class, EngineMeshComponent.class);
@@ -43,7 +40,7 @@ public class CrossbowData extends GunData {
             }
 
         });
-        projectile.getPosition().set(livingComponent.getEyePosition());
+        projectile.getPosition().set(Vector3f.add(livingComponent.getEyePosition(), VectorUtils.mul(livingComponent.getForwardVector(), 2), null));
         projectile.getVelocity().set(VectorUtils.mul(livingComponent.getForwardVector(), 50));
         projectile.spawn();
         Engine.getEntities().add(projectile);

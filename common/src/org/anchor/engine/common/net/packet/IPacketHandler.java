@@ -10,6 +10,6 @@ public interface IPacketHandler {
 
     public void handleException(Exception e);
 
-    public void disconnect(BaseNetworkable net);
+    public void handleDisconnect(BaseNetworkable net);
 
 }

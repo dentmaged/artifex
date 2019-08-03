@@ -40,7 +40,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class SkyComponent implements IComponent {
 
-    private Entity entity;
+    public Entity entity;
 
     @Property("Light")
     protected Entity light;

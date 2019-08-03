@@ -1,0 +1,7 @@
+20.0025.0falseskybox/partly-cloudy-day/
+hidden:truebackface:falsemodel:core/skyboxorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentorg.anchor.game.client.components.SkyComponentPosition:6.2985306@6.715755@10.815396Rotation:0.0@0.0@0.0Scale:3333.3333@3333.3333@3333.3333Model:Material:Texture Index:0Disable Frustum Culling:trueUV Scale X:falseUV Scale Y:falseUV Scale Z:falseUV Scale:1.0@1.0Casts Shadows:false
+name:Sunorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.LightComponentorg.anchor.game.client.components.SunComponentPosition:0.0@0.0@0.0Rotation:109.0@23.0@0.0Scale:1.0@1.0@1.0Relative Position:0.0@0.0@0.0Colour:6.0@6.0@6.0Attenuation:1.0@0.0@0.0Cutoff (degrees):35.0Outer cutoff (degrees):45.0Volumetric Light:trueType:DIRECTIONAL
+material:skybox/white_skymodel:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:-1.0@2.0@3.0Rotation:0.0@0.0@0.0Scale:2.5@2.5@2.5Model:Material:Texture Index:0Disable Frustum Culling:falseUV Scale X:falseUV Scale Y:falseUV Scale Z:falseUV Scale:1.0@1.0Casts Shadows:true
+model:editor/cubeorg.anchor.engine.shared.components.TransformComponentorg.anchor.game.client.components.MeshComponentPosition:0.0@0.0@0.0Rotation:36.0@-13.5@12.0Scale:12.0@1.0@8.5Model:Material:Texture Index:0Disable Frustum Culling:falseUV Scale X:falseUV Scale Y:falseUV Scale Z:falseUV Scale:1.0@1.0Casts Shadows:true
+
+

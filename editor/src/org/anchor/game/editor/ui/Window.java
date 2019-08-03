@@ -270,7 +270,7 @@ public class Window {
             @Override
             public void actionPerformed(ActionEvent e) {
                 for (TransformableObject object : LevelEditor.getInstance().getSelectedObjects())
-                    if (object instanceof Entity)
+                    if (object instanceof Entity && ((Entity) object).hasComponent(MeshComponent.class))
                         ((Entity) object).getComponent(MeshComponent.class).visible = false;
             }
 

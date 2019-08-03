@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
+import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.scene.Scene;
@@ -43,11 +44,10 @@ public class GameMap {
             scene.setVirtualFileSystem(new VirtualFileSystem(storage, 1));
 
         load();
+        System.out.println("Loaded.");
     }
 
     public void load() {
-        ServerEngine.ENTITY_ID = 1;
-
         String contents = FileHelper.read(file);
         String[] lines = contents.split("\n");
         int i = 0;
@@ -82,6 +82,9 @@ public class GameMap {
             scene.getTerrains().add(new Terrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1])));
             i++;
         }
+
+        for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
+            scene.getSpawn().set(entity.getPosition());
     }
 
     public Scene getScene() {

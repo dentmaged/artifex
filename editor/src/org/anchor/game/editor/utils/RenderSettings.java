@@ -35,6 +35,12 @@ public class RenderSettings {
 
         if (key.equals("SSAO Radius"))
             Settings.ssaoRadius = parseFloat(value);
+
+        if (key.equals("Volumetric Scattering"))
+            Settings.volumetricScattering = parseFloat(value);
+
+        if (key.equals("Ambient Strength"))
+            Settings.ambientScale = parseFloat(value);
     }
 
     private static boolean parseBoolean(String value) {

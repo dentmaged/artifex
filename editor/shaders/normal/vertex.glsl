@@ -15,6 +15,7 @@ uniform mat4 normalMatrix;
 
 uniform float numberOfRows;
 uniform vec2 offset;
+uniform vec2 uvScale;
 
 void main(void) {
 	gl_Position = projectionViewTransformationMatrix * vec4(position, 1);
@@ -24,5 +25,5 @@ void main(void) {
 	s_tangent = normalize(tangent - dot(tangent, normal) * normal);
 	s_bitangent = normalize(cross(s_normal, s_tangent));
 
-	tc = (textureCoordinates / numberOfRows) + offset;
+	tc = offset + (textureCoordinates * uvScale / numberOfRows);
 }

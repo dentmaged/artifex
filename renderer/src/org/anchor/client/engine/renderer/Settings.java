@@ -42,6 +42,8 @@ public class Settings {
     public static final float shadowDistance = 50;
     public static final int shadowResolution = 2048;
 
+    public static float volumetricScattering = 0.0924f;
+
     public static final int reflectionProbeSize = 256;
 
 }

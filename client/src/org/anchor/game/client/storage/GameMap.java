@@ -12,6 +12,7 @@ import org.anchor.client.engine.renderer.Settings;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
+import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
@@ -68,7 +69,6 @@ public class GameMap {
                             continue;
 
                         String[] sections = layer.split("@");
-
                         scene.getLayers().add(new Layer(sections[0], new Color(Integer.parseInt(sections[1]), Integer.parseInt(sections[2]), Integer.parseInt(sections[3])), Boolean.parseBoolean(sections[4]), Boolean.parseBoolean(sections[5])));
                     }
                 }
@@ -78,6 +78,13 @@ public class GameMap {
 
                     Settings.density = Float.parseFloat(fogSettings[0]);
                     Settings.gradient = Float.parseFloat(fogSettings[1]);
+                }
+
+                if (parts.length > 3) {
+                    String[] skySettings = parts[3].split(SUBPARTS);
+
+                    Settings.proceduralSky = Boolean.parseBoolean(skySettings[0]);
+                    Settings.skybox = skySettings[1];
                 }
 
                 i++;
@@ -104,6 +111,9 @@ public class GameMap {
                 scene.getTerrains().add(new ClientTerrain(size, Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]), new TerrainTexture(textures[0], textures[1], textures[2], textures[3], textures[4])));
                 i++;
             }
+
+            for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
+                scene.getSpawn().set(entity.getPosition());
         } catch (Exception e) {
             e.printStackTrace();
         }

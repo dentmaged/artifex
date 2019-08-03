@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.net.IUser;
-import org.anchor.engine.shared.net.packet.RunCommandPacket;
 
 public class GameCommandManager {
 
@@ -28,12 +26,13 @@ public class GameCommandManager {
         String[] split = command.split(" ");
         GameCommand cmd = getByName(split[0]);
         if (cmd == null) {
-            user.sendMessage("Command not found!");
+            user.sendMessage(command);
+            user.sendMessage("Command '" + split[0] + "' not found!");
 
             return;
         }
 
-        if (cmd.isCheat() && GameVariableManager.sv_cheats.getValueAsBool()) {
+        if (cmd.isCheat() && EngineGameVariables.sv_cheats.getValueAsBool()) {
             user.sendMessage("sv_cheats is disabled.");
 
             return;
@@ -42,10 +41,7 @@ public class GameCommandManager {
         if (!user.canRunCommand(cmd))
             return;
 
-        if (cmd.isServerOnly() && Engine.isClientSide())
-            Engine.getInstance().broadcast(new RunCommandPacket(command));
-        else
-            cmd.run(user, Arrays.copyOfRange(split, 1, split.length));
+        user.runCommand(command, cmd, Arrays.copyOfRange(split, 1, split.length));
     }
 
 }

@@ -34,9 +34,10 @@ public class ServerThread extends BaseNetworkable implements Runnable {
 
                 handler.handlePacket(this, packet);
             }
-            handler.disconnect(this);
+            handler.handleDisconnect(this);
         } catch (Exception e) {
-            e.printStackTrace();
+            handler.handleException(e);
+            disconnect();
         }
     }
 

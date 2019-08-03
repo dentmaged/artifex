@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.anchor.client.engine.renderer.KeyboardUtils;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.components.LivingComponent;

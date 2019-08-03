@@ -23,6 +23,7 @@ uniform bool usesAOMap;
 uniform bool blending;
 uniform bool bakedGeneration;
 
+#include "shadows.glsl"
 #include "lighting.glsl"
 #include "material.glsl"
 

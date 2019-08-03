@@ -10,12 +10,14 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Layer;
+import org.lwjgl.util.vector.Vector3f;
 
 public class Scene {
 
     protected List<Entity> entities = new ArrayList<Entity>();
     protected List<Terrain> terrains = new ArrayList<Terrain>();
     protected List<Layer> layers = new ArrayList<Layer>(Arrays.asList(new Layer("Default", new Color(132, 217, 132))));
+    protected Vector3f spawn = new Vector3f();
     protected VirtualFileSystem virtualFileSystem;
 
     public List<Entity> getEntities() {
@@ -81,6 +83,10 @@ public class Scene {
         }
 
         return components;
+    }
+
+    public Vector3f getSpawn() {
+        return spawn;
     }
 
     public VirtualFileSystem getVirtualFileSystem() {

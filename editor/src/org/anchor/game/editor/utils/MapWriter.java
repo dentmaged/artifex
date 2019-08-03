@@ -40,7 +40,7 @@ public class MapWriter {
 
                 text += layer.getName() + "@" + layer.getColour().getRed() + "@" + layer.getColour().getGreen() + "@" + layer.getColour().getBlue() + "@" + layer.isPickable() + "@" + layer.isVisible() + "@" + GameMap.SUBPARTS;
             }
-            text += GameMap.PARTS + Settings.density + GameMap.SUBPARTS + Settings.gradient + GameMap.SUBPARTS;
+            text += GameMap.PARTS + Settings.density + GameMap.SUBPARTS + Settings.gradient + GameMap.PARTS + Settings.proceduralSky + GameMap.SUBPARTS + Settings.skybox;
             text += "\n";
 
             for (Entity entity : scene.getEntities()) {

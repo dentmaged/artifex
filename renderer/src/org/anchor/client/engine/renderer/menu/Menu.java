@@ -3,14 +3,16 @@ package org.anchor.client.engine.renderer.menu;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.font.Alignment;
 import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.gui.GUI;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
+import org.anchor.client.engine.renderer.keyboard.Binds;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -62,10 +64,13 @@ public class Menu extends MenuItem {
                 return;
 
         visible = true;
+        Binds.inUI = true;
     }
 
     public void close() {
         visible = false;
+        Binds.inUI = false;
+
         if (parent != null) {
             parent.visible = true;
 
@@ -89,9 +94,10 @@ public class Menu extends MenuItem {
             if (!instance.visible)
                 continue;
 
+            float horizontalMultiplier = 1280f / (float) Display.getWidth();
             float height = (instance.items.size() + 1) * 0.055f;
-            gui.getPosition().set(instance.position.x + instance.longest * 0.5f - 0.0175f, instance.position.y - height * 0.5f + 0.02f);
-            gui.getScale().set(instance.longest * 0.5f + 0.03f, height * 0.5f + 0.01f);
+            gui.getPosition().set(instance.position.x + instance.longest * 0.5f * horizontalMultiplier + 0.0125f / horizontalMultiplier, instance.position.y - height * 0.5f + 0.02f);
+            gui.getScale().set((instance.longest * 0.5f + 0.1f) * horizontalMultiplier, height * 0.5f + 0.01f);
             GUIRenderer.render(gui);
 
             float x = instance.position.x + 0.001f;
@@ -121,7 +127,7 @@ public class Menu extends MenuItem {
                 instance.longest = Math.max(instance.longest, length);
 
                 FontRenderer.render(text);
-                instance.longest = Math.max(instance.longest, length + item.renderExtra(text, x, y, instance.longest));
+                instance.longest = Math.max(instance.longest, length + item.renderExtra(text, x, y, instance.longest) + 0.05f);
 
                 if (i == instance.selected) {
                     arrowText.getPosition().set(x - 0.023f, y + 0.005f);
@@ -161,7 +167,17 @@ public class Menu extends MenuItem {
                 instance.close();
                 back = false;
             }
+
+            break;
         }
+    }
+
+    public static boolean isAnyMenuVisible() {
+        for (Menu menu : instances)
+            if (menu.visible)
+                return true;
+
+        return false;
     }
 
 }

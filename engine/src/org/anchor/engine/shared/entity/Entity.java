@@ -14,6 +14,14 @@ import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.TransformComponent;
 import org.anchor.engine.shared.editor.TransformableObject;
+import org.anchor.engine.shared.events.component.AddComponentEvent;
+import org.anchor.engine.shared.events.component.RemoveComponentEvent;
+import org.anchor.engine.shared.events.entity.EntityCreateEvent;
+import org.anchor.engine.shared.events.entity.EntityDestroyEvent;
+import org.anchor.engine.shared.events.entity.EntityKeyValueChangeEvent;
+import org.anchor.engine.shared.events.entity.EntityPreSpawnEvent;
+import org.anchor.engine.shared.events.entity.EntityPrecacheEvent;
+import org.anchor.engine.shared.events.entity.EntitySpawnEvent;
 import org.anchor.engine.shared.utils.Layer;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -37,7 +45,7 @@ public class Entity implements TransformableObject {
         addComponent(new TransformComponent());
 
         layer = Engine.getDefaultLayer();
-        Engine.getInstance().onEntityCreate(this);
+        Engine.bus.fireEvent(new EntityCreateEvent(this));
     }
 
     public Entity(Class<? extends IComponent>... clazzes) {
@@ -52,7 +60,7 @@ public class Entity implements TransformableObject {
             }
         }
 
-        Engine.getInstance().onEntityCreate(this);
+        Engine.bus.fireEvent(new EntityCreateEvent(this));
     }
 
     public void precache() {
@@ -63,24 +71,28 @@ public class Entity implements TransformableObject {
             component.precache(this);
 
         precached = true;
-        Engine.getInstance().onEntityPrecache(this);
+        Engine.bus.fireEvent(new EntityPrecacheEvent(this));
     }
 
     public void spawn() {
         if (!precached)
             precache();
 
-        Engine.getInstance().onEntityPreSpawn(this);
+        Engine.bus.fireEvent(new EntityPreSpawnEvent(this));
         for (IComponent component : components)
             component.spawn();
 
         spawned = true;
-        Engine.getInstance().onEntitySpawn(this);
+        Engine.bus.fireEvent(new EntitySpawnEvent(this));
     }
 
     public void destroy() {
         Engine.getEntities().remove(this);
-        Engine.getInstance().onEntityDestroy(this);
+        Engine.bus.fireEvent(new EntityDestroyEvent(this));
+
+        for (Entity child : children)
+            if (child != this)
+                child.destroy();
     }
 
     public int getId() {
@@ -141,6 +153,10 @@ public class Entity implements TransformableObject {
         return transformationMatrix;
     }
 
+    public Matrix4f getLiveTransformationMatrix() {
+        return getComponent(TransformComponent.class).getTransformationMatrix();
+    }
+
     public Vector3f getVelocity() {
         if (!hasComponent(PhysicsComponent.class)) {
             Log.warning("Entity doesn't contain PhysicsComponent");
@@ -160,7 +176,7 @@ public class Entity implements TransformableObject {
         for (IComponent component : components)
             component.setValue(key, value);
 
-        Engine.getInstance().onEntityKeyValueChange(this, key, value);
+        Engine.bus.fireEvent(new EntityKeyValueChangeEvent(this, key, value));
     }
 
     public boolean containsKey(String key) {
@@ -210,16 +226,16 @@ public class Entity implements TransformableObject {
                 e.printStackTrace();
             }
         }
-        Engine.getInstance().onComponentAdd(this, component);
+        Engine.bus.fireEvent(new AddComponentEvent(this, component));
     }
 
     public <T extends IComponent> void removeComponent(T component) {
-        Engine.getInstance().onComponentRemove(this, component);
+        Engine.bus.fireEvent(new RemoveComponentEvent(this, component));
         components.remove(component);
     }
 
     public <T extends IComponent> void removeComponent(Class<T> clazz) {
-        Engine.getInstance().onComponentAdd(this, getComponent(clazz));
+        Engine.bus.fireEvent(new RemoveComponentEvent(this, getComponent(clazz)));
         components.remove(getComponent(clazz));
     }
 
@@ -257,6 +273,12 @@ public class Entity implements TransformableObject {
         for (Entry<String, String> entry : data.entrySet())
             copy.setValue(entry.getKey(), entry.getValue());
         copy.spawn();
+
+        for (Entity child : children) {
+            Entity childCopy = child.copy();
+            childCopy.parent = copy;
+            copy.children.add(childCopy);
+        }
 
         return copy;
     }

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.Shader;
-import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
 import org.anchor.engine.common.console.CoreGameVariableManager;
@@ -34,20 +33,13 @@ public class DeferredShader extends Shader {
         loadInt("other", 1);
         loadInt("normal", 2);
         loadInt("depthMap", 3);
-
-        for (int i = 0; i < Settings.shadowSplits; i++)
-            loadInt("shadowMaps[" + i + "]", 13 + i);
+        loadInt("shadow", 4);
     }
 
-    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights, Shadows shadows) {
+    public void loadInformation(Matrix4f viewMatrix, Matrix4f inverseViewMatrix, List<Light> lights) {
         loadMatrix("viewMatrix", viewMatrix);
         loadMatrix("inverseViewMatrix", inverseViewMatrix);
         loadBoolean("showLightmaps", r_showLightmaps.getValueAsBool());
-
-        for (int i = 0; i < Settings.shadowSplits; i++) {
-            loadMatrix("toShadowMapSpaces[" + i + "]", shadows.getToShadowMapSpaceMatrix(i));
-            loadFloat("shadowDistances[" + i + "]", shadows.getExtents(i));
-        }
 
         for (int i = 0; i < Settings.maxLights; i++) {
             if (i < lights.size()) {
@@ -63,6 +55,9 @@ public class DeferredShader extends Shader {
                     v.w = 1;
                 else
                     v.w = 2;
+
+                if (light.castsShadows())
+                    v.w += 3;
 
                 loadVector("lightPosition[" + i + "]", v);
                 loadVector("lightColour[" + i + "]", light.getColour());

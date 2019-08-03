@@ -1,4 +1,4 @@
-// #define DISABLE_SSR // unhappy with the quality
+#define DISABLE_SSR // unhappy with the quality
 
 const float step = 0.1;
 const float minRayStep = 0.25;
@@ -30,7 +30,7 @@ vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth) {
 	return vec3(projectedCoord.xy, depth);
 }
 
-vec4 raymarch(vec3 dir, inout vec3 hitCoord, out float dDepth) {
+vec4 raymarch(vec3 dir, vec3 hitCoord, out float dDepth) {
 	dir *= step;
 	float depth;
 	int steps;

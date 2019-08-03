@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
-import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.shadows.Shadows;
+import org.anchor.client.engine.renderer.shadows.buffer.ShadowBuffer;
 import org.anchor.client.engine.renderer.ssao.SSAO;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.ImageFormat;
@@ -21,6 +21,7 @@ public class DeferredShading {
 
     protected Framebuffer multisampleFBO, diffuseFBO, otherFBO, normalFBO, albedoFBO;
     protected SSAO ssao;
+    protected ShadowBuffer shadowBuffer;
     protected DeferredShader shader;
 
     private IGameVariable r_performLighting;
@@ -33,6 +34,7 @@ public class DeferredShading {
         albedoFBO = new Framebuffer(Display.getWidth(), Display.getHeight(), Framebuffer.NONE);
 
         ssao = new SSAO();
+        shadowBuffer = new ShadowBuffer();
         shader = DeferredShader.getInstance();
 
         r_performLighting = CoreGameVariableManager.getByName("r_performLighting");
@@ -47,14 +49,16 @@ public class DeferredShading {
         if (!r_performLighting.getValueAsBool())
             return;
 
-        GL30.glColorMaski(3, false, false, false, false);
         resolve(diffuseFBO, otherFBO, normalFBO);
+        shadowBuffer.perform(shadows, inverseViewMatrix, diffuseFBO.getDepthTexture());
+
+        GL30.glColorMaski(3, false, false, false, false);
         multisampleFBO.bindFramebuffer();
 
         GL11.glDepthMask(false);
 
         shader.start();
-        shader.loadInformation(viewMatrix, inverseViewMatrix, lights, shadows);
+        shader.loadInformation(viewMatrix, inverseViewMatrix, lights);
         QuadRenderer.bind();
 
         // Deferred
@@ -62,9 +66,7 @@ public class DeferredShading {
         Graphics.bindColourTexture(otherFBO, 1);
         Graphics.bindColourTexture(normalFBO, 2);
         Graphics.bindDepthMap(diffuseFBO, 3);
-
-        for (int i = 0; i < Settings.shadowSplits; i++)
-            Graphics.bind2DTexture(shadows.getShadowMap(i), 13 + i);
+        Graphics.bind2DTexture(shadowBuffer.getShadowBuffer(), 4);
 
         QuadRenderer.render();
         QuadRenderer.unbind();
@@ -130,6 +132,10 @@ public class DeferredShading {
 
     public Framebuffer getNormalFBO() {
         return normalFBO;
+    }
+
+    public int getShadowTexture() {
+        return shadowBuffer.getShadowBuffer();
     }
 
     public int getAmbientOcclusionTexture() {

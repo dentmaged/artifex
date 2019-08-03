@@ -43,4 +43,13 @@ public abstract class GameCommand {
 
     public abstract void run(IUser sender, String[] args);
 
+    protected String getJoinedString(int index, String[] args) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = index; i < args.length; i++)
+            builder.append(args[i]).append(" ");
+        builder.setLength(builder.length() - 1);
+
+        return builder.toString();
+    }
+
 }

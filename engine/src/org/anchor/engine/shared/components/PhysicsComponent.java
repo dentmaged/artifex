@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.VectorUtils;
-import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.physics.CollisionMesh;
@@ -113,9 +112,6 @@ public class PhysicsComponent implements IComponent {
     }
 
     public boolean canCollideWith(Entity other) {
-        if (Engine.isClientSide())
-            return !other.hasComponent(PlayerComponent.class);
-
         return true;
     }
 

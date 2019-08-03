@@ -28,8 +28,8 @@ public class LightComponent implements IComponent, Light {
     @Property("Outer cutoff (degrees)")
     public float outerCutoff = 45;
 
-    @Property("Volumetric Light")
-    public boolean volumetric = true;
+    @Property("Volumetric Strength")
+    public float volumetricStrength = 1;
 
     @Property("Type")
     public LightType type = LightType.POINT;
@@ -56,7 +56,7 @@ public class LightComponent implements IComponent, Light {
         if (entity == null)
             return relativePosition;
 
-        return Vector3f.add(entity.getPosition(), relativePosition, null);
+        return VectorUtils.mul(entity.getTransformationMatrix(), new Vector4f(relativePosition.x, relativePosition.y, relativePosition.z, 1));
     }
 
     @Override
@@ -88,8 +88,13 @@ public class LightComponent implements IComponent, Light {
     }
 
     @Override
-    public boolean isVolumetricLight() {
-        return volumetric;
+    public float getVolumetricStrength() {
+        return volumetricStrength;
+    }
+
+    @Override
+    public boolean castsShadows() {
+        return type == LightType.DIRECTIONAL;
     }
 
     @Override
@@ -105,6 +110,7 @@ public class LightComponent implements IComponent, Light {
         copy.attenuation = new Vector3f(attenuation);
         copy.cutoff = cutoff;
         copy.outerCutoff = outerCutoff;
+        copy.volumetricStrength = volumetricStrength;
         copy.type = type;
 
         return copy;

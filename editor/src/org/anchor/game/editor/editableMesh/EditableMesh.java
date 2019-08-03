@@ -212,7 +212,7 @@ public class EditableMesh implements TransformableObject {
 
                 Set<Vertex> s1 = new HashSet<Vertex>(polygon.vertices);
                 Set<Vertex> s2 = new HashSet<Vertex>(other.vertices);
-                s1.retainAll(s2);
+                s1.retainAll(s2); // intersection between the two sets
 
                 if (s1.size() == 2) { // they must be touching - two shared vertices
                     Set<Vertex> s3 = new HashSet<Vertex>(other.vertices);

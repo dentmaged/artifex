@@ -1,6 +1,8 @@
 package org.anchor.engine.shared.monitoring;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.anchor.engine.shared.entity.Entity;
@@ -27,7 +29,8 @@ public class SceneMonitor {
             monitor.check();
         }
 
-        for (Entity entity : monitors.keySet())
+        List<Entity> entities = new ArrayList<Entity>(monitors.keySet());
+        for (Entity entity : entities)
             if (!scene.getEntities().contains(entity))
                 monitors.remove(entity);
     }

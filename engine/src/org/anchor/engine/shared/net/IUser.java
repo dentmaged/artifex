@@ -18,4 +18,8 @@ public interface IUser {
 
     public Entity getPlayer();
 
+    public void setGameVariable(GameVariable var, String value);
+
+    public void runCommand(String command, GameCommand cmd, String[] args);
+
 }

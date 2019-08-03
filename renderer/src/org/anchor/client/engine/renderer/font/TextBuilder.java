@@ -55,6 +55,12 @@ public class TextBuilder {
         return this;
     }
 
+    public TextBuilder alpha(float alpha) {
+        this.colour.w = alpha;
+
+        return this;
+    }
+
     public TextBuilder align(Alignment alignment) {
         this.alignment = alignment;
 

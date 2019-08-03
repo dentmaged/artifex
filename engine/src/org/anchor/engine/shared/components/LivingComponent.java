@@ -8,6 +8,7 @@ import org.anchor.engine.common.utils.CoreMaths;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.Plane;
 import org.anchor.engine.common.utils.VectorUtils;
+import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.physics.PhysicsEngine;
@@ -16,6 +17,8 @@ import org.anchor.engine.shared.physics.collision.PlayerCollisionPacket;
 import org.anchor.engine.shared.physics.collision.broadphase.Broadphase;
 import org.anchor.engine.shared.physics.collision.broadphase.BroadphaseCollisionResult;
 import org.anchor.engine.shared.scene.Scene;
+import org.anchor.engine.shared.scheduler.ScheduledRunnable;
+import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Maths;
 import org.anchor.engine.shared.utils.Property;
@@ -55,16 +58,20 @@ public class LivingComponent implements IComponent {
     protected static final float FRICTION_GROUND = 0.65f;
     protected static final float FRICTION_AIR = 0;
 
-    protected static final float MAX_SPEED_GROUND = 0.5f;
-    protected static final float MAX_SPEED_AIR = 0.65f;
-    protected static final float ACCELERATE_GROUND = 10.5f;
-    protected static final float ACCELERATE_AIR = 4.5f;
+    protected static final float MAX_SPEED_GROUND = 0.1f;
+    protected static final float MAX_SPEED_AIR = 0.175f;
+    protected static final float ACCELERATE_GROUND = 4.5f;
+    protected static final float ACCELERATE_AIR = 0.25f;
 
-    protected static final float JUMP_POWER = 0.3f;
+    protected static final float JUMP_POWER = 0.225f;
     protected static final float INVERSE_MASS = 1;
     protected static final float SQRT2 = Mathf.sqrt(2);
     protected static final float constant = 1f / SQRT2;
     protected static final float pi = 3.14159265358979f;
+
+    protected static final float ROLL_ANGLE = 2;
+    protected static final float ROLL_SPEED = 200;
+    protected static final float ROLL_MULTIPLIER = 1024;
 
     public float selectedSpeed = 15;
 
@@ -83,6 +90,7 @@ public class LivingComponent implements IComponent {
             }
 
         });
+        entity.getComponent(PhysicsComponent.class).inverseMass = 0;
     }
 
     @Override
@@ -91,6 +99,9 @@ public class LivingComponent implements IComponent {
     }
 
     public void move(Scene scene, Terrain terrain) {
+        if (health <= 0)
+            return;
+
         Vector3f velocity = entity.getVelocity();
         Vector3f position = entity.getPosition();
 
@@ -117,7 +128,7 @@ public class LivingComponent implements IComponent {
         if (gravity) {
             PlayerCollisionPacket packet = new PlayerCollisionPacket();
             packet.scene = scene;
-            packet.eRadius = new Vector3f(0.5f, 1.8f, 0.5f);
+            packet.eRadius = new Vector3f(0.3f, 1.8f, 0.3f);
 
             if (scene != null)
                 collideAndSlide(packet, position, velocity, new Vector3f(0, GRAVITY, 0));
@@ -239,8 +250,24 @@ public class LivingComponent implements IComponent {
             return;
 
         health -= amount;
-        if (health <= 0)
-            entity.destroy();
+        if (health <= 0) {
+            health = 0;
+            Scheduler.schedule(new ScheduledRunnable() {
+                
+                @Override
+                public void tick(float time, float percentage) {
+                    
+                }
+                
+                @Override
+                public void finish() {
+                    health = 100;
+                    entity.getVelocity().set(0, 0, 0);
+                    entity.getPosition().set(Engine.getSpawn());
+                }
+
+            }, 3);
+        }
     }
 
     @Override
@@ -302,7 +329,7 @@ public class LivingComponent implements IComponent {
     }
 
     private Vector3f collideWithWorld(PlayerCollisionPacket packet, Vector3f position, Vector3f velocity, int recursion) {
-        float veryCloseDistance = 0.005f;
+        float veryCloseDistance = 0.00005f;
 
         if (recursion > 5)
             return position;

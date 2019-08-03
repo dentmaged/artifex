@@ -1,12 +1,12 @@
 package org.anchor.game.client.developer;
 
-import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.gui.GUI;
 import org.anchor.client.engine.renderer.gui.GUIRenderer;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.LogCallback;
 import org.anchor.engine.common.utils.Mathf;

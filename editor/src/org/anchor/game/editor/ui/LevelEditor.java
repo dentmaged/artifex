@@ -121,6 +121,7 @@ import org.anchor.game.editor.terrain.brush.TerrainBrush;
 import org.anchor.game.editor.terrain.shape.Shape;
 import org.anchor.game.editor.utils.LogRedirector;
 import org.anchor.game.editor.utils.RenderSettings;
+import org.anchor.game.editor.utils.RoomUtils;
 import org.anchor.game.editor.utils.file.AssetManager;
 import org.anchor.game.editor.utils.file.FilePickCallback;
 import org.lwjgl.util.vector.Vector3f;
@@ -907,6 +908,37 @@ public class LevelEditor extends JPanel {
         })), height);
         prefabCreatePanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
 
+        JScrollPane roomsPanel = UIKit.createSubpanel("Rooms", Arrays.asList(new ButtonBlueprint("Room", new ButtonListener() {
+
+            @Override
+            public void onButtonClick(CustomButton field) {
+                for (TransformableObject object : getSelectedObjects()) {
+                    if (!(object instanceof Entity))
+                        continue;
+
+                    Entity entity = (Entity) object;
+                    for (Entity wall : RoomUtils.createRoom(entity))
+                        gameEditor.addEntity(wall);
+                    gameEditor.removeEntity(entity);
+                }
+                updateList();
+
+                removeSubpanel();
+            }
+
+        }), new ButtonBlueprint("Room", new ButtonListener() {
+
+            @Override
+            public void onButtonClick(CustomButton field) {
+                // TODO
+                updateList();
+
+                removeSubpanel();
+            }
+
+        })), height);
+        roomsPanel.setBounds(UIKit.SUBPANEL_X, 119, UIKit.SUBPANEL_WIDTH, height.get());
+
         JScrollPane typesPanel = UIKit.createSubpanel("Types", Arrays.asList(new DualButtonBlueprint("Entity", "Terrain", new ButtonListener() {
 
             @Override
@@ -920,6 +952,8 @@ public class LevelEditor extends JPanel {
             public void onButtonClick(CustomButton field) {
                 addPanel.remove(geometryCreatePanel);
                 addPanel.remove(prefabCreatePanel);
+                addPanel.remove(roomsPanel);
+
                 if (terrainCreatePanel.getParent() == null)
                     addPanel.add(terrainCreatePanel);
                 else
@@ -935,6 +969,8 @@ public class LevelEditor extends JPanel {
             public void onButtonClick(CustomButton field) {
                 addPanel.remove(terrainCreatePanel);
                 addPanel.remove(prefabCreatePanel);
+                addPanel.remove(roomsPanel);
+
                 if (geometryCreatePanel.getParent() == null)
                     addPanel.add(geometryCreatePanel);
                 else
@@ -950,10 +986,29 @@ public class LevelEditor extends JPanel {
             public void onButtonClick(CustomButton field) {
                 addPanel.remove(terrainCreatePanel);
                 addPanel.remove(geometryCreatePanel);
-                if (geometryCreatePanel.getParent() == null)
+                addPanel.remove(roomsPanel);
+
+                if (prefabCreatePanel.getParent() == null)
                     addPanel.add(prefabCreatePanel);
                 else
                     addPanel.remove(prefabCreatePanel);
+
+                addPanel.revalidate();
+                addPanel.repaint();
+            }
+
+        }), new ButtonBlueprint("Rooms", new ButtonListener() {
+
+            @Override
+            public void onButtonClick(CustomButton field) {
+                addPanel.remove(terrainCreatePanel);
+                addPanel.remove(geometryCreatePanel);
+                addPanel.remove(prefabCreatePanel);
+
+                if (roomsPanel.getParent() == null)
+                    addPanel.add(roomsPanel);
+                else
+                    addPanel.remove(roomsPanel);
 
                 addPanel.revalidate();
                 addPanel.repaint();
@@ -1507,7 +1562,7 @@ public class LevelEditor extends JPanel {
 
         };
 
-        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] { { "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool() }, { "Procedural Skybox", Settings.proceduralSky }, { "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool() }, { "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool() }, { "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool() }, { "Fog Density", Settings.density }, { "Fog Gradient", Settings.gradient }, { "Exposure Speed", Settings.exposureSpeed }, { "SSAO Bias", Settings.ssaoBias }, { "SSAO Radius", Settings.ssaoRadius } }, new String[] { "Property", "Value" }) {
+        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] { { "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool() }, { "Procedural Skybox", Settings.proceduralSky }, { "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool() }, { "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool() }, { "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool() }, { "Fog Density", Settings.density }, { "Fog Gradient", Settings.gradient }, { "Exposure Speed", Settings.exposureSpeed }, { "SSAO Bias", Settings.ssaoBias }, { "SSAO Radius", Settings.ssaoRadius }, { "Volumetric Scattering", Settings.volumetricScattering }, { "Ambient Strength", Settings.ambientScale } }, new String[] { "Property", "Value" }) {
 
             private static final long serialVersionUID = 3225320749175276075L;
 

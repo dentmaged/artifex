@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.anchor.engine.common.app.App;
+import org.anchor.engine.common.console.CoreGameVariableManager;
+import org.anchor.engine.common.console.GameVariableType;
+import org.anchor.engine.common.console.IGameVariable;
 import org.anchor.engine.common.net.BaseNetworkable;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.common.net.packet.IPacketHandler;
@@ -13,11 +16,11 @@ import org.anchor.engine.common.net.server.Server;
 import org.anchor.engine.common.net.server.ServerThread;
 import org.anchor.engine.common.utils.FileHelper;
 import org.anchor.engine.shared.Engine;
-import org.anchor.engine.shared.components.LivingComponent;
+import org.anchor.engine.shared.components.IInteractable;
 import org.anchor.engine.shared.components.PhysicsComponent;
-import org.anchor.engine.shared.components.SpawnComponent;
 import org.anchor.engine.shared.components.redirections.EngineMeshComponent;
 import org.anchor.engine.shared.console.EngineGameCommands;
+import org.anchor.engine.shared.console.EngineGameVariables;
 import org.anchor.engine.shared.console.GameCommandManager;
 import org.anchor.engine.shared.console.GameVariable;
 import org.anchor.engine.shared.console.GameVariableManager;
@@ -41,35 +44,36 @@ import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.game.server.components.ServerInputComponent;
 import org.anchor.game.server.components.ServerThreadComponent;
+import org.anchor.game.server.events.ServerListener;
 import org.lwjgl.util.vector.Vector3f;
 
 public class GameServer extends App implements IPacketHandler {
 
     protected Server server;
-    protected String level = "dev_terrain_edit_save";
+    protected String level = Settings.map;
 
     protected Scene scene;
     protected SceneMonitor monitor;
     protected Map<Entity, EntityMonitor> clientMonitors = new HashMap<Entity, EntityMonitor>();
-    protected Vector3f spawn = new Vector3f();
 
     protected float accumulator;
     protected PhysicsEngine physics;
 
     protected Map<ServerThread, Entity> clients = new HashMap<ServerThread, Entity>();
 
+    public static int ENTITY_ID = 1;
+
     @Override
     public void init() {
-        Engine.init(Side.SERVER, new ServerEngine());
+        Engine.init(Side.SERVER);
+        Engine.bus.registerEvents(new ServerListener());
         CorePacketManager.register();
-        server = new Server(this, 24964);
+        server = new Server(this, Settings.ip, Settings.port);
 
+        EngineGameVariables.sv_running.setValue(true);
         EngineGameCommands.init();
-
         scene = new GameMap(FileHelper.newGameFile("maps", level + ".asg")).getScene();
         Engine.scene = scene;
-        for (Entity entity : scene.getEntitiesWithComponent(SpawnComponent.class))
-            spawn.set(entity.getPosition());
 
         physics = new PhysicsEngine();
         monitor = new SceneMonitor(scene);
@@ -86,6 +90,9 @@ public class GameServer extends App implements IPacketHandler {
             if (accumulator > 0.2)
                 accumulator = 0;
 
+            for (Entity player : clients.values())
+                player.updateFixed();
+
             if (scene != null) {
                 scene.updateFixed();
                 physics.update(scene);
@@ -93,18 +100,9 @@ public class GameServer extends App implements IPacketHandler {
             Scheduler.tick();
 
             for (Entity player : clients.values()) {
-                player.getComponent(LivingComponent.class).move(scene, getTerrainByPoint(player.getPosition()));
-                LivingComponent livingComponent = player.getComponent(LivingComponent.class);
-
-                if (player.getPosition().y < -15)
-                    livingComponent.health = 0;
-
-                if (livingComponent.health <= 0) {
-                    livingComponent.health = 100;
-
-                    player.getVelocity().set(0, 0, 0);
-                    player.getPosition().set(spawn);
-                }
+                ServerInputComponent livingComponent = player.getComponent(ServerInputComponent.class);
+                livingComponent.move(scene, getTerrainByPoint(player.getPosition()));
+                checkForInteractions(livingComponent);
 
                 player.getComponent(ServerThreadComponent.class).net.sendPacket(new PlayerPositionPacket(player.getPosition()));
             }
@@ -118,6 +116,9 @@ public class GameServer extends App implements IPacketHandler {
         Profiler.end("Physics");
 
         Profiler.start("Scene Update");
+        for (Entity player : clients.values())
+            player.update();
+
         if (scene != null)
             scene.update();
         Profiler.end("Scene Update");
@@ -133,7 +134,7 @@ public class GameServer extends App implements IPacketHandler {
 
     @Override
     public void shutdown() {
-
+        server.stop();
     }
 
     @Override
@@ -150,8 +151,13 @@ public class GameServer extends App implements IPacketHandler {
     public void handlePacket(BaseNetworkable net, IPacket receivedPacket) {
         if (receivedPacket.getId() == CorePacketManager.AUTHENTICATION_PACKET) {
             if (((AuthenticationPacket) receivedPacket).protocolVersion == Engine.PROTOCOL_VERSION) {
+                System.out.println("Received auth packet.");
+
                 ServerThread thread = (ServerThread) net;
                 Entity player = new Entity(ServerInputComponent.class, ServerThreadComponent.class, EngineMeshComponent.class);
+                player.getPosition().set(scene.getSpawn());
+                player.getVelocity().set(0, 0, 0);
+
                 player.setValue("collisionMesh", "player");
                 player.setValue("model", "player");
 
@@ -159,22 +165,32 @@ public class GameServer extends App implements IPacketHandler {
                 player.getComponent(ServerThreadComponent.class).user = new ServerUser("", thread, player);
 
                 player.getComponent(PhysicsComponent.class).gravity = false;
+                player.getComponent(PhysicsComponent.class).inverseMass = 0;
 
                 player.spawn();
 
-                // TODO
-                net.sendPacket(new GameVariablePacket("sv_cheats", GameVariableManager.sv_cheats.getValueAsString()));
+                // sync game variables
+                boolean cheatsEnabled = EngineGameVariables.sv_cheats.getValueAsBool();
+                net.sendPacket(new GameVariablePacket("sv_cheats", cheatsEnabled ? "1" : "0"));
+                for (IGameVariable variable : CoreGameVariableManager.getVariables()) {
+                    if (!cheatsEnabled && variable.getType() == GameVariableType.CHEAT)
+                        continue;
+
+                    if (variable.getType() == GameVariableType.INTERNAL)
+                        continue;
+
+                    net.sendPacket(new GameVariablePacket(variable.getName(), variable.getValueAsString()));
+                }
                 net.sendPacket(new LevelChangePacket(level));
+                net.sendPacket(new EntityLinkPacket(player.getId(), -1));
 
                 for (Entity entity : scene.getEntities())
                     if (entity.getLineIndex() == -1)
                         net.sendPacket(new EntitySpawnPacket(entity));
                     else
                         net.sendPacket(new EntityLinkPacket(entity.getId(), entity.getLineIndex()));
-                for (Entity entity : clients.values()) {
+                for (Entity entity : clients.values())
                     net.sendPacket(new EntitySpawnPacket(entity));
-                    entity.getComponent(ServerThreadComponent.class).net.sendPacket(new EntitySpawnPacket(player));
-                }
 
                 clients.put(thread, player);
                 clientMonitors.put(player, new EntityMonitor(player));
@@ -186,6 +202,8 @@ public class GameServer extends App implements IPacketHandler {
         } else if (receivedPacket.getId() == CorePacketManager.GAME_VARIABLE_PACKET) {
             GameVariablePacket packet = (GameVariablePacket) receivedPacket;
             GameVariable var = GameVariableManager.getByName(packet.name);
+            if (var.getType() == GameVariableType.INTERNAL)
+                return;
 
             if (clients.get(net).getComponent(ServerThreadComponent.class).user.canSetVariable(var))
                 var.setValue(packet.value);
@@ -200,7 +218,7 @@ public class GameServer extends App implements IPacketHandler {
     }
 
     @Override
-    public void disconnect(BaseNetworkable net) {
+    public void handleDisconnect(BaseNetworkable net) {
         clients.remove(net);
         clientMonitors.remove(clients.get(net));
     }
@@ -233,6 +251,23 @@ public class GameServer extends App implements IPacketHandler {
         }
 
         return null;
+    }
+
+    public void checkForInteractions(ServerInputComponent livingComponent) {
+        if (livingComponent.playerMovementPacket != null && livingComponent.playerMovementPacket.interact) {
+            for (Entity entity : scene.getEntities()) {
+                IInteractable interactable = entity.getComponent(IInteractable.class);
+                if (interactable == null)
+                    continue;
+
+                PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
+                if (physics != null) {
+                    Vector3f point = physics.raycast(livingComponent.getEyePosition(), livingComponent.getForwardVector());
+                    if (point != null && Vector3f.sub(livingComponent.getEyePosition(), point, null).lengthSquared() <= EngineGameVariables.mp_reachDistance.getValueAsFloat())
+                        interactable.interact();
+                }
+            }
+        }
     }
 
 }

@@ -12,7 +12,7 @@ public class Console {
         if (variable == null) {
             GameCommand cmd = GameCommandManager.getByName(split[0]);
             if (cmd == null) {
-                user.sendMessage("Invalid variable or command.");
+                user.sendMessage("Invalid variable or command: " + split[0]);
 
                 return;
             }
@@ -27,7 +27,7 @@ public class Console {
             }
 
             if (user.canSetVariable(variable))
-                variable.setValue(String.join(" ", Arrays.copyOfRange(split, 1, split.length)).trim());
+                user.setGameVariable(variable, String.join(" ", Arrays.copyOfRange(split, 1, split.length)).trim());
         }
     }
 

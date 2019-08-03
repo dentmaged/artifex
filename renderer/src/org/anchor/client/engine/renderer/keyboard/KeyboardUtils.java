@@ -1,4 +1,4 @@
-package org.anchor.client.engine.renderer;
+package org.anchor.client.engine.renderer.keyboard;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +18,14 @@ public class KeyboardUtils {
                 keysDown.add(Integer.valueOf(key));
                 keysPressed.add(Integer.valueOf(key));
                 charactersDown.add(Character.valueOf(Keyboard.getEventCharacter()));
+
+                Binds.getInstance().keyUse(key, true);
             } else {
                 keysDown.remove(Integer.valueOf(key));
                 keysPressed.remove(Integer.valueOf(key));
                 charactersDown.remove(Character.valueOf(Keyboard.getEventCharacter()));
+
+                Binds.getInstance().keyUse(key, false);
             }
         }
 
@@ -40,6 +44,10 @@ public class KeyboardUtils {
 
     public static boolean hasAnyKeyJustBeenPressed() {
         return keysPressed.size() > 0;
+    }
+
+    public static List<Integer> getKeysPressed() {
+        return keysPressed;
     }
 
     public static List<Character> getPressedCharacters() {

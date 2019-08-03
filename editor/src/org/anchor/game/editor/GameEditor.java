@@ -10,7 +10,6 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.anchor.client.engine.renderer.Graphics;
-import org.anchor.client.engine.renderer.KeyboardUtils;
 import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
@@ -24,8 +23,11 @@ import org.anchor.client.engine.renderer.font.FontRenderer;
 import org.anchor.client.engine.renderer.font.Text;
 import org.anchor.client.engine.renderer.font.TextBuilder;
 import org.anchor.client.engine.renderer.fxaa.FXAA;
-import org.anchor.client.engine.renderer.gui.GUIRenderer;
 import org.anchor.client.engine.renderer.ibl.IBL;
+import org.anchor.client.engine.renderer.keyboard.Binds;
+import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
+import org.anchor.client.engine.renderer.keyboard.Keys;
+import org.anchor.client.engine.renderer.keyboard.RunCommandCallback;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
 import org.anchor.client.engine.renderer.types.ibl.LightProbe;
@@ -34,10 +36,15 @@ import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.client.engine.renderer.volumetrics.scattering.VolumetricScattering;
 import org.anchor.engine.common.Log;
+import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
+import org.anchor.engine.shared.components.IInteractable;
 import org.anchor.engine.shared.components.LivingComponent;
+import org.anchor.engine.shared.components.PhysicsComponent;
 import org.anchor.engine.shared.components.SpawnComponent;
+import org.anchor.engine.shared.console.EngineGameCommands;
+import org.anchor.engine.shared.console.EngineGameVariables;
 import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
@@ -46,8 +53,10 @@ import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.utils.TerrainRaycast;
 import org.anchor.engine.shared.utils.TerrainUtils;
+import org.anchor.game.client.ClientGameCommands;
 import org.anchor.game.client.ClientGameVariables;
 import org.anchor.game.client.GameClient;
+import org.anchor.game.client.LocalUser;
 import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.app.Game;
 import org.anchor.game.client.async.Requester;
@@ -60,11 +69,13 @@ import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SunComponent;
 import org.anchor.game.client.developer.debug.Debug;
+import org.anchor.game.client.events.RedirectListener;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.particles.ParticleRenderer;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyShader;
+import org.anchor.game.client.shaders.SkyTextureShader;
 import org.anchor.game.client.shaders.StaticShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
@@ -77,6 +88,7 @@ import org.anchor.game.editor.components.EditorInputComponent;
 import org.anchor.game.editor.editableMesh.EditableMesh;
 import org.anchor.game.editor.editableMesh.renderer.EditableMeshRenderer;
 import org.anchor.game.editor.editableMesh.types.SelectionMode;
+import org.anchor.game.editor.events.EditorListener;
 import org.anchor.game.editor.gizmo.AABBRenderer;
 import org.anchor.game.editor.gizmo.GizmoRenderer;
 import org.anchor.game.editor.gizmo.TransformationMode;
@@ -155,10 +167,21 @@ public class GameEditor extends Game {
             for (int i = 0; i < 10; i++)
                 Log.warning("Add -Dsun.java2d.d3d=false to your launch arguments or set the environment variable J2D_D3D to false in order to stop UI rendering bugs!");
 
-        Engine.init(Side.CLIENT, new EditorEngine());
+        Engine.init(Side.CLIENT);
+        Engine.bus.registerEvents(new RedirectListener());
+        Engine.bus.registerEvents(new EditorListener());
         Graphics.init();
         Audio.init();
         ParticleRenderer.init();
+
+        Binds.getInstance().init(new RunCommandCallback() {
+
+            @Override
+            public void runCommand(String cmd) {
+                GameClient.runCommand(cmd);
+            }
+
+        });
 
         fxaa = new FXAA();
         deferred = new DeferredShading();
@@ -170,17 +193,25 @@ public class GameEditor extends Game {
 
         Renderer.setCubeModel(AssetLoader.loadModel("editor/cube"));
 
+        user = new LocalUser();
         player = new Entity(EditorInputComponent.class);
+        player.setLineIndex(-1);
         player.setValue("collisionMesh", "player");
         livingComponent = player.getComponent(LivingComponent.class);
         livingComponent.gravity = false;
         player.spawn();
 
         physics = new PhysicsEngine();
+        ClientGameVariables.init();
+        ClientGameCommands.init();
+        EngineGameCommands.init();
+        GameClient.runCommand("exec autoexec");
 
         // reference shaders to load them in - only required in the editor because of
         // Swing's multithreading
         shadows = new Shadows(null); // shadows must be initialised to prevent NPEs in ForwardStaticShader
+        SkyShader.getInstance();
+        SkyTextureShader.getInstance();
         NormalShader.getInstance();
         StaticShader.getInstance();
         ForwardStaticShader.getInstance();
@@ -214,6 +245,7 @@ public class GameEditor extends Game {
         Requester.perform();
         MouseUtils.update();
         KeyboardUtils.update();
+        Binds.getInstance().update();
 
         editor.update();
         if (!game) {
@@ -351,12 +383,16 @@ public class GameEditor extends Game {
             }
 
             if (KeyboardUtils.wasKeyJustPressed(Keyboard.KEY_BACK)) {
-                for (int i = 0; i < editor.getSelectedObjects().size(); i++) {
-                    TransformableObject object = editor.getSelectedObjects().get(i);
+                List<TransformableObject> objects = new ArrayList<TransformableObject>(editor.getSelectedObjects());
+                for (int i = 0; i < objects.size(); i++) {
+                    TransformableObject object = objects.get(i);
                     if (object instanceof Entity)
-                        removeEntity((Entity) object);
+                        ((Entity) object).destroy();
+                    else if (object instanceof EditableMesh)
+                        editableMeshes.remove(object);
                 }
 
+                editor.updateList();
                 editor.unselectAll();
             }
 
@@ -509,18 +545,19 @@ public class GameEditor extends Game {
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
+        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
         fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
         vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
         GL11.glEnable(GL11.GL_BLEND);
         GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls);
+        String keys = "";
+        keys = Keys.isKeyPressed("do") + "";
+        // for (int key : KeyboardUtils.getKeysPressed())
+        // keys += Keyboard.getKeyName(key);
+        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls + "\nKeys: " + keys);
         FontRenderer.render(trianglesDrawn);
-
-        if (Keyboard.isKeyDown(Keyboard.KEY_M))
-            GUIRenderer.perform(deferred.getAmbientOcclusionTexture());
 
         GL11.glDisable(GL11.GL_BLEND);
         Profiler.end("Post processing");
@@ -570,6 +607,7 @@ public class GameEditor extends Game {
         lightComponent = light.getComponent(LightComponent.class);
         lightComponent.colour.set(6, 6, 6);
         lightComponent.attenuation.set(1, 0, 0);
+        lightComponent.volumetricStrength = 0.25f;
         light.getRotation().set(109, 23, 0);
         light.spawn();
         shadows = new Shadows(lightComponent);
@@ -628,6 +666,12 @@ public class GameEditor extends Game {
 
         editor.updateList();
         Log.info("Loaded " + map.getAbsolutePath());
+
+        if (lightComponent == null) {
+            lightComponent = new LightComponent();
+            lightComponent.attenuation.set(0, 0, 0.0000001f);
+            lightComponent.colour.set(0, 0, 0);
+        }
     }
 
     public Entity addEntity() {
@@ -653,7 +697,7 @@ public class GameEditor extends Game {
     }
 
     public void addEntity(Entity entity) {
-        scene.getEntities().add(entity);
+        recursiveAddChildrenEntity(entity);
         editor.updateList();
 
         Undo.registerEntity(entity);
@@ -680,6 +724,12 @@ public class GameEditor extends Game {
 
         editableMeshes.remove(mesh);
         editor.updateList();
+    }
+
+    private void recursiveAddChildrenEntity(Entity entity) {
+        scene.getEntities().add(entity);
+        for (Entity child : entity.getChildren())
+            recursiveAddChildrenEntity(child);
     }
 
     private void checkForEditableMeshes() {
@@ -912,6 +962,32 @@ public class GameEditor extends Game {
 
         Window.getInstance().setTabName(file.getName());
         Log.info("Saved to " + getInstance().level.getAbsolutePath());
+    }
+
+    public void checkForInteractions(boolean interacting) {
+        if (interacting) {
+            for (Entity entity : scene.getEntities()) {
+                IInteractable interactable = entity.getComponent(IInteractable.class);
+                if (interactable == null)
+                    continue;
+
+                MeshComponent mesh = entity.getComponent(MeshComponent.class);
+                PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
+
+                if (mesh != null && physics == null) {
+                    AABB aabb = mesh.getAABB();
+                    if (aabb != null) {
+                        Vector3f point = aabb.raycast(livingComponent.getEyePosition(), livingComponent.getForwardVector());
+                        if (point != null && Vector3f.sub(livingComponent.getEyePosition(), point, null).lengthSquared() <= EngineGameVariables.mp_reachDistance.getValueAsFloat())
+                            interactable.interact();
+                    }
+                } else if (physics != null) {
+                    Vector3f point = physics.raycast(livingComponent.getEyePosition(), livingComponent.getForwardVector());
+                    if (point != null && Vector3f.sub(livingComponent.getEyePosition(), point, null).lengthSquared() <= EngineGameVariables.mp_reachDistance.getValueAsFloat())
+                        interactable.interact();
+                }
+            }
+        }
     }
 
     public boolean isTransformableObjectRaycast(TerrainRaycast terrainRaycast, TransformableObjectRaycast transformableObjectRaycast) {
