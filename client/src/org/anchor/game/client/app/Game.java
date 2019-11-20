@@ -15,6 +15,7 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.net.IUser;
 import org.anchor.game.client.components.LightComponent;
+import org.anchor.game.client.components.PostProcessVolumeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.types.ClientScene;
 
@@ -22,12 +23,17 @@ public abstract class Game extends App {
 
     public Entity player;
     public ClientScene scene;
+
+    public PostProcessVolumeComponent currentPostProcessVolume;
     public SkyComponent sky;
+    public LivingComponent livingComponent;
+
+    public Shadows shadows;
     public DeferredShading deferred;
+
     public IBL ibl;
     public Fog fog;
-    public Shadows shadows;
-    public LivingComponent livingComponent;
+
     public Client client;
     public IUser user;
 

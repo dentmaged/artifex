@@ -27,12 +27,14 @@ package org.anchor.game.client.components;
 
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
-import org.anchor.client.engine.renderer.types.cubemap.CubemapRequest;
+import org.anchor.client.engine.renderer.types.cubemap.CubemapFramebuffer;
+import org.anchor.client.engine.renderer.types.texture.TextureRequest;
 import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.entity.IComponent;
 import org.anchor.engine.shared.utils.Property;
+import org.anchor.game.client.CubemapGenerator;
 import org.anchor.game.client.GameClient;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.shaders.SkyShader;
@@ -48,7 +50,8 @@ public class SkyComponent implements IComponent {
 
     public float interp, interp_night, altitude, azimuth;
     public Vector3f direction = new Vector3f(), sunColour = new Vector3f(), baseColour = new Vector3f(NOON_BASE), topColour = new Vector3f(NOON_TOP);
-    public CubemapRequest skybox;
+    public TextureRequest sky;
+    public CubemapFramebuffer renderedSky;
     public BakedCubemap irradiance, prefilter;
 
     private float calculatedAltitude = Mathf.asin(Mathf.cos(Mathf.toRadians(40)));
@@ -78,7 +81,7 @@ public class SkyComponent implements IComponent {
         entity.setValue("backface", "false");
         entity.setHidden(false);
 
-        skybox = Requester.requestCubemap(new String[] { Settings.skybox + "px", Settings.skybox + "nx", Settings.skybox + "py", Settings.skybox + "ny", Settings.skybox + "pz", Settings.skybox + "nz" });
+        sky = Requester.requestTexture(Settings.sky);
     }
 
     @Override
@@ -90,18 +93,32 @@ public class SkyComponent implements IComponent {
     public void update() {
         entity.getPosition().set(GameClient.getPlayer().getPosition());
 
+        if (!Settings.sky.equalsIgnoreCase(sky.getName())) {
+            sky.unload();
+            sky = Requester.requestTexture(Settings.sky);
+        }
+
         if (Settings.proceduralSky)
             updateSky();
 
-        if (!loaded && skybox != null && skybox.isLoaded()) {
+        if (!loaded && sky != null && sky.isLoaded()) {
             loaded = true;
 
+            refreshAmbientLighting();
+        }
+    }
+
+    @Property("Refresh ambient lighting")
+    public void refreshAmbientLighting() {
+        if (renderedSky == null) {
+            renderedSky = new CubemapFramebuffer(Settings.reflectionProbeSize);
             irradiance = new BakedCubemap(32, "irradianceConvolution", 1);
             prefilter = new BakedCubemap(Settings.reflectionProbeSize, "prefilter", 8);
-
-            irradiance.perform(skybox.getTexture());
-            prefilter.perform(skybox.getTexture());
         }
+
+        CubemapGenerator.generateSky(entity);
+        irradiance.perform(renderedSky.getTexture());
+        prefilter.perform(renderedSky.getTexture());
     }
 
     protected void updateSky() {
@@ -147,9 +164,9 @@ public class SkyComponent implements IComponent {
         }
     }
 
-    public int getSkybox() {
-        if (skybox.isLoaded())
-            return skybox.getTexture();
+    public int getSky() {
+        if (sky.isLoaded())
+            return sky.getTexture();
 
         return 0;
     }
@@ -187,7 +204,7 @@ public class SkyComponent implements IComponent {
     public IComponent copy() {
         SkyComponent copy = new SkyComponent();
         copy.setLight(light);
-        copy.skybox = skybox;
+        copy.sky = sky;
         copy.irradiance = irradiance;
         copy.prefilter = prefilter;
         copy.loaded = loaded;

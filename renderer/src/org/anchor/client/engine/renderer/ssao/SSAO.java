@@ -9,7 +9,6 @@ import java.util.Random;
 
 import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
-import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.blur.Blur;
 import org.anchor.client.engine.renderer.types.Framebuffer;
 import org.anchor.client.engine.renderer.types.ImageFormat;
@@ -103,7 +102,6 @@ public class SSAO {
         } else {
             GL11.glClearColor(1, 1, 1, 1);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-            GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
         }
 
         outputFBO.unbindFramebuffer();

@@ -58,7 +58,7 @@ vec3 pcc(vec3 wDir, vec3 pccPosition, vec3 pccSize, vec3 wPosition, out float st
 
 vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic, float materialSpecular, float roughness, float ao) {
 	float distance = length(viewPosition);
-	if (distance > 1000 || (normal.x == 1 && normal.y == 1 && normal.z == 1)) // skybox
+	if (distance > 3250 || (normal.x == 1 && normal.y == 1 && normal.z == 1)) // skybox
 		discard;
 
 	vec3 V = normalize(-viewPosition);
@@ -86,7 +86,6 @@ vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic
 	vec4 ssrColour = textureLod(scene, ssrData.xy, roughness * mips);
 
 	bool skyReflection = true;
-	float s;
 	for (int i = MAX_PROBES - 1; i >= 0; i--) {
 		if (prefilterPccSize[i].y == 0.0 && irradiancePccSize[i].y == 0.0)
 			continue;
@@ -107,9 +106,7 @@ vec3 performLighting(vec3 viewPosition, vec3 albedo, vec3 normal, float metallic
 			else
 				prefiltered *= 3;
 		}
-		vec3 reflectedColour = mix(prefiltered * 1, ssrColour.xyz * ssrColour.w, ssrData.z);
-
-		s = strength;
+		vec3 reflectedColour = mix(prefiltered, ssrColour.xyz * ssrColour.w, ssrData.z);
 
 		ambient += kD * diffuse + reflectedColour * specularBRDF;
 	}

@@ -11,6 +11,7 @@ import org.anchor.client.engine.renderer.Loader;
 import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.bloom.Bloom;
+import org.anchor.client.engine.renderer.clear.ClearColour;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.fog.Fog;
 import org.anchor.client.engine.renderer.font.Alignment;
@@ -39,7 +40,9 @@ import org.anchor.engine.common.net.BaseNetworkable;
 import org.anchor.engine.common.net.client.Client;
 import org.anchor.engine.common.net.packet.IPacket;
 import org.anchor.engine.common.net.packet.IPacketHandler;
+import org.anchor.engine.common.utils.AABB;
 import org.anchor.engine.common.utils.FileHelper;
+import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.utils.StringUtils;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
@@ -71,7 +74,6 @@ import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.ScheduledRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
-import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.weapon.Gun;
 import org.anchor.engine.shared.weapon.Weapon;
 import org.anchor.game.client.app.AppManager;
@@ -83,6 +85,7 @@ import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ParticleSystemComponent;
+import org.anchor.game.client.components.PostProcessVolumeComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SunComponent;
@@ -110,6 +113,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class GameClient extends Game implements IPacketHandler {
 
+    protected ClearColour clearColour;
     protected FXAA fxaa;
     protected Bloom bloom;
     protected VolumetricScattering volumetricScattering;
@@ -146,7 +150,6 @@ public class GameClient extends Game implements IPacketHandler {
 
         VirtualFileSystem.init();
         ClientGameVariables.init(); // should already be initialised by GameStart
-        Engine.init(Side.CLIENT);
         Engine.bus.registerEvents(new RedirectListener());
         Graphics.init();
         Audio.init();
@@ -166,6 +169,7 @@ public class GameClient extends Game implements IPacketHandler {
         });
 
         user = new LocalUser();
+        clearColour = new ClearColour();
         fxaa = new FXAA();
         deferred = new DeferredShading();
         ibl = new IBL(deferred);
@@ -425,8 +429,35 @@ public class GameClient extends Game implements IPacketHandler {
             Profiler.start("Scene Update");
             player.update();
             gun.update();
-            if (scene != null)
+            currentPostProcessVolume = null;
+            if (scene != null) {
+                float currentSize = Float.MAX_VALUE;
+                Vector3f eye = livingComponent.getEyePosition();
+
+                for (PostProcessVolumeComponent volume : scene.getComponents(PostProcessVolumeComponent.class)) {
+                    AABB aabb = volume.getAABB();
+                    if (aabb.inside(eye)) {
+                        boolean water = volume.isWaterPostProcess();
+                        if (water || aabb.getFurthest() < currentSize) {
+                            currentPostProcessVolume = volume;
+                            if (water)
+                                break;
+
+                            currentSize = aabb.getFurthest();
+                        }
+                    }
+                }
+
                 scene.update();
+            }
+
+            if (currentPostProcessVolume != null) {
+                Settings.clearR = Mathf.pow(currentPostProcessVolume.fogColour.x, 2.2f);
+                Settings.clearG = Mathf.pow(currentPostProcessVolume.fogColour.y, 2.2f);
+                Settings.clearB = Mathf.pow(currentPostProcessVolume.fogColour.z, 2.2f);
+            } else {
+                Settings.clearR = Settings.clearG = Settings.clearB = 0;
+            }
             Profiler.end("Scene Update");
 
             dead.setAlpha(livingComponent.health <= 0 ? 1 : 0);
@@ -489,8 +520,8 @@ public class GameClient extends Game implements IPacketHandler {
         Profiler.end("Shadows (Full)");
 
         deferred.start();
-        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
-        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
+        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+        clearColour.perform();
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
         if (ClientGameVariables.r_wireframe.getValueAsBool())
@@ -515,6 +546,10 @@ public class GameClient extends Game implements IPacketHandler {
 
         scene.renderBlending();
         ParticleRenderer.render(scene.getComponents(ParticleSystemComponent.class));
+
+        deferred.water();
+        scene.renderWater();
+
         Debug.render();
 
         List<ReflectionProbeComponent> reflectionProbeComponents = scene.getComponents(ReflectionProbeComponent.class);
@@ -533,7 +568,7 @@ public class GameClient extends Game implements IPacketHandler {
         ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes);
 
         deferred.fog();
-        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour, lightComponent, livingComponent.getViewMatrix());
+        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), currentPostProcessVolume, lightComponent, livingComponent.getViewMatrix());
 
         deferred.output();
         Profiler.end("Scene");
@@ -541,8 +576,12 @@ public class GameClient extends Game implements IPacketHandler {
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
-        fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        if (currentPostProcessVolume != null && currentPostProcessVolume.volumetric) {
+            volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows, currentPostProcessVolume.gScattering);
+            fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        } else {
+            fxaa.perform(bloom.getOutputFBO().getColourTexture());
+        }
         vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
         if (!loaded)
@@ -750,6 +789,10 @@ public class GameClient extends Game implements IPacketHandler {
 
     public static SkyComponent getSky() {
         return ((Game) AppManager.getInstance()).sky;
+    }
+
+    public static PostProcessVolumeComponent getCurrentPostProcessVolume() {
+        return ((Game) AppManager.getInstance()).currentPostProcessVolume;
     }
 
     public static Framebuffer getSceneFramebuffer() {

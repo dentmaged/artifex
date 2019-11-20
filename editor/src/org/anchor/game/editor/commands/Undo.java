@@ -62,7 +62,7 @@ public class Undo {
 
         addCommandToHistory(new FieldsSetCallback(field, targets, value, previous));
     }
-    
+
     public static void fieldsSetArray(JavaField field, List<Object> targets, List<Object> values) {
         List<Object> previous = new ArrayList<Object>();
         for (int i = 0; i < targets.size(); i++) {

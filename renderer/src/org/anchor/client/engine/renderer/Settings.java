@@ -7,10 +7,12 @@ public class Settings {
     public static int maxFPS = 300;
     public static boolean fullscreen = false;
 
+    public static float gamma = 2.2f;
+    public static int anisotropyLevel = 4;
+
     public static float fov = 90;
     public static float nearPlane = 0.1f;
     public static float farPlane = 5000;
-    public static int anisotropyLevel = 4;
 
     public static boolean lowerFPSFocus = true;
     public static boolean bakedGeneration = false;
@@ -31,18 +33,13 @@ public class Settings {
     public static float ambientScale = 0.5f;
     public static float exposureSpeed = 0.001f;
 
-    public static float density = 0.002f;
-    public static float gradient = 5;
-
     public static boolean proceduralSky = false;
-    public static String skybox = "skybox/partly-cloudy-day/";
+    public static String sky = "skydome/daycloudy";
 
     public static final int shadowSplits = 3;
     public static final int[] shadowExtents = { 30, 100, 200 };
     public static final float shadowDistance = 50;
     public static final int shadowResolution = 2048;
-
-    public static float volumetricScattering = 0.0924f;
 
     public static final int reflectionProbeSize = 256;
 

@@ -14,7 +14,7 @@ public class ClientGameVariables {
     public static void init() {
         r_wireframe = GameVariableManager.get("r_wireframe", "0", "Enables wireframe rendering", GameVariableType.CHEAT);
         r_showLightmaps = GameVariableManager.get("r_showLightmaps", "0", "Disables albedo textures", GameVariableType.CHEAT);
-        r_performSSAO = GameVariableManager.get("r_performSSAO", "1", "Enables/disables SSAO", GameVariableType.CHEAT);
+        r_performSSAO = GameVariableManager.get("r_performSSAO", "1", "Enables/disables SSAO", GameVariableType.GAMEMODE);
         r_performLighting = GameVariableManager.get("r_performLighting", "1", "Enables/disables lighting", GameVariableType.CHEAT);
 
         cl_showPerformanceInformation = GameVariableManager.get("cl_showPerformanceInformation", "0", "Shows GPU and CPU time", GameVariableType.CLIENT);

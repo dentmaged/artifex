@@ -52,9 +52,8 @@ public class DeferredShading {
         resolve(diffuseFBO, otherFBO, normalFBO);
         shadowBuffer.perform(shadows, inverseViewMatrix, diffuseFBO.getDepthTexture());
 
-        GL30.glColorMaski(3, false, false, false, false);
         multisampleFBO.bindFramebuffer();
-
+        GL30.glColorMaski(3, false, false, false, false);
         GL11.glDepthMask(false);
 
         shader.start();
@@ -100,6 +99,11 @@ public class DeferredShading {
     }
 
     public void decals() {
+        resolve(diffuseFBO);
+        multisampleFBO.bindFramebuffer();
+    }
+
+    public void water() {
         resolve(diffuseFBO);
         multisampleFBO.bindFramebuffer();
     }

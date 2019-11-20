@@ -11,6 +11,10 @@ public class ServerInputComponent extends LivingComponent {
 
     public PlayerMovementPacket playerMovementPacket;
 
+    {
+        canShoot = true;
+    }
+
     @Override
     protected void checkInput() {
         if (playerMovementPacket != null) {

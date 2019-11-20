@@ -6,6 +6,7 @@ import org.anchor.client.engine.renderer.Graphics;
 import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.engine.common.utils.CoreMaths;
 import org.lwjgl.opengl.Display;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Vector2f;
 
 public class FontRenderer {
@@ -18,6 +19,7 @@ public class FontRenderer {
     public static final int TAB_SIZE = 8;
 
     public static void render(List<Text> texts) {
+        GL11.glDisable(GL11.GL_CULL_FACE);
         shader.start();
         QuadRenderer.bind();
 
@@ -56,12 +58,14 @@ public class FontRenderer {
 
         QuadRenderer.unbind();
         shader.stop();
+        GL11.glEnable(GL11.GL_CULL_FACE);
     }
 
     public static void render(Text text) {
         if (text.getColour().w == 0)
             return;
 
+        GL11.glDisable(GL11.GL_CULL_FACE);
         float horizontalMultiplier = 1280f / (float) Display.getWidth();
         shader.start();
         QuadRenderer.bind();
@@ -96,8 +100,10 @@ public class FontRenderer {
             QuadRenderer.render();
         }
 
+        Graphics.checkForErrors();
         QuadRenderer.unbind();
         shader.stop();
+        GL11.glEnable(GL11.GL_CULL_FACE);
     }
 
 }

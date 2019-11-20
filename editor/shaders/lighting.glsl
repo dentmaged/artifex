@@ -4,13 +4,13 @@ uniform bool showLightmaps;
 uniform bool diffuseOnly;
 
 uniform vec4 lightPosition[MAX_LIGHTS];
-uniform vec3 lightColour[MAX_LIGHTS];
+uniform vec4 lightColour[MAX_LIGHTS];
 uniform vec3 attenuation[MAX_LIGHTS];
 uniform vec3 lightDirection[MAX_LIGHTS];
 uniform vec2 lightCutoff[MAX_LIGHTS];
 
 vec3 fresnel(float cosTheta, vec3 F0) {
-	return F0 + (1.0 - F0) * pow(1 - cosTheta, 5.0); // schlick
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0); // schlick
 }
 
 float distributionGGX(vec3 N, vec3 H, float roughness) { // normal distribution (cook-torrence)
@@ -20,17 +20,17 @@ float distributionGGX(vec3 N, vec3 H, float roughness) { // normal distribution 
 	float NdotH2 = NdotH * NdotH;
 
 	float num = a2;
-	float denom = (NdotH2 * (a2 - 1) + 1.0);
+	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 
 	return num / (pi * denom * denom);
 }
 
 float geometryGGX(float NdotV, float roughness) { // cook-torrence
 	float r = roughness + 1.0;
-	float k = (r * r) / 8.0;
+	float k = (r * r) * 0.125;
 
 	float num = NdotV;
-	float denom = NdotV * (1 - k) + k;
+	float denom = NdotV * (1.0 - k) + k;
 
 	return num / denom;
 }
@@ -55,6 +55,9 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 		albedo = vec3(1.0);
 
 	float distance = length(viewPosition);
+	if (distance > 3250.0)
+		return albedo;
+
 	vec3 V = normalize(-viewPosition);
 	vec3 N = normalize(normal);
 	vec3 R = reflect(-V, N);
@@ -67,10 +70,11 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 	vec3 Lo = vec3(0.0);
 	int shadowedCount = 0;
 	for (int i = 0; i < MAX_LIGHTS; i++) {
-		if (dot(lightColour[i], lightColour[i]) == 0)
+		if (dot(lightColour[i].xyz, lightColour[i].xyz) == 0)
 			continue;
 
 		float lightType = lightPosition[i].w;
+		float lightRoughness = max(roughness, lightColour[i].w); // lightColour[i].w = light min roughness
 		bool castsShadows = false;
 		if (lightType >= 3) {
 			lightType -= 3;
@@ -86,18 +90,18 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 		float distance = length(lightPosition[i].xyz - viewPosition);
 		float attenuation = 1.0 / (attenuation[i].x + (attenuation[i].y * distance) + (attenuation[i].z * distance * distance));
 		if (lightType == 1.0)
-			attenuation = 1;
+			attenuation = 1.0;
 
-		vec3 radiance = lightColour[i] * attenuation;
+		vec3 radiance = lightColour[i].xyz * attenuation;
 		float NdotL = max(dot(N, L), 0.0);
 
-		float normalDistribution = distributionGGX(N, H, roughness);
-		float geometry = geometrySmith(NdotV, NdotL, roughness);
+		float normalDistribution = distributionGGX(N, H, lightRoughness);
+		float geometry = geometrySmith(NdotV, NdotL, lightRoughness);
 		vec3 fresnel = fresnel(max(dot(H, V), 0.0), F0);
 		vec3 specular = (normalDistribution * geometry * fresnel) / max(4 * NdotV * NdotL, 0.0001);
 
-		vec3 kD = 1 - fresnel;
-		kD *= 1 - metallic;
+		vec3 kD = 1.0 - fresnel;
+		kD *= 1.0 - metallic;
 
 		if (castsShadows) {
 			if (shadowedCount == 0)
@@ -115,7 +119,7 @@ vec3 performLighting(vec3 viewPosition, vec3 normal, vec3 albedo, float metallic
 		float intensity = 1.0;
 		vec2 cutoff = lightCutoff[i];
 		if (lightType == 2)
-			intensity = clamp((dot(L, normalize(-lightDirection[i])) - cutoff.y) / (cutoff.x - cutoff.y), 0, 1);
+			intensity = clamp((dot(L, normalize(-lightDirection[i])) - cutoff.y) / (cutoff.x - cutoff.y), 0.0, 1.0);
 
 		if (shadow > 0 && NdotL > 0 && intensity > 0)
 			Lo += (kD * albedo.xyz / pi + specular) * radiance * NdotL * shadow * intensity;

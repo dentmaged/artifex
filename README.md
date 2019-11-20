@@ -44,6 +44,7 @@ Each folder should be a separate repository in Eclipse. It would help if the rep
 * Editor
   * lwjgl.jar and lwjgl_util.jar
   * trident-1.5.00.jar
+  * jyaml-1.3.jar
   * Client
   * Common
   * Engine

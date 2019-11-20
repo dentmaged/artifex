@@ -34,6 +34,9 @@ public class LightComponent implements IComponent, Light {
     @Property("Type")
     public LightType type = LightType.POINT;
 
+    @Property("Min Roughness")
+    public float minRoughness = 0.001f;
+
     private Entity entity;
 
     @Override
@@ -95,6 +98,11 @@ public class LightComponent implements IComponent, Light {
     @Override
     public boolean castsShadows() {
         return type == LightType.DIRECTIONAL;
+    }
+
+    @Override
+    public float getMinRoughness() {
+        return minRoughness;
     }
 
     @Override

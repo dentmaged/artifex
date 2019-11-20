@@ -16,6 +16,7 @@ import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyTextureShader;
 import org.anchor.game.client.shaders.StaticShader;
+import org.anchor.game.client.shaders.WaterShader;
 import org.anchor.game.client.types.ClientShader;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -162,6 +163,9 @@ public class MeshComponent implements IComponent {
 
         if (material.getAlbedoName().equals("sky"))
             shader = SkyTextureShader.getInstance();
+
+        if (entity.hasComponent(WaterComponent.class))
+            shader = WaterShader.getInstance();
     }
 
     @Property("Set collision mesh")

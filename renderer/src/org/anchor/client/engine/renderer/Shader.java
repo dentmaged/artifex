@@ -30,7 +30,7 @@ public abstract class Shader {
     protected Map<String, Integer> uniforms = new HashMap<String, Integer>();
 
     private static FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private static String DEFINES = "\n#define tex uniform sampler2D\n#define texCube uniform samplerCube\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define SHADOW_SPLITS " + Settings.shadowSplits + "\n#define MAX_LIGHTS " + Settings.maxLights + "\n#define MAX_JOINTS " + Settings.maxJoints + "\n#define MAX_PROBES " + Settings.maxProbes + "\n#define MAX_WEIGHTS " + Settings.maxWeights + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA 2.2\n#define TO_V4(x) vec4(vec3(x##.xyz), 1)\nconst float pi = 3.141592653589793238;\n";
+    private static String DEFINES = "\n#define tex uniform sampler2D\n#define texCube uniform samplerCube\n#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define SHADOW_SPLITS " + Settings.shadowSplits + "\n#define MAX_LIGHTS " + Settings.maxLights + "\n#define MAX_JOINTS " + Settings.maxJoints + "\n#define MAX_PROBES " + Settings.maxProbes + "\n#define MAX_WEIGHTS " + Settings.maxWeights + "\n#define FS_OUT(x) out vec4 out_##x;\n#define GAMMA " + Settings.gamma + "\n#define TO_V4(x) vec4(vec3(x##.xyz), 1)\nconst float pi = 3.141592653589793238;\n";
 
     private static List<Shader> shaders = new ArrayList<Shader>();
 
@@ -133,6 +133,13 @@ public abstract class Shader {
             GL20.glUniform4f(getUniformLocation(location), 0, 0, 0, 0);
         else
             GL20.glUniform4f(getUniformLocation(location), vector.x, vector.y, vector.z, vector.w);
+    }
+
+    protected void loadVector(String location, Vector3f vector, float w) {
+        if (vector == null)
+            GL20.glUniform4f(getUniformLocation(location), 0, 0, 0, w);
+        else
+            GL20.glUniform4f(getUniformLocation(location), vector.x, vector.y, vector.z, w);
     }
 
     protected void loadAs3DVector(String location, Vector4f vector) {

@@ -22,6 +22,8 @@ public interface Light {
 
     public LightType getLightType();
 
+    public float getMinRoughness();
+
     public default float getRadius() {
         return 0;
     }

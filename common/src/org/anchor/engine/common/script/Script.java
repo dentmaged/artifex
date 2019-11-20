@@ -21,7 +21,7 @@ public class Script {
         this.properties = new ArrayList<ScriptProperty>();
     }
 
-    public Object invoke(String name, Object...args) {
+    public Object invoke(String name, Object... args) {
         try {
             return invocable.invokeFunction(name, args);
         } catch (Exception e) {

@@ -15,5 +15,5 @@ void main(void) {
 
 	out_colour += texture2D(originalTexture, blur[3]);
 	out_colour += texture2D(originalTexture, blur[4]);
-	out_colour /= 5;
+	out_colour *= 0.2;
 }

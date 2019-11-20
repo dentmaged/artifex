@@ -48,6 +48,7 @@ public class LivingComponent implements IComponent {
     public int selectedIndex;
 
     protected boolean voluntaryJump, gravityStep;
+    protected boolean canShoot;
 
     protected Entity entity;
     protected Matrix4f viewMatrix = new Matrix4f();
@@ -79,7 +80,7 @@ public class LivingComponent implements IComponent {
     public void precache(Entity entity) {
         this.entity = entity;
 
-        weapons = new Weapon[] { new Gun(entity, new CrossbowData()), new Gun(entity, new ShotgunData()), };
+        weapons = new Weapon[] { new Gun(entity, new CrossbowData(), canShoot), new Gun(entity, new ShotgunData(), canShoot), };
 
         listeners.add(new PhysicsTouchListener() {
 
@@ -253,12 +254,12 @@ public class LivingComponent implements IComponent {
         if (health <= 0) {
             health = 0;
             Scheduler.schedule(new ScheduledRunnable() {
-                
+
                 @Override
                 public void tick(float time, float percentage) {
-                    
+
                 }
-                
+
                 @Override
                 public void finish() {
                     health = 100;

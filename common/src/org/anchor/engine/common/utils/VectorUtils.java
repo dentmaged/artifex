@@ -23,6 +23,10 @@ public class VectorUtils {
         return (float) Math.sqrt(vector.x * vector.x + vector.z * vector.z);
     }
 
+    public static Vector3f pow(Vector3f a, float b) {
+        return new Vector3f(Mathf.pow(a.x, b), Mathf.pow(a.y, b), Mathf.pow(a.z, b));
+    }
+
     public static Vector3f mul(Vector3f v, Vector3f b) {
         return new Vector3f(v.x * b.x, v.y * b.y, v.z * b.z);
     }

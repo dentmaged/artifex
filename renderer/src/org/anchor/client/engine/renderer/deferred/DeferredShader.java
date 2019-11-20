@@ -60,13 +60,13 @@ public class DeferredShader extends Shader {
                     v.w += 3;
 
                 loadVector("lightPosition[" + i + "]", v);
-                loadVector("lightColour[" + i + "]", light.getColour());
+                loadVector("lightColour[" + i + "]", light.getColour(), light.getMinRoughness());
                 loadVector("attenuation[" + i + "]", light.getAttenuation());
                 loadAs3DVector("lightDirection[" + i + "]", Matrix4f.transform(viewMatrix, new Vector4f(direction.x, direction.y, direction.z, 0), null));
                 loadVector("lightCutoff[" + i + "]", Mathf.cos(Mathf.toRadians(light.getCutoff())), Mathf.cos(Mathf.toRadians(light.getOuterCutoff()))); // performance
             } else {
                 loadVector("lightPosition[" + i + "]", 0, 0, 0, 0);
-                loadVector("lightColour[" + i + "]", 0, 0, 0);
+                loadVector("lightColour[" + i + "]", 0, 0, 0, 0);
                 loadVector("attenuation[" + i + "]", 1, 0, 0);
                 loadVector("lightDirection[" + i + "]", 0, -1, 0);
                 loadVector("lightCutoff[" + i + "]", 35, 45);

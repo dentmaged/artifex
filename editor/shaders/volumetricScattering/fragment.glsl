@@ -38,11 +38,12 @@ void main(void) {
 
 	float distance = length(viewPosition);
 	vec3 normal = texture2D(normal, tc).xyz;
-	if (distance > 1000 || (normal.x == 1 && normal.y == 1 && normal.z == 1))
-		discard;
+	if (distance > 3250 || (normal.x == 1 && normal.y == 1 && normal.z == 1)) {
+		out_colour = vec4(0);
+		return;
+	}
 
 	vec3 unitDirection = viewPosition / distance;
-
 	float stepLength = distance / steps;
 	vec3 step = unitDirection * stepLength;
 

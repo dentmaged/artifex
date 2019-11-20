@@ -43,6 +43,7 @@ import org.anchor.engine.shared.editor.TransformableObject;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.scheduler.ScheduledRunnable;
 import org.anchor.engine.shared.scheduler.Scheduler;
+import org.anchor.game.client.GameClient;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.loaders.AssetLoader;
@@ -58,6 +59,7 @@ public class Window {
     private JFrame frmEditor;
     private JTabbedPane tabbedPane;
 
+    private JMenuBar menuBar;
     private JMenu mnView;
     private Map<String, JCheckBoxMenuItem> items = new HashMap<String, JCheckBoxMenuItem>();
 
@@ -128,7 +130,7 @@ public class Window {
         });
         frmEditor.getContentPane().setLayout(null);
 
-        JMenuBar menuBar = new JMenuBar();
+        menuBar = new JMenuBar();
         menuBar.setBounds(0, 0, 1904, 21);
         frmEditor.getContentPane().add(menuBar);
 
@@ -384,6 +386,29 @@ public class Window {
 
         });
         mnTools.add(mntmRefreshParticles);
+
+        JMenuItem mntmRefreshSkyAmbientLighting = new JMenuItem("Reload Sky Ambient Lighting");
+        mntmRefreshSkyAmbientLighting.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Scheduler.schedule(new ScheduledRunnable() {
+
+                    @Override
+                    public void tick(float time, float percentage) {
+
+                    }
+
+                    @Override
+                    public void finish() {
+                        GameClient.getSky().refreshAmbientLighting();
+                    }
+
+                }, 0);
+            }
+
+        });
+        mnTools.add(mntmRefreshSkyAmbientLighting);
 
         mnView = new JMenu("View");
         mnView.setMnemonic('V');
@@ -718,6 +743,13 @@ public class Window {
 
         items.put(frame.getTitle().toLowerCase(), mntm);
         mnView.add(mntm);
+    }
+
+    public void registerMenu(JMenu menu) {
+        menuBar.add(menu);
+
+        menu.revalidate();
+        menu.repaint();
     }
 
     private void setAccelerator(JMenuItem item, int lwjglKey, int mask) {

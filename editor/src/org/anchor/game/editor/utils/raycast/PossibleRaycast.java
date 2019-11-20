@@ -16,7 +16,7 @@ public class PossibleRaycast {
     public TransformableObject getObject() {
         return object;
     }
-    
+
     public AABB getAABB() {
         return aabb;
     }

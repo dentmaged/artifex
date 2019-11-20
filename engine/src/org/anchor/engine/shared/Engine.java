@@ -11,21 +11,14 @@ import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.terrain.Terrain;
 import org.anchor.engine.shared.utils.EntityRaycast;
 import org.anchor.engine.shared.utils.Layer;
-import org.anchor.engine.shared.utils.Side;
 import org.lwjgl.util.vector.Vector3f;
 
 public class Engine {
-
-    private static Side side;
 
     public static Scene scene;
     public static EventBus bus = new EventBus();
 
     public static int PROTOCOL_VERSION = 1;
-
-    public static void init(Side side) {
-        Engine.side = side;
-    }
 
     public static Scene getScene() {
         return scene;
@@ -109,10 +102,6 @@ public class Engine {
         }
 
         return new EntityRaycast(closest, distance, ray, origin);
-    }
-
-    public static boolean isClientSide() {
-        return side == Side.CLIENT;
     }
 
 }

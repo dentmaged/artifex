@@ -3,6 +3,7 @@ package org.anchor.engine.common.utils;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Scanner;
 
@@ -36,19 +37,10 @@ public class FileHelper {
         return new File(new File(game, parent), child + File.separator + grandchild);
     }
 
-    public static String read(File file) {
-        return read(VirtualFileSystem.find(file));
-    }
-
-    public static String read(IFile file) {
+    public static String read(InputStream stream) {
         try {
-            if (!file.exists()) {
-                Log.warning("File not found: " + file.getName() + " (" + file.getAbsolutePath() + ")");
-                return "";
-            }
-
             StringBuilder builder = new StringBuilder();
-            Scanner scanner = new Scanner(file.openInputStream());
+            Scanner scanner = new Scanner(stream);
 
             while (scanner.hasNextLine())
                 builder.append(scanner.nextLine()).append("\n");
@@ -60,6 +52,19 @@ public class FileHelper {
         }
 
         return "";
+    }
+
+    public static String read(File file) {
+        return read(VirtualFileSystem.find(file));
+    }
+
+    public static String read(IFile file) {
+        if (!file.exists()) {
+            Log.warning("File not found: " + file.getName() + " (" + file.getAbsolutePath() + ")");
+            return "";
+        }
+
+        return read(file.openInputStream());
     }
 
     public static void write(File file, String text) {

@@ -15,6 +15,7 @@ import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.Shader;
 import org.anchor.client.engine.renderer.bloom.Bloom;
+import org.anchor.client.engine.renderer.clear.ClearColour;
 import org.anchor.client.engine.renderer.debug.DebugRenderer;
 import org.anchor.client.engine.renderer.deferred.DeferredShading;
 import org.anchor.client.engine.renderer.fog.Fog;
@@ -26,7 +27,6 @@ import org.anchor.client.engine.renderer.fxaa.FXAA;
 import org.anchor.client.engine.renderer.ibl.IBL;
 import org.anchor.client.engine.renderer.keyboard.Binds;
 import org.anchor.client.engine.renderer.keyboard.KeyboardUtils;
-import org.anchor.client.engine.renderer.keyboard.Keys;
 import org.anchor.client.engine.renderer.keyboard.RunCommandCallback;
 import org.anchor.client.engine.renderer.shadows.Shadows;
 import org.anchor.client.engine.renderer.types.cubemap.BakedCubemap;
@@ -37,6 +37,7 @@ import org.anchor.client.engine.renderer.vignette.Vignette;
 import org.anchor.client.engine.renderer.volumetrics.scattering.VolumetricScattering;
 import org.anchor.engine.common.Log;
 import org.anchor.engine.common.utils.AABB;
+import org.anchor.engine.common.utils.Mathf;
 import org.anchor.engine.common.vfs.VirtualFileSystem;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.IInteractable;
@@ -50,7 +51,6 @@ import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.physics.PhysicsEngine;
 import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scheduler.Scheduler;
-import org.anchor.engine.shared.utils.Side;
 import org.anchor.engine.shared.utils.TerrainRaycast;
 import org.anchor.engine.shared.utils.TerrainUtils;
 import org.anchor.game.client.ClientGameCommands;
@@ -65,6 +65,7 @@ import org.anchor.game.client.components.LightComponent;
 import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ParticleSystemComponent;
+import org.anchor.game.client.components.PostProcessVolumeComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.components.SunComponent;
@@ -77,6 +78,7 @@ import org.anchor.game.client.shaders.NormalShader;
 import org.anchor.game.client.shaders.SkyShader;
 import org.anchor.game.client.shaders.SkyTextureShader;
 import org.anchor.game.client.shaders.StaticShader;
+import org.anchor.game.client.shaders.WaterShader;
 import org.anchor.game.client.storage.GameMap;
 import org.anchor.game.client.types.ClientScene;
 import org.anchor.game.client.types.ClientTerrain;
@@ -109,6 +111,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 public class GameEditor extends Game {
 
+    protected ClearColour clearColour;
     protected FXAA fxaa;
     protected Bloom bloom;
     protected VolumetricScattering volumetricScattering;
@@ -167,7 +170,6 @@ public class GameEditor extends Game {
             for (int i = 0; i < 10; i++)
                 Log.warning("Add -Dsun.java2d.d3d=false to your launch arguments or set the environment variable J2D_D3D to false in order to stop UI rendering bugs!");
 
-        Engine.init(Side.CLIENT);
         Engine.bus.registerEvents(new RedirectListener());
         Engine.bus.registerEvents(new EditorListener());
         Graphics.init();
@@ -183,6 +185,7 @@ public class GameEditor extends Game {
 
         });
 
+        clearColour = new ClearColour();
         fxaa = new FXAA();
         deferred = new DeferredShading();
         ibl = new IBL(deferred);
@@ -203,6 +206,7 @@ public class GameEditor extends Game {
 
         physics = new PhysicsEngine();
         ClientGameVariables.init();
+        EngineGameVariables.sv_cheats.setValue(true);
         ClientGameCommands.init();
         EngineGameCommands.init();
         GameClient.runCommand("exec autoexec");
@@ -213,6 +217,7 @@ public class GameEditor extends Game {
         SkyShader.getInstance();
         SkyTextureShader.getInstance();
         NormalShader.getInstance();
+        WaterShader.getInstance();
         StaticShader.getInstance();
         ForwardStaticShader.getInstance();
         BakedCubemap.getShader("irradianceConvolution");
@@ -363,6 +368,34 @@ public class GameEditor extends Game {
         Profiler.start("Scene Update");
         player.update();
         scene.update();
+
+        {
+            currentPostProcessVolume = null;
+            float currentSize = Float.MAX_VALUE;
+            Vector3f eye = livingComponent.getEyePosition();
+
+            for (PostProcessVolumeComponent volume : scene.getComponents(PostProcessVolumeComponent.class)) {
+                AABB aabb = volume.getAABB();
+                if (aabb.inside(eye)) {
+                    boolean water = volume.isWaterPostProcess();
+                    if (water || aabb.getFurthest() < currentSize) {
+                        currentPostProcessVolume = volume;
+                        if (water)
+                            break;
+
+                        currentSize = aabb.getFurthest();
+                    }
+                }
+            }
+
+            if (currentPostProcessVolume != null) {
+                Settings.clearR = Mathf.pow(currentPostProcessVolume.fogColour.x, 2.2f);
+                Settings.clearG = Mathf.pow(currentPostProcessVolume.fogColour.y, 2.2f);
+                Settings.clearB = Mathf.pow(currentPostProcessVolume.fogColour.z, 2.2f);
+            } else {
+                Settings.clearR = Settings.clearG = Settings.clearB = 0;
+            }
+        }
         Profiler.end("Scene Update");
 
         Profiler.start("Editor");
@@ -460,9 +493,11 @@ public class GameEditor extends Game {
         Profiler.end("Shadows (Full)");
 
         deferred.start();
-        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
-        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
+        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+        clearColour.perform();
         GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_BACK);
 
         if (ClientGameVariables.r_wireframe.getValueAsBool())
             GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
@@ -483,6 +518,9 @@ public class GameEditor extends Game {
         scene.renderBlending();
         ParticleRenderer.render(scene.getComponents(ParticleSystemComponent.class));
 
+        deferred.water();
+        scene.renderWater();
+
         if (!game) {
             if (renderEveryAABB) {
                 for (Entity entity : scene.getEntities())
@@ -492,7 +530,9 @@ public class GameEditor extends Game {
             }
 
             if (editor.getSelectedObjects().size() > 0) {
+                GL11.glDisable(GL11.GL_CULL_FACE);
                 gizmo.render();
+                GL11.glEnable(GL11.GL_CULL_FACE);
                 if (!renderEveryAABB) {
                     for (TransformableObject object : editor.getSelectedObjects())
                         if (object instanceof Entity)
@@ -501,10 +541,17 @@ public class GameEditor extends Game {
                             aabb.render(object.getPosition(), ((EditableMesh) object).getAABB());
                 }
 
-                for (TransformableObject object : editor.getSelectedObjects())
-                    if (object instanceof Entity)
-                        if (((Entity) object).getComponent(ReflectionProbeComponent.class) != null)
-                            DebugRenderer.box(livingComponent.getViewMatrix(), ((Entity) object).getPosition(), new Vector3f(), ((Entity) object).getScale(), new Vector3f(1, 0, 0));
+                for (TransformableObject object : editor.getSelectedObjects()) {
+                    if (object instanceof Entity) {
+                        Entity entity = (Entity) object;
+                        if (entity.hasComponent(ReflectionProbeComponent.class))
+                            DebugRenderer.box(livingComponent.getViewMatrix(), entity.getPosition(), new Vector3f(), entity.getScale(), new Vector3f(1, 0, 0));
+                        else if (entity.hasComponent(LightProbeComponent.class))
+                            DebugRenderer.box(livingComponent.getViewMatrix(), entity.getPosition(), new Vector3f(), entity.getScale(), new Vector3f(0, 1, 0));
+                        else if (entity.hasComponent(PostProcessVolumeComponent.class))
+                            DebugRenderer.box(livingComponent.getViewMatrix(), entity.getPosition(), new Vector3f(), entity.getScale(), new Vector3f(0, 0, 1));
+                    }
+                }
 
                 for (TransformableObject object : editor.getSelectedObjects()) {
                     if (!(object instanceof Entity))
@@ -537,7 +584,7 @@ public class GameEditor extends Game {
         ibl.perform(livingComponent.getViewMatrix(), livingComponent.getInverseViewMatrix(), sky.getIrradiance(), sky.getPrefilter(), reflectionProbes, lightProbes);
 
         deferred.fog();
-        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), sky.baseColour, lightComponent, livingComponent.getViewMatrix());
+        fog.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), currentPostProcessVolume, lightComponent, livingComponent.getViewMatrix());
 
         deferred.output();
         Profiler.end("Scene");
@@ -545,18 +592,18 @@ public class GameEditor extends Game {
         Profiler.start("Post processing");
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         bloom.perform(deferred.getOutputFBO().getColourTexture(), deferred.getOtherFBO().getColourTexture(), deferred.getOutputFBO().getColourTexture());
-        volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows);
-        fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        if (currentPostProcessVolume != null && currentPostProcessVolume.volumetric) {
+            volumetricScattering.perform(bloom.getOutputFBO().getColourTexture(), deferred.getOutputFBO().getDepthTexture(), bloom.getExposureTexture(), deferred.getNormalFBO().getColourTexture(), getLights(), livingComponent.getViewMatrix(), shadows, currentPostProcessVolume.gScattering);
+            fxaa.perform(volumetricScattering.getOutputFBO().getColourTexture());
+        } else {
+            fxaa.perform(bloom.getOutputFBO().getColourTexture());
+        }
         vignette.perform(fxaa.getOutputFBO().getColourTexture());
 
         GL11.glEnable(GL11.GL_BLEND);
         GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        String keys = "";
-        keys = Keys.isKeyPressed("do") + "";
-        // for (int key : KeyboardUtils.getKeysPressed())
-        // keys += Keyboard.getKeyName(key);
-        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls + "\nKeys: " + keys);
+        trianglesDrawn.setText("Triangles Drawn: " + Renderer.triangleCount + " " + "\nDraw calls: " + Renderer.drawCalls);
         FontRenderer.render(trianglesDrawn);
 
         GL11.glDisable(GL11.GL_BLEND);
@@ -613,7 +660,7 @@ public class GameEditor extends Game {
         shadows = new Shadows(lightComponent);
 
         Entity skydome = new Entity(MeshComponent.class, SkyComponent.class);
-        skydome.setValue("model", "core/skybox");
+        skydome.setValue("model", "core/skydome");
         skydome.spawn();
 
         skydome.setHidden(true);
@@ -867,6 +914,7 @@ public class GameEditor extends Game {
     public static void create() {
         if (getInstance() == null) {
             ClientGameVariables.init();
+            EngineGameVariables.sv_cheats.setValue(true);
             LevelEditor editor = new LevelEditor();
             Window.getInstance().addTab("Untitled", editor);
             new Thread(new Runnable() {
@@ -908,6 +956,7 @@ public class GameEditor extends Game {
             }
 
             ClientGameVariables.init();
+            EngineGameVariables.sv_cheats.setValue(true);
             LevelEditor editor = new LevelEditor();
             Window.getInstance().addTab(GameEditor.chooser.getSelectedFile().getName(), editor);
 

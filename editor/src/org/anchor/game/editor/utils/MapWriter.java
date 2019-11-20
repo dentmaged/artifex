@@ -40,7 +40,7 @@ public class MapWriter {
 
                 text += layer.getName() + "@" + layer.getColour().getRed() + "@" + layer.getColour().getGreen() + "@" + layer.getColour().getBlue() + "@" + layer.isPickable() + "@" + layer.isVisible() + "@" + GameMap.SUBPARTS;
             }
-            text += GameMap.PARTS + Settings.density + GameMap.SUBPARTS + Settings.gradient + GameMap.PARTS + Settings.proceduralSky + GameMap.SUBPARTS + Settings.skybox;
+            text += GameMap.PARTS + "unused" + GameMap.PARTS + Settings.proceduralSky + GameMap.SUBPARTS + Settings.sky;
             text += "\n";
 
             for (Entity entity : scene.getEntities()) {
@@ -75,7 +75,7 @@ public class MapWriter {
                 }
                 text = text.substring(0, text.length() - 1) + "\n";
             }
-            
+
             for (EditableMesh editableMesh : GameEditor.getInstance().getEditableMeshes()) {
                 // key-values
                 text += "model:virt/" + editableMesh.resourceName + GameMap.SUBPARTS;

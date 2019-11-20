@@ -74,7 +74,7 @@ public class Shadows {
     }
 
     public void finish() {
-        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
+        shadowFBOs[shadowFBOs.length - 1].unbindFramebuffer();
     }
 
     public Matrix4f getToShadowMapSpaceMatrix(int shadow) {

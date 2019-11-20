@@ -9,7 +9,10 @@ public class RenderSettings {
         if (key.equals("Wireframe"))
             ClientGameVariables.r_wireframe.setValue(value);
 
-        if (key.equals("Procedural Skybox"))
+        if (key.equals("Sky"))
+            Settings.sky = value;
+
+        if (key.equals("Procedural Sky"))
             Settings.proceduralSky = parseBoolean(value);
 
         if (key.equals("Perform Lighting"))
@@ -21,12 +24,6 @@ public class RenderSettings {
         if (key.equals("Show Lightmaps"))
             ClientGameVariables.r_showLightmaps.setValue(value);
 
-        if (key.equals("Fog Density"))
-            Settings.density = parseFloat(value);
-
-        if (key.equals("Fog Gradient"))
-            Settings.gradient = parseFloat(value);
-
         if (key.equals("Exposure Speed"))
             Settings.exposureSpeed = parseFloat(value);
 
@@ -35,9 +32,6 @@ public class RenderSettings {
 
         if (key.equals("SSAO Radius"))
             Settings.ssaoRadius = parseFloat(value);
-
-        if (key.equals("Volumetric Scattering"))
-            Settings.volumetricScattering = parseFloat(value);
 
         if (key.equals("Ambient Strength"))
             Settings.ambientScale = parseFloat(value);

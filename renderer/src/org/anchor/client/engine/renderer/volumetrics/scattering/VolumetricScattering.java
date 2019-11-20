@@ -30,28 +30,29 @@ public class VolumetricScattering {
         blur.setShader(SSAOBlurShader.getInstance());
     }
 
-    public void perform(int scene, int depthMap, int exposure, int normal, List<Light> lights, Matrix4f viewMatrix, Shadows shadows) {
+    public void perform(int scene, int depthMap, int exposure, int normal, List<Light> lights, Matrix4f viewMatrix, Shadows shadows, float gScattering) {
+        GL11.glDisable(GL11.GL_CULL_FACE);
         calculationFBO.bindFramebuffer();
         shader.start();
         QuadRenderer.bind();
 
-        GL40.glBlendFunci(0, GL11.GL_ONE, GL11.GL_ONE);
         GL11.glEnable(GL11.GL_BLEND);
+        GL40.glBlendFunci(0, GL11.GL_ONE, GL11.GL_ONE);
 
         Graphics.bind2DTexture(depthMap, 0);
         Graphics.bind2DTexture(shadows.getShadowMap(0), 1);
         Graphics.bind2DTexture(exposure, 2);
         Graphics.bind2DTexture(normal, 3);
 
+        GL11.glClearColor(0, 0, 0, 1);
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
         for (Light light : lights) {
             if (light.getVolumetricStrength() <= 0)
                 continue;
 
-            shader.loadInformation(light, viewMatrix, shadows.getToShadowMapSpaceMatrix(0));
+            shader.loadInformation(light, viewMatrix, shadows.getToShadowMapSpaceMatrix(0), gScattering);
             QuadRenderer.render();
         }
-
         GL11.glDisable(GL11.GL_BLEND);
 
         QuadRenderer.unbind();
@@ -65,13 +66,14 @@ public class VolumetricScattering {
 
         GUIRenderer.perform(scene);
 
-        GL40.glBlendFunci(0, GL11.GL_ONE, GL11.GL_ONE);
         GL11.glEnable(GL11.GL_BLEND);
+        GL40.glBlendFunci(0, GL11.GL_ONE, GL11.GL_ONE);
         GUIRenderer.perform(blur.getOutputFBO().getColourTexture());
         GL11.glDisable(GL11.GL_BLEND);
 
         QuadRenderer.unbind();
         outputFBO.unbindFramebuffer();
+        GL11.glEnable(GL11.GL_CULL_FACE);
     }
 
     public void shutdown() {

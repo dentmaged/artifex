@@ -76,15 +76,13 @@ public class ShadowFrustum {
             maxZ = Math.max(maxZ, point.z);
         }
 
-        minX = Mathf.roundTo(minX, worldUnitsPerTexel);
-        minY = Mathf.roundTo(minY, worldUnitsPerTexel);
-        minZ = Mathf.roundTo(minZ, worldUnitsPerTexel);
+        minX = Mathf.roundTo(minX - worldUnitsPerTexel - 10, worldUnitsPerTexel);
+        minY = Mathf.roundTo(minY - worldUnitsPerTexel - 10, worldUnitsPerTexel);
+        minZ = Mathf.roundTo(minZ - worldUnitsPerTexel - 10, worldUnitsPerTexel);
 
-        maxX = Mathf.roundTo(maxX, worldUnitsPerTexel);
-        maxY = Mathf.roundTo(maxY, worldUnitsPerTexel);
-        maxZ = Mathf.roundTo(maxZ, worldUnitsPerTexel) + 18;
-
-        // System.out.println(minX + " " + minY + " " + minZ + " " + maxX + " " + maxY + " " + maxZ);
+        maxX = Mathf.roundTo(maxX + worldUnitsPerTexel + 10, worldUnitsPerTexel);
+        maxY = Mathf.roundTo(maxY + worldUnitsPerTexel + 10, worldUnitsPerTexel);
+        maxZ = Mathf.roundTo(maxZ + worldUnitsPerTexel + 10, worldUnitsPerTexel);
     }
 
     public Vector3f getCenter() {

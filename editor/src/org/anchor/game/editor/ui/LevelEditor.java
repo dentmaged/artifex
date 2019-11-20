@@ -98,12 +98,15 @@ import org.anchor.game.client.app.AppManager;
 import org.anchor.game.client.async.Requester;
 import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.LightComponent;
+import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.ParticleSystemComponent;
+import org.anchor.game.client.components.PostProcessVolumeComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
 import org.anchor.game.client.components.SlidingDoorComponent;
 import org.anchor.game.client.components.SoundComponent;
 import org.anchor.game.client.components.SunComponent;
+import org.anchor.game.client.components.WaterComponent;
 import org.anchor.game.client.loaders.AssetLoader;
 import org.anchor.game.client.storage.PrefabReader;
 import org.anchor.game.client.types.ClientTerrain;
@@ -174,7 +177,7 @@ public class LevelEditor extends JPanel {
 
     protected boolean paint, terraform;
 
-    private static Class<?>[] COMPONENTS = new Class[] { MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ParticleSystemComponent.class, ReflectionProbeComponent.class, SunComponent.class, ScriptComponent.class };
+    private static Class<?>[] COMPONENTS = new Class[] { MeshComponent.class, LightComponent.class, PhysicsComponent.class, SoundComponent.class, SpawnComponent.class, SlidingDoorComponent.class, DecalComponent.class, ParticleSystemComponent.class, WaterComponent.class, LightProbeComponent.class, ReflectionProbeComponent.class, PostProcessVolumeComponent.class, SunComponent.class, ScriptComponent.class };
 
     private static TerrainBrush[] BRUSHES = new TerrainBrush[] { new IncreaseDecreaseHeightBrush(), new SetHeightBrush(), new SmoothBrush() };
 
@@ -1562,7 +1565,7 @@ public class LevelEditor extends JPanel {
 
         };
 
-        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] { { "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool() }, { "Procedural Skybox", Settings.proceduralSky }, { "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool() }, { "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool() }, { "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool() }, { "Fog Density", Settings.density }, { "Fog Gradient", Settings.gradient }, { "Exposure Speed", Settings.exposureSpeed }, { "SSAO Bias", Settings.ssaoBias }, { "SSAO Radius", Settings.ssaoRadius }, { "Volumetric Scattering", Settings.volumetricScattering }, { "Ambient Strength", Settings.ambientScale } }, new String[] { "Property", "Value" }) {
+        environmentPropertiesTable.setModel(new DefaultTableModel(new Object[][] { { "Wireframe", ClientGameVariables.r_wireframe.getValueAsBool() }, { "Sky", Settings.sky }, { "Procedural Sky", Settings.proceduralSky }, { "Perform Lighting", ClientGameVariables.r_performLighting.getValueAsBool() }, { "Perform SSAO", ClientGameVariables.r_performSSAO.getValueAsBool() }, { "Show Lightmaps", ClientGameVariables.r_showLightmaps.getValueAsBool() }, { "Exposure Speed", Settings.exposureSpeed }, { "SSAO Bias", Settings.ssaoBias }, { "SSAO Radius", Settings.ssaoRadius }, { "Ambient Strength", Settings.ambientScale } }, new String[] { "Property", "Value" }) {
 
             private static final long serialVersionUID = 3225320749175276075L;
 

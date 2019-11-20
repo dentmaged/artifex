@@ -1,6 +1,5 @@
 package org.anchor.client.engine.renderer.volumetrics.scattering;
 
-import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.Shader;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.anchor.client.engine.renderer.types.light.LightType;
@@ -27,7 +26,7 @@ public class VolumetricScatteringShader extends Shader {
         loadInt("normal", 3);
     }
 
-    public void loadInformation(Light light, Matrix4f viewMatrix, Matrix4f toShadowMapSpace) {
+    public void loadInformation(Light light, Matrix4f viewMatrix, Matrix4f toShadowMapSpace, float gScattering) {
         Vector3f position = light.getPosition();
         Vector3f direction = light.getDirection();
 
@@ -48,7 +47,7 @@ public class VolumetricScatteringShader extends Shader {
         loadVector("lightColour", light.getColour());
         loadVector("lightCutoff", Mathf.cos(Mathf.toRadians(light.getCutoff())), Mathf.cos(Mathf.toRadians(light.getOuterCutoff())));
         loadFloat("lightVolumetricStrength", light.getVolumetricStrength());
-        loadFloat("G_SCATTERING", Settings.volumetricScattering);
+        loadFloat("G_SCATTERING", gScattering);
 
         loadMatrix("toShadowMapSpace", toShadowMapSpace);
     }

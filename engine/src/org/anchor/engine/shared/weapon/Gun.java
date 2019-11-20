@@ -1,18 +1,19 @@
 package org.anchor.engine.shared.weapon;
 
-import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.entity.Entity;
 
 public class Gun extends Weapon {
 
     protected int ammo, reserveAmmo;
     protected long reloadStartTime;
+    protected boolean canShoot;
 
-    public Gun(Entity owner, GunData data) {
+    public Gun(Entity owner, GunData data, boolean canShoot) {
         super(owner, data);
 
         this.ammo = data.getAmmoPerClip();
         this.reserveAmmo = data.getReserveAmmo();
+        this.canShoot = canShoot;
     }
 
     @Override
@@ -33,7 +34,7 @@ public class Gun extends Weapon {
         ammo--;
         lastAttackTime = time;
 
-        if (!Engine.isClientSide())
+        if (canShoot)
             data.perform(this, owner);
 
         if (ammo == 0)

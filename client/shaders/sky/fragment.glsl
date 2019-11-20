@@ -1,6 +1,7 @@
 #version 330
 
 in vec3 pos;
+in vec2 tc;
 
 FS_OUT(diffuse)
 FS_OUT(other)
@@ -14,7 +15,6 @@ void main(void) {
 	Colour colour = getSkyColour(position);
 
 	out_diffuse = colour.diffuse;
-	out_diffuse.xyz *= 3;
 	out_other = vec4(0, 0, colour.emissive, 0);
 	out_albedo = colour.diffuse;
 }

@@ -10,12 +10,15 @@ import org.anchor.client.engine.renderer.Renderer;
 import org.anchor.client.engine.renderer.Settings;
 import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.client.engine.renderer.types.cubemap.CubemapFramebuffer;
+import org.anchor.engine.common.utils.VectorUtils;
 import org.anchor.engine.shared.Engine;
 import org.anchor.engine.shared.components.LivingComponent;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.game.client.components.LightProbeComponent;
 import org.anchor.game.client.components.MeshComponent;
+import org.anchor.game.client.components.PostProcessVolumeComponent;
 import org.anchor.game.client.components.ReflectionProbeComponent;
+import org.anchor.game.client.components.SkyComponent;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.SkyShader;
 import org.anchor.game.client.types.ClientScene;
@@ -90,6 +93,72 @@ public class CubemapGenerator {
 
                 Renderer.unbind(entry.getKey());
             }
+            shader.stop();
+        }
+
+        Settings.fov = fov;
+        Settings.width = Display.getWidth();
+        Settings.height = Display.getHeight();
+        Settings.bakedGeneration = false;
+        Renderer.refreshProjectionMatrix();
+        GL11.glClearColor(Settings.clearR, Settings.clearG, Settings.clearB, 1);
+
+        livingComponent.roll = 0f;
+        GameClient.getPlayer().getPosition().set(cameraPosition);
+        livingComponent.pitch = pitch;
+        livingComponent.yaw = yaw;
+        livingComponent.updateViewMatrix();
+    }
+
+    public static void generateSky(Entity sky) {
+        float fov = Settings.fov;
+        Vector3f cameraPosition = new Vector3f(GameClient.getPlayer().getPosition());
+
+        LivingComponent livingComponent = GameClient.getPlayer().getComponent(LivingComponent.class);
+        livingComponent.setEyePosition(sky.getPosition());
+        SkyComponent skyComponent = sky.getComponent(SkyComponent.class);
+        PostProcessVolumeComponent chosenPostProcessVolume = null;
+        for (PostProcessVolumeComponent postProcessVolumeComponent : Engine.getComponents(PostProcessVolumeComponent.class)) {
+            if (postProcessVolumeComponent.isWaterPostProcess())
+                continue;
+
+            chosenPostProcessVolume = postProcessVolumeComponent;
+        }
+
+        float pitch = livingComponent.pitch;
+        float yaw = livingComponent.yaw;
+
+        Settings.fov = 90;
+        Settings.width = Settings.reflectionProbeSize;
+        Settings.height = Settings.reflectionProbeSize;
+        Settings.bakedGeneration = true;
+        Renderer.refreshProjectionMatrix();
+
+        Vector3f fog = VectorUtils.pow(chosenPostProcessVolume != null && chosenPostProcessVolume.fog ? chosenPostProcessVolume.fogColour : skyComponent.baseColour, Settings.gamma);
+        GL11.glClearColor(fog.x, fog.y, fog.z, 1);
+
+        livingComponent.roll = 180;
+        MeshComponent mesh = sky.getComponent(MeshComponent.class);
+        CubemapFramebuffer cubemap = skyComponent.renderedSky;
+        cubemap.bindFramebuffer();
+
+        cubemap.startMipmapRender(0);
+        for (int i = 0; i < 6; i++) {
+            livingComponent.pitch = cubemap.getPitch(i);
+            livingComponent.yaw = cubemap.getYaw(i);
+            livingComponent.updateViewMatrix();
+
+            cubemap.startFaceRender(i);
+
+            ClientShader shader = SkyShader.getInstance();
+            shader.start();
+            Renderer.bind(mesh.model);
+
+            mesh.material.bind();
+            shader.loadEntitySpecificInformation(sky);
+            Renderer.render(mesh.model);
+
+            Renderer.unbind(mesh.model);
             shader.stop();
         }
 

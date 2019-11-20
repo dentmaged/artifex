@@ -15,14 +15,17 @@ import org.anchor.client.engine.renderer.types.Model;
 import org.anchor.engine.shared.entity.Entity;
 import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scene.Scene;
+import org.anchor.game.client.GameClient;
 import org.anchor.game.client.TerrainRenderer;
 import org.anchor.game.client.components.DecalComponent;
 import org.anchor.game.client.components.MeshComponent;
 import org.anchor.game.client.components.SkyComponent;
+import org.anchor.game.client.components.WaterComponent;
 import org.anchor.game.client.shaders.DecalShader;
 import org.anchor.game.client.shaders.ForwardStaticShader;
 import org.anchor.game.client.shaders.SkyShader;
 import org.anchor.game.client.shaders.SkyTextureShader;
+import org.anchor.game.client.shaders.WaterShader;
 import org.anchor.game.client.utils.FrustumCull;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -39,7 +42,7 @@ public class ClientScene extends Scene {
 
         for (Entity entity : getEntitiesWithComponent(MeshComponent.class)) {
             MeshComponent component = entity.getComponent(MeshComponent.class);
-            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || !component.visible || !entity.getLayer().isVisible() || component.shader == SkyTextureShader.getInstance())
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || entity.hasComponent(SkyComponent.class) || !component.visible || !entity.getLayer().isVisible() || component.shader == SkyTextureShader.getInstance() || component.shader == WaterShader.getInstance())
                 continue;
 
             if (!component.material.isBlendingEnabled()) {
@@ -152,6 +155,50 @@ public class ClientScene extends Scene {
         }
         GL11.glDisable(GL11.GL_BLEND);
         Profiler.end("Blending");
+    }
+
+    public void renderWater() {
+        Profiler.start("Water");
+        renderables.clear();
+
+        for (Entity entity : getEntitiesWithComponent(WaterComponent.class)) {
+            MeshComponent component = entity.getComponent(MeshComponent.class);
+            if (component.shader == null || component.model == null || !component.model.isLoaded() || !component.visible || !entity.getLayer().isVisible())
+                continue;
+
+            if (!FrustumCull.isVisible(entity))
+                continue;
+
+            if (!renderables.containsKey(component.model))
+                renderables.put(component.model, new ArrayList<Entity>());
+            renderables.get(component.model).add(entity);
+        }
+
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL40.glBlendFunci(0, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL40.glBlendFunci(3, GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        Graphics.bindColourTexture(GameClient.getSceneFramebuffer(), 0);
+        Graphics.bindDepthMap(GameClient.getSceneFramebuffer(), 1);
+
+        ClientShader shader = WaterShader.getInstance();
+        shader.start();
+        for (Entry<Model, List<Entity>> entry : renderables.entrySet()) {
+            Renderer.bind(entry.getKey());
+
+            for (Entity entity : entry.getValue()) {
+                shader.loadEntitySpecificInformation(entity);
+                Renderer.render(entry.getKey());
+            }
+
+            Renderer.unbind(entry.getKey());
+        }
+        shader.stop();
+
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        Profiler.end("Water");
     }
 
     public void forwardRender() {

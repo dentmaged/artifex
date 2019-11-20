@@ -73,18 +73,11 @@ public class GameMap {
                     }
                 }
 
-                if (parts.length > 2) {
-                    String[] fogSettings = parts[2].split(SUBPARTS);
-
-                    Settings.density = Float.parseFloat(fogSettings[0]);
-                    Settings.gradient = Float.parseFloat(fogSettings[1]);
-                }
-
                 if (parts.length > 3) {
                     String[] skySettings = parts[3].split(SUBPARTS);
 
                     Settings.proceduralSky = Boolean.parseBoolean(skySettings[0]);
-                    Settings.skybox = skySettings[1];
+                    Settings.sky = skySettings[1];
                 }
 
                 i++;
@@ -197,7 +190,7 @@ public class GameMap {
                         if (field != null)
                             field.set(component, RawParser.getInstance().decode(value, field.getType()));
                         else
-                            Log.error("Map load: field " + name + " (in component " + component.getClass().getSimpleName() + ") does not exist!");
+                            Log.warning("Map load: field " + name + " (in component " + component.getClass().getSimpleName() + ") does not exist!");
                     }
                 }
             }

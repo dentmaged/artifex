@@ -5,7 +5,6 @@ import org.anchor.client.engine.renderer.QuadRenderer;
 import org.anchor.client.engine.renderer.types.light.Light;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector3f;
 
 public class Fog {
 
@@ -15,11 +14,14 @@ public class Fog {
         shader = FogShader.getInstance();
     }
 
-    public void perform(int scene, int depthMap, Vector3f baseColour, Light sun, Matrix4f viewMatrix) {
+    public void perform(int scene, int depthMap, IFogManager fogManager, Light sun, Matrix4f viewMatrix) {
+        if (fogManager == null || !fogManager.isFogEnabled())
+            return;
+
         GL11.glDepthMask(false);
 
         shader.start();
-        shader.loadInformation(baseColour, sun.getDirection(), sun.getColour(), viewMatrix);
+        shader.loadInformation(fogManager, sun.getDirection(), sun.getColour(), viewMatrix);
         QuadRenderer.bind();
 
         Graphics.bind2DTexture(scene, 0);

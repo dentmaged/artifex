@@ -41,7 +41,6 @@ import org.anchor.engine.shared.profiler.Profiler;
 import org.anchor.engine.shared.scene.Scene;
 import org.anchor.engine.shared.scheduler.Scheduler;
 import org.anchor.engine.shared.terrain.Terrain;
-import org.anchor.engine.shared.utils.Side;
 import org.anchor.game.server.components.ServerInputComponent;
 import org.anchor.game.server.components.ServerThreadComponent;
 import org.anchor.game.server.events.ServerListener;
@@ -65,7 +64,6 @@ public class GameServer extends App implements IPacketHandler {
 
     @Override
     public void init() {
-        Engine.init(Side.SERVER);
         Engine.bus.registerEvents(new ServerListener());
         CorePacketManager.register();
         server = new Server(this, Settings.ip, Settings.port);
